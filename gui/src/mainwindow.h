@@ -2,16 +2,18 @@
 
 #include <QMainWindow>
 
-#include "hwmonclient.h"
+class Sidebar;
+class PageContainer;
+class DashboardPage;
+class CoolingPage;
+class DevicePage;
+class AboutPage;
 
-class HardwareCard;
-class StatusPanel;
-class QLabel;
-class QStackedWidget;
-
-// Premium, read-only EXCALIBUR G870 control-center UI (Qt6 Widgets).
-// Presentation only; telemetry comes exclusively from HwmonClient (hwmon/sysfs).
-// No root, no WMI/ACPI/EC access, no hardware writes.
+// EXCALIBUR Control Center application shell: a persistent navigation rail and
+// a content area that swaps product pages with a restrained transition.
+//
+// Presentation only. Telemetry is supplied by the read-only hwmon backend; this
+// window never talks to WMI/ACPI/EC and performs no privileged access.
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -19,30 +21,17 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
 
-private slots:
-    void refresh();
+    // Test hook: render the current page headlessly / take a screenshot.
+    void showPage(int index);
 
 private:
     void buildUi();
-    QWidget *buildColumn();
-    QWidget *buildHeader();
-    QWidget *buildCenter();
-    QWidget *buildStatusSection();
-    QWidget *buildFooter();
-    QWidget *buildEmptyState();
 
-    HwmonClient m_client;
+    Sidebar *m_sidebar = nullptr;
+    PageContainer *m_pages = nullptr;
 
-    // Header
-    QLabel *m_statusDot = nullptr;
-    QLabel *m_statusText = nullptr;
-    QLabel *m_headerMeta = nullptr;
-
-    // Telemetry
-    HardwareCard *m_cpuCard = nullptr;
-    HardwareCard *m_gpuCard = nullptr;
-    QStackedWidget *m_center = nullptr;
-
-    // Status
-    StatusPanel *m_statusPanel = nullptr;
+    DashboardPage *m_dashboard = nullptr;
+    CoolingPage *m_cooling = nullptr;
+    DevicePage *m_device = nullptr;
+    AboutPage *m_about = nullptr;
 };

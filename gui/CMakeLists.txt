@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(excalibur-control-center
     VERSION 0.1.0
-    DESCRIPTION "Read-only EXCALIBUR G870 telemetry GUI (Qt6 Widgets)"
+    DESCRIPTION "EXCALIBUR G870 Control Center (Qt6 Widgets)"
     LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -18,14 +18,24 @@ add_executable(excalibur-control-center
     src/hwmonclient.h
     src/mainwindow.cpp
     src/mainwindow.h
-    src/hardwarecard.cpp
-    src/hardwarecard.h
-    src/statuspanel.cpp
-    src/statuspanel.h
-    src/thermalindicator.cpp
-    src/thermalindicator.h
-    src/theme.h
+    src/theme/theme.cpp
+    src/theme/theme.h
+    src/navigation/sidebar.cpp
+    src/navigation/sidebar.h
+    src/navigation/pagecontainer.cpp
+    src/navigation/pagecontainer.h
+    src/pages/dashboardpage.cpp
+    src/pages/dashboardpage.h
+    src/pages/coolingpage.cpp
+    src/pages/coolingpage.h
+    src/pages/devicepage.cpp
+    src/pages/devicepage.h
+    src/pages/aboutpage.cpp
+    src/pages/aboutpage.h
+    src/pages/pageutils.h
 )
+
+target_include_directories(excalibur-control-center PRIVATE src)
 
 target_link_libraries(excalibur-control-center PRIVATE Qt6::Widgets)
 
