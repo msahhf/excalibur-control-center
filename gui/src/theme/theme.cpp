@@ -37,6 +37,8 @@ const QColor kWarningDark = col("#E0A33E");
 const QColor kWarningLight = col("#B0751A");
 const QColor kCriticalDark = col("#E5484D");
 const QColor kCriticalLight = col("#D33A3A");
+const QColor kCoolDark = col("#4FB0E6");
+const QColor kCoolLight = col("#2A87C4");
 
 } // namespace
 
@@ -63,6 +65,7 @@ QColor accent() { return isDark() ? kAccentDark : kAccentLight; }
 QColor success() { return isDark() ? kSuccessDark : kSuccessLight; }
 QColor warning() { return isDark() ? kWarningDark : kWarningLight; }
 QColor critical() { return isDark() ? kCriticalDark : kCriticalLight; }
+QColor cool() { return isDark() ? kCoolDark : kCoolLight; }
 
 QFont font(int pointSize, QFont::Weight weight, int letterSpacing)
 {
