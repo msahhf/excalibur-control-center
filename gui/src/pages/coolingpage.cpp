@@ -118,9 +118,7 @@ QString relationText(const QVector<HistorySample> &h, bool cpu)
 CoolingPage::CoolingPage(QWidget *parent)
     : QWidget(parent)
 {
-    auto *root = new QVBoxLayout(this);
-    root->setContentsMargins(Theme::Space::XXL, Theme::Space::XL, Theme::Space::XXL, Theme::Space::XL);
-    root->setSpacing(Theme::Space::L);
+    auto *root = PageUtils::makeCenteredColumn(this);
 
     root->addWidget(PageUtils::pageTitle(QStringLiteral("Cooling")));
     root->addWidget(PageUtils::pageSubtitle(

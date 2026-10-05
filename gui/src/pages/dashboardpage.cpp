@@ -31,9 +31,7 @@ QVector<SparkPoint> tempPoints(const QVector<HistorySample> &history, bool cpu)
 DashboardPage::DashboardPage(QWidget *parent)
     : QWidget(parent)
 {
-    auto *root = new QVBoxLayout(this);
-    root->setContentsMargins(Theme::Space::XXL, Theme::Space::XL, Theme::Space::XXL, Theme::Space::XL);
-    root->setSpacing(Theme::Space::L);
+    auto *root = PageUtils::makeCenteredColumn(this);
 
     root->addWidget(PageUtils::pageTitle(QStringLiteral("Dashboard")));
     root->addWidget(PageUtils::pageSubtitle(

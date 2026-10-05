@@ -89,13 +89,20 @@ Power mode, keyboard RGB, fan boost, manual fan control — intentionally absent
 ## Dev-only hooks (not part of the shipped app)
 
 `--once`, `--screenshot`, `--shot-delay`, `--page` and `--size` exist only for automated
-validation. They are compiled in **only** when the CMake option `EXCALIBUR_DEV_HOOKS` is ON
-(the development default). Release/packaging builds must pass:
+validation. They are **off by default** — a normal `cmake` configure builds the app with no
+dev hooks compiled in. To enable them for development or screenshots:
 
 ```sh
-cmake -S gui -B gui/build -G Ninja -DEXCALIBUR_DEV_HOOKS=OFF
+cmake -S gui -B gui/build -G Ninja -DEXCALIBUR_DEV_HOOKS=ON
+cmake --build gui/build
 ```
 
-With `EXCALIBUR_DEV_HOOKS=OFF` these flags are removed entirely and a normal launch never
-runs them. `--light`/`--dark` remain because they are a real theme feature. No dev hook is
-visible in the UI.
+With the default `EXCALIBUR_DEV_HOOKS=OFF` these flags are removed entirely and a normal
+launch never runs them (verified: `--once` is ignored and the GUI starts). `--light`/`--dark`
+remain because they are a real theme feature. No dev hook is visible in the UI.
+
+Example (dev build):
+
+```sh
+./gui/build/excalibur-control-center --screenshot shot.png --page 1 --size 1000x650
+```
