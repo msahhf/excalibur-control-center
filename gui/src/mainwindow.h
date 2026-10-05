@@ -9,6 +9,7 @@ class CoolingPage;
 class DevicePage;
 class AboutPage;
 class TelemetryModel;
+class QSystemTrayIcon;
 
 // EXCALIBUR Control Center application shell: a persistent navigation rail and
 // a content area that swaps product pages with a restrained transition.
@@ -22,11 +23,20 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
 
-    // Test hook: render the current page headlessly / take a screenshot.
+    // Test hook: select a page headlessly (dev builds).
     void showPage(int index);
+
+    // One-shot startup animation (fade + sidebar slide + dashboard stagger).
+    void playIntro();
+
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
+    void showEvent(QShowEvent *event) override;
 
 private:
     void buildUi();
+    void setupTray();
+    void gotoPage(int index);
 
     Sidebar *m_sidebar = nullptr;
     PageContainer *m_pages = nullptr;
@@ -37,4 +47,6 @@ private:
     CoolingPage *m_cooling = nullptr;
     DevicePage *m_device = nullptr;
     AboutPage *m_about = nullptr;
+
+    QSystemTrayIcon *m_tray = nullptr;
 };

@@ -17,6 +17,7 @@ public:
     int addPage(QWidget *page);
     void setCurrentIndex(int index);
     int currentIndex() const;
+    int count() const;
 
 private:
     QStackedWidget *m_stack = nullptr;

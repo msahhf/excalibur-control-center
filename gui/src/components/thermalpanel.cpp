@@ -20,6 +20,10 @@ ThermalPanel::ThermalPanel(QWidget *parent)
     m_gpu = new HardwareModule(QStringLiteral("GPU"), this);
     row->addWidget(m_cpu, 1);
     row->addWidget(m_gpu, 1);
+
+    // Cap the panel height so tall windows do not open up large empty areas
+    // inside the modules; leftover space stays outside the panel.
+    setMaximumHeight(300);
 }
 
 void ThermalPanel::paintEvent(QPaintEvent *)

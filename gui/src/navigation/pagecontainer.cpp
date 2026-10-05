@@ -63,6 +63,11 @@ int PageContainer::currentIndex() const
     return m_current;
 }
 
+int PageContainer::count() const
+{
+    return m_stack->count();
+}
+
 void PageContainer::setCurrentIndex(int index)
 {
     if (index < 0 || index >= m_stack->count() || index == m_current)

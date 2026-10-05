@@ -1,5 +1,6 @@
 #include "devicepage.h"
 
+#include "components/actionbutton.h"
 #include "pageutils.h"
 #include "theme/theme.h"
 
@@ -10,7 +11,6 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPaintEvent>
-#include <QPushButton>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -173,19 +173,8 @@ DevicePage::DevicePage(QWidget *parent)
     root->addWidget(telGroup);
 
     // Copy diagnostics action.
-    m_copy = new QPushButton(QStringLiteral("Copy diagnostics"));
-    m_copy->setCursor(Qt::PointingHandCursor);
-    m_copy->setFont(Theme::font(11, QFont::Medium));
-    m_copy->setStyleSheet(QStringLiteral(
-                              "QPushButton{background:%1;color:%2;border:1px solid %3;"
-                              "border-radius:8px;padding:8px 16px;}"
-                              "QPushButton:hover{background:%4;}"
-                              "QPushButton:pressed{background:%1;}")
-                              .arg(Theme::surfaceElevated().name(),
-                                   Theme::textPrimary().name(),
-                                   Theme::border().name(),
-                                   Theme::surfaceHover().name()));
-    connect(m_copy, &QPushButton::clicked, this, &DevicePage::copyDiagnostics);
+    m_copy = new ActionButton(QStringLiteral("Copy diagnostics"));
+    connect(m_copy, &ActionButton::clicked, this, &DevicePage::copyDiagnostics);
     root->addWidget(m_copy, 0, Qt::AlignLeft);
     root->addStretch(1);
 
