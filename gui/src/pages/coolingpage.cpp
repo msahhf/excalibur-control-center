@@ -135,8 +135,9 @@ CoolingPage::CoolingPage(QWidget *parent)
 
     m_cpu = makeSection(QStringLiteral("CPU"));
     m_gpu = makeSection(QStringLiteral("GPU"));
-    v->addWidget(m_cpu.panel, 1);
-    v->addWidget(m_gpu.panel, 1);
+    v->addWidget(m_cpu.panel);
+    v->addWidget(m_gpu.panel);
+    v->addStretch(1);
 
     m_empty = new EmptyState;
     m_empty->setMessage(
@@ -209,7 +210,11 @@ CoolingPage::Section CoolingPage::makeSection(const QString &identity)
     v->addLayout(tempRow);
     v->addSpacing(Theme::Space::M);
 
-    const auto makeSparkRow = [&](const QString &caption, Sparkline *&out) {
+    const auto makeSparkBlock = [&](const QString &caption, Sparkline *&out, QLabel *&agoOut) {
+        auto *block = new QVBoxLayout;
+        block->setContentsMargins(0, 0, 0, 0);
+        block->setSpacing(2);
+
         auto *row = new QHBoxLayout;
         row->setContentsMargins(0, 0, 0, 0);
         row->setSpacing(Theme::Space::M);
@@ -226,20 +231,40 @@ CoolingPage::Section CoolingPage::makeSection(const QString &identity)
         out->setFixedHeight(34);
         row->addWidget(l, 0);
         row->addWidget(out, 1);
-        return row;
+        block->addLayout(row);
+
+        // Quiet time labels: oldest sample at the left, "now" at the right.
+        auto *timeRow = new QHBoxLayout;
+        timeRow->setContentsMargins(92 + Theme::Space::M, 0, 0, 0);
+        timeRow->setSpacing(0);
+        agoOut = new QLabel;
+        agoOut->setFont(Theme::font(9, QFont::Normal));
+        auto *now = new QLabel(QStringLiteral("now"));
+        now->setFont(Theme::font(9, QFont::Normal));
+        for (QLabel *tl : {agoOut, now}) {
+            QPalette p = tl->palette();
+            p.setColor(QPalette::WindowText, Theme::textMuted());
+            tl->setPalette(p);
+        }
+        timeRow->addWidget(agoOut, 0, Qt::AlignLeft);
+        timeRow->addStretch(1);
+        timeRow->addWidget(now, 0, Qt::AlignRight);
+        block->addLayout(timeRow);
+        return block;
     };
 
-    v->addLayout(makeSparkRow(QStringLiteral("Temperature"), s.tempSpark));
+    v->addLayout(makeSparkBlock(QStringLiteral("Temperature"), s.tempSpark, s.tempAgo));
     v->addSpacing(Theme::Space::S);
-    v->addLayout(makeSparkRow(QStringLiteral("Fan speed"), s.fanSpark));
-    v->addStretch(1);
+    v->addLayout(makeSparkBlock(QStringLiteral("Fan speed"), s.fanSpark, s.fanAgo));
     v->addSpacing(Theme::Space::S);
 
     s.tempSpark->setFillAlpha(55);
     s.tempSpark->setMinimumSpan(6.0);
+    s.tempSpark->setValueSuffix(QStringLiteral(" \u00B0C"));
     s.fanSpark->setLineColor(Theme::cool());
     s.fanSpark->setFillAlpha(40);
     s.fanSpark->setMinimumSpan(400.0);
+    s.fanSpark->setValueSuffix(QStringLiteral(" RPM"));
 
     s.relation = new QLabel;
     s.relation->setFont(Theme::font(10, QFont::Medium));
@@ -297,6 +322,12 @@ void CoolingPage::setTelemetry(const TelemetrySnapshot &s, const QVector<History
         sec.tempSpark->setPoints(series(h, cpu, true));
         sec.fanSpark->setPoints(series(h, cpu, false));
         sec.relation->setText(relationText(h, cpu));
+
+        const int span = qBound(0, h.size(), TelemetryModel::kHistorySize);
+        const QString ago = (span <= 1) ? QStringLiteral("now")
+                                        : QStringLiteral("%1s ago").arg(span);
+        sec.tempAgo->setText(ago);
+        sec.fanAgo->setText(ago);
     };
 
     apply(m_cpu, s.cpuTempC, s.cpuTempValid, s.cpuFanRpm, s.cpuFanValid, m_cpuBand, history, true);

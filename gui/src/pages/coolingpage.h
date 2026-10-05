@@ -35,7 +35,9 @@ private:
         QLabel *band = nullptr;
         FanStatus *fan = nullptr;
         Sparkline *tempSpark = nullptr;
+        QLabel *tempAgo = nullptr;
         Sparkline *fanSpark = nullptr;
+        QLabel *fanAgo = nullptr;
         QLabel *relation = nullptr;
     };
 

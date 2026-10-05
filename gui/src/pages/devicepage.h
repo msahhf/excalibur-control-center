@@ -1,11 +1,18 @@
 #pragma once
 
+#include <QVector>
 #include <QWidget>
 
-class QVBoxLayout;
+#include "app/systeminfo.h"
+#include "app/telemetrymodel.h"
 
-// Device page: model / BIOS / kernel / driver / interface facts and a
-// copy-diagnostics action. Filled in Stage 4.
+class QLabel;
+class QPushButton;
+
+// Device page: read-only machine and interface facts, grouped and quiet. This is
+// where technical identifiers live (hwmon path, sensor file names, internal
+// state). Identity comes from DMI + kernel; anything unreadable shows
+// "Not available". Includes a real clipboard "Copy diagnostics" action.
 class DevicePage : public QWidget
 {
     Q_OBJECT
@@ -13,8 +20,28 @@ class DevicePage : public QWidget
 public:
     explicit DevicePage(QWidget *parent = nullptr);
 
-    QVBoxLayout *body() const { return m_body; }
+public slots:
+    void setSnapshot(const TelemetrySnapshot &snapshot, const QVector<HistorySample> &);
 
 private:
-    QVBoxLayout *m_body = nullptr;
+    void refreshStatus();
+    QString diagnosticsText() const;
+    void copyDiagnostics();
+
+    SystemInfo m_info;
+    TelemetrySnapshot m_snapshot;
+
+    QLabel *m_model = nullptr;
+    QLabel *m_board = nullptr;
+    QLabel *m_bios = nullptr;
+    QLabel *m_kernel = nullptr;
+
+    QLabel *m_driver = nullptr;
+    QLabel *m_interface = nullptr;
+    QLabel *m_sensorStatus = nullptr;
+    QLabel *m_hwmon = nullptr;
+    QLabel *m_sensors = nullptr;
+    QLabel *m_state = nullptr;
+
+    QPushButton *m_copy = nullptr;
 };

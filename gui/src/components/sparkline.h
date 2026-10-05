@@ -27,11 +27,17 @@ public:
     void setMinimumSpan(double span); // avoid exaggerating a nearly flat line
     void setShowGrid(bool on);
 
+    // Formats the optional hover readout (e.g. "46 °C").
+    void setDecimals(int decimals);
+    void setValueSuffix(const QString &suffix);
+
     QSize sizeHint() const override;
     QSize minimumSizeHint() const override;
 
 protected:
     void paintEvent(QPaintEvent *) override;
+    void mouseMoveEvent(QMouseEvent *) override;
+    void leaveEvent(QEvent *) override;
 
 private:
     QVector<SparkPoint> m_points;
@@ -39,4 +45,7 @@ private:
     int m_fillAlpha = 70;
     double m_minSpan = 1.0;
     bool m_showGrid = true;
+    int m_decimals = 0;
+    QString m_suffix;
+    int m_hoverIndex = -1;
 };
