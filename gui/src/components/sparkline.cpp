@@ -145,14 +145,15 @@ void Sparkline::paintEvent(QPaintEvent *)
             }
             path.lineTo(xFor(j), yFor(m_points.at(j).value));
 
-            if (m_fillAlpha > 0) {
+            const int fillAlpha = qMin(255, m_fillAlpha + (Theme::isDark() ? 0 : 35));
+            if (fillAlpha > 0) {
                 QPainterPath fill = path;
                 fill.lineTo(xFor(j), bot);
                 fill.lineTo(xFor(i), bot);
                 fill.closeSubpath();
                 QLinearGradient grad(0, top, 0, bot);
                 QColor c = m_color;
-                c.setAlpha(m_fillAlpha);
+                c.setAlpha(fillAlpha);
                 grad.setColorAt(0.0, c);
                 c.setAlpha(0);
                 grad.setColorAt(1.0, c);

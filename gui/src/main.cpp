@@ -12,6 +12,7 @@
 #include "hwmonclient.h"
 #include "mainwindow.h"
 #include "theme/theme.h"
+#include "app/version.h"
 
 namespace {
 
@@ -150,6 +151,7 @@ int main(int argc, char **argv)
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("excalibur-control-center"));
     app.setApplicationDisplayName(QStringLiteral("EXCALIBUR Control Center"));
+    app.setApplicationVersion(QString::fromLatin1(AppVersion::string()));
 
     const QStringList args = app.arguments();
 

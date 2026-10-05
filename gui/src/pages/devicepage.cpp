@@ -107,9 +107,7 @@ DevicePage::DevicePage(QWidget *parent)
 {
     m_info = readSystemInfo();
 
-    auto *root = new QVBoxLayout(this);
-    root->setContentsMargins(Theme::Space::XXL, Theme::Space::XL, Theme::Space::XXL, Theme::Space::XL);
-    root->setSpacing(Theme::Space::L);
+    auto *root = PageUtils::makeCenteredColumn(this);
 
     root->addWidget(PageUtils::pageTitle(QStringLiteral("Device")));
     root->addWidget(PageUtils::pageSubtitle(

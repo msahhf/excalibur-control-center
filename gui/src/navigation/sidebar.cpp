@@ -1,5 +1,6 @@
 #include "sidebar.h"
 
+#include "app/version.h"
 #include "theme/theme.h"
 
 #include <QEnterEvent>
@@ -203,7 +204,7 @@ Sidebar::Sidebar(QWidget *parent)
     m_bottomLayout->setSpacing(6);
     root->addLayout(m_bottomLayout);
 
-    auto *version = new QLabel(QStringLiteral("v0.1.0"));
+    auto *version = new QLabel(QStringLiteral("v%1").arg(QString::fromLatin1(AppVersion::string())));
     version->setFont(Theme::font(9, QFont::Normal));
     {
         QPalette p = version->palette();
