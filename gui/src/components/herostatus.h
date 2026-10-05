@@ -6,6 +6,8 @@
 
 class QLabel;
 class StatusPill;
+class QGraphicsOpacityEffect;
+class QPropertyAnimation;
 
 // Hero system-state block. This is the first thing the user reads on the
 // Dashboard: a plain-language state derived from real telemetry. Raw technical
@@ -27,6 +29,10 @@ private:
     QLabel *m_title = nullptr;
     QLabel *m_subtitle = nullptr;
     StatusPill *m_pill = nullptr;
+    QWidget *m_content = nullptr;
+    QGraphicsOpacityEffect *m_effect = nullptr;
+    QPropertyAnimation *m_fade = nullptr;
     AppState::Band m_band = AppState::Band::Normal;
     AppState::Status m_status = AppState::Status::Connected;
+    bool m_hasState = false;
 };

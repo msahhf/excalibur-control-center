@@ -1,8 +1,10 @@
 #pragma once
 
+#include <QRectF>
 #include <QWidget>
 
 class QVBoxLayout;
+class QVariantAnimation;
 
 // Product navigation rail. Owns the wordmark, the primary page items and a
 // bottom-pinned About entry. Emits the target page index; it never changes the
@@ -29,10 +31,17 @@ signals:
 
 protected:
     void paintEvent(QPaintEvent *) override;
+    void resizeEvent(QResizeEvent *) override;
 
 private:
+    QRectF activeItemRect() const;
+    void syncIndicator(bool animate);
+
     QVBoxLayout *m_itemsLayout = nullptr;
     QVBoxLayout *m_bottomLayout = nullptr;
+    QVariantAnimation *m_indicatorAnim = nullptr;
+    QRectF m_indicator;
+    bool m_indicatorReady = false;
     int m_current = -1;
     int m_nextIndex = 0;
 };
