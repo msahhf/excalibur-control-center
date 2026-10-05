@@ -1,32 +1,37 @@
 #include <QApplication>
+#include <QGraphicsOpacityEffect>
+#include <QPalette>
 #include <QPixmap>
+#include <QPropertyAnimation>
 #include <QtGlobal>
 
 #include <cstdio>
 
 #include "hwmonclient.h"
 #include "mainwindow.h"
+#include "theme/theme.h"
 
 namespace {
 
-// Optional dark test palette (dev-only, via --dark). The UI itself is fully
-// palette-driven; this only lets us verify the dark rendering headlessly.
-void applyDarkPalette(QApplication &app)
+// Build an application palette from the active theme tokens so native controls,
+// tooltips, selection and menus match the product surface.
+void applyThemePalette(QApplication &app)
 {
     QPalette p;
-    const QColor window("#1b1e22");
-    const QColor text("#e6e6e6");
-    const QColor dim("#8a9099");
-    p.setColor(QPalette::Window, window);
-    p.setColor(QPalette::WindowText, text);
-    p.setColor(QPalette::Base, QColor("#141619"));
-    p.setColor(QPalette::AlternateBase, QColor("#20242a"));
-    p.setColor(QPalette::Text, text);
-    p.setColor(QPalette::Button, QColor("#20242a"));
-    p.setColor(QPalette::ButtonText, text);
-    p.setColor(QPalette::Mid, QColor("#3a4048"));
-    p.setColor(QPalette::Highlight, QColor("#c8102e"));
-    p.setColor(QPalette::Disabled, QPalette::WindowText, dim);
+    p.setColor(QPalette::Window, Theme::background());
+    p.setColor(QPalette::WindowText, Theme::textPrimary());
+    p.setColor(QPalette::Base, Theme::surface());
+    p.setColor(QPalette::AlternateBase, Theme::surfaceElevated());
+    p.setColor(QPalette::Text, Theme::textPrimary());
+    p.setColor(QPalette::Button, Theme::surfaceElevated());
+    p.setColor(QPalette::ButtonText, Theme::textPrimary());
+    p.setColor(QPalette::ToolTipBase, Theme::surfaceElevated());
+    p.setColor(QPalette::ToolTipText, Theme::textPrimary());
+    p.setColor(QPalette::Mid, Theme::border());
+    p.setColor(QPalette::Highlight, Theme::accent());
+    p.setColor(QPalette::HighlightedText, Theme::textPrimary());
+    p.setColor(QPalette::Disabled, QPalette::WindowText, Theme::textMuted());
+    p.setColor(QPalette::Disabled, QPalette::Text, Theme::textMuted());
     app.setPalette(p);
 }
 
@@ -37,7 +42,6 @@ QString hwmonRoot()
 }
 
 // Headless one-shot probe: prints the status + values and exits.
-// Useful for automated validation without a display.
 int runOnce()
 {
     HwmonClient client(hwmonRoot());
@@ -51,13 +55,10 @@ int runOnce()
 
     std::printf("state=%s\n", state);
     std::printf("hwmon=%s\n", client.devicePath().toUtf8().constData());
-    // QString::number is locale-independent (always '.'), unlike printf("%f").
     if (t.cpuTempValid)
-        std::printf("cpu_temp_c=%s\n",
-                    QString::number(t.cpuTempC, 'f', 1).toUtf8().constData());
+        std::printf("cpu_temp_c=%s\n", QString::number(t.cpuTempC, 'f', 1).toUtf8().constData());
     if (t.gpuTempValid)
-        std::printf("gpu_temp_c=%s\n",
-                    QString::number(t.gpuTempC, 'f', 1).toUtf8().constData());
+        std::printf("gpu_temp_c=%s\n", QString::number(t.gpuTempC, 'f', 1).toUtf8().constData());
     if (t.cpuFanValid)
         std::printf("cpu_fan_rpm=%ld\n", t.cpuFanRpm);
     if (t.gpuFanValid)
@@ -65,12 +66,34 @@ int runOnce()
     return 0;
 }
 
-// Dev-only: render the window headlessly to a PNG (offscreen platform).
-// Does not touch hardware; used to visually verify the layout in CI/automation.
-int runScreenshot(const QString &path)
+bool hasFlag(const QStringList &args, const QString &flag)
 {
+    return args.contains(flag);
+}
+
+QString flagValue(const QStringList &args, const QString &flag)
+{
+    const int i = args.indexOf(flag);
+    return (i >= 0 && i + 1 < args.size()) ? args.at(i + 1) : QString();
+}
+
+// Dev-only: render a window to PNG. Uses the offscreen platform when no display
+// is present, so it never requires a session and never touches hardware.
+int runScreenshot(const QStringList &args, const QString &path)
+{
+    qputenv("EXCALIBUR_NO_ANIM", "1");
+
     MainWindow window;
-    window.resize(1100, 700);
+    const QString size = flagValue(args, QStringLiteral("--size"));
+    if (!size.isEmpty()) {
+        const QStringList wh = size.split(QLatin1Char('x'));
+        if (wh.size() == 2)
+            window.resize(wh.at(0).toInt(), wh.at(1).toInt());
+    }
+    const QString page = flagValue(args, QStringLiteral("--page"));
+    if (!page.isEmpty())
+        window.showPage(page.toInt());
+
     window.show();
     QApplication::processEvents();
     QApplication::processEvents();
@@ -84,6 +107,22 @@ int runScreenshot(const QString &path)
     return 0;
 }
 
+// Restrained app-start settle: a short content fade-in. Usability is never
+// delayed (the window is interactive immediately).
+void playStartupFade(MainWindow &window)
+{
+    if (!qEnvironmentVariableIsEmpty("EXCALIBUR_NO_ANIM"))
+        return;
+    auto *effect = new QGraphicsOpacityEffect(window.centralWidget());
+    window.centralWidget()->setGraphicsEffect(effect);
+    auto *anim = new QPropertyAnimation(effect, "opacity", &window);
+    anim->setDuration(220);
+    anim->setStartValue(0.0);
+    anim->setEndValue(1.0);
+    anim->setEasingCurve(QEasingCurve::OutCubic);
+    anim->start(QAbstractAnimation::DeleteWhenStopped);
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -94,17 +133,17 @@ int main(int argc, char **argv)
 
     const QStringList args = app.arguments();
 
-    if (args.contains(QStringLiteral("--dark")))
-        applyDarkPalette(app);
+    Theme::setMode(hasFlag(args, QStringLiteral("--light")) ? Theme::Mode::Light : Theme::Mode::Dark);
+    applyThemePalette(app);
 
-    if (args.contains(QStringLiteral("--once")))
+    if (hasFlag(args, QStringLiteral("--once")))
         return runOnce();
 
-    const int shotIdx = args.indexOf(QStringLiteral("--screenshot"));
-    if (shotIdx >= 0 && shotIdx + 1 < args.size())
-        return runScreenshot(args.at(shotIdx + 1));
+    if (const QString path = flagValue(args, QStringLiteral("--screenshot")); !path.isEmpty())
+        return runScreenshot(args, path);
 
     MainWindow window;
     window.show();
+    playStartupFade(window);
     return app.exec();
 }
