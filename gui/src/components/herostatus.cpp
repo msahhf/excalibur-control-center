@@ -3,9 +3,11 @@
 #include "statuspill.h"
 #include "theme/theme.h"
 
+#include <QGraphicsOpacityEffect>
 #include <QLabel>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QPropertyAnimation>
 #include <QVBoxLayout>
 
 HeroStatus::HeroStatus(QWidget *parent)
@@ -14,9 +16,17 @@ HeroStatus::HeroStatus(QWidget *parent)
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     auto *v = new QVBoxLayout(this);
-    v->setContentsMargins(Theme::Space::XL + Theme::Space::S, Theme::Space::XL,
-                          Theme::Space::XL, Theme::Space::XL);
+    v->setContentsMargins(0, 0, 0, 0);
     v->setSpacing(0);
+
+    // Content lives in an inner widget so a state change can cross-fade the
+    // text/pill while the panel surface and left state bar stay put.
+    m_content = new QWidget;
+    auto *cv = new QVBoxLayout(m_content);
+    cv->setContentsMargins(Theme::Space::XL + Theme::Space::S, Theme::Space::XL,
+                           Theme::Space::XL, Theme::Space::XL);
+    cv->setSpacing(0);
+    v->addWidget(m_content);
 
     m_label = new QLabel(QStringLiteral("SYSTEM STATUS"));
     m_label->setFont(Theme::labelFont(9, QFont::DemiBold, 155));
@@ -25,8 +35,8 @@ HeroStatus::HeroStatus(QWidget *parent)
         p.setColor(QPalette::WindowText, Theme::textMuted());
         m_label->setPalette(p);
     }
-    v->addWidget(m_label);
-    v->addSpacing(Theme::Space::S);
+    cv->addWidget(m_label);
+    cv->addSpacing(Theme::Space::S);
 
     m_title = new QLabel(QStringLiteral("System Normal"));
     m_title->setFont(Theme::font(25, QFont::Bold));
@@ -35,8 +45,8 @@ HeroStatus::HeroStatus(QWidget *parent)
         p.setColor(QPalette::WindowText, Theme::textPrimary());
         m_title->setPalette(p);
     }
-    v->addWidget(m_title);
-    v->addSpacing(Theme::Space::S);
+    cv->addWidget(m_title);
+    cv->addSpacing(Theme::Space::S);
 
     m_subtitle = new QLabel(QStringLiteral("Temperatures and cooling are operating normally."));
     m_subtitle->setFont(Theme::font(11, QFont::Normal));
@@ -46,17 +56,26 @@ HeroStatus::HeroStatus(QWidget *parent)
         p.setColor(QPalette::WindowText, Theme::textSecondary());
         m_subtitle->setPalette(p);
     }
-    v->addWidget(m_subtitle);
-    v->addSpacing(Theme::Space::L);
+    cv->addWidget(m_subtitle);
+    cv->addSpacing(Theme::Space::L);
 
     m_pill = new StatusPill;
-    v->addWidget(m_pill, 0, Qt::AlignLeft);
+    cv->addWidget(m_pill, 0, Qt::AlignLeft);
+
+    m_effect = new QGraphicsOpacityEffect(m_content);
+    m_effect->setOpacity(1.0);
+    m_content->setGraphicsEffect(m_effect);
+    m_fade = new QPropertyAnimation(m_effect, "opacity", this);
+    m_fade->setDuration(180);
+    m_fade->setEasingCurve(QEasingCurve::OutCubic);
 }
 
 void HeroStatus::setSystemState(AppState::Status status, AppState::Band band)
 {
+    const bool changed = m_hasState && (status != m_status || band != m_band);
     m_status = status;
     m_band = band;
+    m_hasState = true;
 
     switch (status) {
     case AppState::Status::Disconnected:
@@ -95,6 +114,13 @@ void HeroStatus::setSystemState(AppState::Status status, AppState::Band band)
         m_pill->setText(QStringLiteral("Cooling system active"));
         m_pill->setTone(StatusPill::Tone::Success);
         break;
+    }
+
+    if (changed) {
+        m_fade->stop();
+        m_fade->setStartValue(0.0);
+        m_fade->setEndValue(1.0);
+        m_fade->start();
     }
     update();
 }

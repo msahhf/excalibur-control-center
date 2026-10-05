@@ -9,23 +9,47 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QVBoxLayout>
+#include <QVariantAnimation>
 
 namespace {
 constexpr int kModulePadding = 18;
 }
 
 // Thin, band-colored thermal bar. Internal to the module (no separate file).
+// The fill animates smoothly (no hard jump every second).
 class HardwareModule::ThermalBar : public QWidget
 {
 public:
-    explicit ThermalBar(QWidget *parent = nullptr) : QWidget(parent) { setFixedHeight(5); }
+    explicit ThermalBar(QWidget *parent = nullptr) : QWidget(parent)
+    {
+        setFixedHeight(5);
+        m_anim = new QVariantAnimation(this);
+        m_anim->setDuration(380);
+        m_anim->setEasingCurve(QEasingCurve::OutCubic);
+        connect(m_anim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
+            m_frac = v.toReal();
+            update();
+        });
+    }
 
     void setValue(double celsius, bool valid, AppState::Band band)
     {
-        m_celsius = celsius;
         m_valid = valid;
         m_band = band;
-        update();
+
+        const double target = valid ? qBound(0.0, celsius / 100.0, 1.0) : 0.0;
+        if (!m_has) { // first sample: no animation
+            m_has = true;
+            m_frac = target;
+            update();
+            return;
+        }
+        if (qFuzzyCompare(m_frac, target))
+            return;
+        m_anim->stop();
+        m_anim->setStartValue(m_frac);
+        m_anim->setEndValue(target);
+        m_anim->start();
     }
 
     QSize sizeHint() const override { return QSize(180, 5); }
@@ -44,12 +68,11 @@ protected:
         p.setBrush(track);
         p.drawRoundedRect(r, r.height() / 2.0, r.height() / 2.0);
 
-        if (!m_valid)
+        if (!m_valid && m_frac <= 0.0)
             return;
 
-        const double frac = qBound(0.0, m_celsius / 100.0, 1.0);
         QRectF fill = r;
-        fill.setWidth(r.width() * frac);
+        fill.setWidth(r.width() * qBound(0.0, m_frac, 1.0));
         if (fill.width() <= 0.0)
             return;
         p.setBrush(AppState::bandColor(m_band));
@@ -57,7 +80,9 @@ protected:
     }
 
 private:
-    double m_celsius = 0.0;
+    QVariantAnimation *m_anim = nullptr;
+    double m_frac = 0.0;
+    bool m_has = false;
     bool m_valid = false;
     AppState::Band m_band = AppState::Band::Normal;
 };

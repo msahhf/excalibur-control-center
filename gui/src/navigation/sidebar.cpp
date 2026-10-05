@@ -11,7 +11,9 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPropertyAnimation>
+#include <QResizeEvent>
 #include <QVBoxLayout>
+#include <QVariantAnimation>
 
 #include <algorithm>
 #include <cmath>
@@ -120,21 +122,14 @@ protected:
 
         const QRectF r = QRectF(rect()).adjusted(0.5, 1.5, -0.5, -1.5);
 
-        QBrush bg = Qt::NoBrush;
-        if (m_active)
-            bg = QBrush(Theme::surfaceElevated());
-        else if (m_hover > 0.0)
-            bg = QBrush(mixColor(QColor(Theme::surfaceHover().red(), Theme::surfaceHover().green(),
-                                        Theme::surfaceHover().blue(), 0),
-                                 Theme::surfaceHover(), m_hover));
-        p.setPen(Qt::NoPen);
-        p.setBrush(bg);
-        if (m_active || m_hover > 0.0)
+        // The active pill is drawn by the Sidebar (so it can slide between
+        // items); here we only draw the hover wash for inactive entries.
+        if (!m_active && m_hover > 0.0) {
+            p.setPen(Qt::NoPen);
+            p.setBrush(mixColor(QColor(Theme::surfaceHover().red(), Theme::surfaceHover().green(),
+                                       Theme::surfaceHover().blue(), 0),
+                                Theme::surfaceHover(), m_hover));
             p.drawRoundedRect(r, Theme::RadiusSmall + 2, Theme::RadiusSmall + 2);
-
-        if (m_active) {
-            p.setBrush(Theme::accent());
-            p.drawRoundedRect(QRectF(0.0, r.center().y() - 9.0, 3.0, 18.0), 1.5, 1.5);
         }
 
         const QColor baseFg = m_active ? Theme::textPrimary() : Theme::textSecondary();
@@ -269,6 +264,14 @@ Sidebar::Sidebar(QWidget *parent)
     setObjectName(QStringLiteral("Sidebar"));
     setFixedWidth(244);
 
+    m_indicatorAnim = new QVariantAnimation(this);
+    m_indicatorAnim->setDuration(200);
+    m_indicatorAnim->setEasingCurve(QEasingCurve::OutCubic);
+    connect(m_indicatorAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
+        m_indicator = v.toRectF();
+        update();
+    });
+
     auto *root = new QVBoxLayout(this);
     root->setContentsMargins(14, 24, 14, 18);
     root->setSpacing(0);
@@ -349,12 +352,72 @@ void Sidebar::setCurrentIndex(int index)
     };
     apply(m_itemsLayout);
     apply(m_bottomLayout);
+    syncIndicator(true);
+}
+
+QRectF Sidebar::activeItemRect() const
+{
+    const auto find = [&](QVBoxLayout *l) -> QRectF {
+        for (int i = 0; i < l->count(); ++i) {
+            if (auto *b = qobject_cast<NavButton *>(l->itemAt(i)->widget())) {
+                if (b->navIndex() == m_current)
+                    return QRectF(b->geometry()).adjusted(0.5, 1.5, -0.5, -1.5);
+            }
+        }
+        return QRectF();
+    };
+    QRectF r = find(m_itemsLayout);
+    if (r.isNull())
+        r = find(m_bottomLayout);
+    return r;
+}
+
+void Sidebar::syncIndicator(bool animate)
+{
+    const QRectF target = activeItemRect();
+    if (target.isNull())
+        return;
+    if (!m_indicatorReady || !animate) {
+        m_indicatorAnim->stop();
+        m_indicator = target;
+        m_indicatorReady = true;
+        update();
+        return;
+    }
+    if (m_indicator == target)
+        return;
+    m_indicatorAnim->stop();
+    m_indicatorAnim->setStartValue(m_indicator);
+    m_indicatorAnim->setEndValue(target);
+    m_indicatorAnim->start();
+}
+
+void Sidebar::resizeEvent(QResizeEvent *e)
+{
+    QWidget::resizeEvent(e);
+    syncIndicator(false); // keep the pill on the active item when geometry changes
 }
 
 void Sidebar::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing, true);
     p.fillRect(rect(), Theme::sidebar());
+
+    // First paint before any layout pass: resolve the active rect directly.
+    if (!m_indicatorReady) {
+        m_indicator = activeItemRect();
+        m_indicatorReady = !m_indicator.isNull();
+    }
+
+    if (m_indicatorReady && !m_indicator.isNull()) {
+        const QRectF r = m_indicator;
+        p.setPen(Qt::NoPen);
+        p.setBrush(Theme::surfaceElevated());
+        p.drawRoundedRect(r, Theme::RadiusSmall + 2, Theme::RadiusSmall + 2);
+        p.setBrush(Theme::accent());
+        p.drawRoundedRect(QRectF(0.0, r.center().y() - 9.0, 3.0, 18.0), 1.5, 1.5);
+    }
 }
 
 #include "sidebar.moc"
