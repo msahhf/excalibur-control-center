@@ -60,7 +60,7 @@ public:
     const QVector<HistorySample> &history() const { return m_history; }
 
 signals:
-    void updated(const TelemetrySnapshot &snapshot);
+    void updated(const TelemetrySnapshot &snapshot, const QVector<HistorySample> &history);
 
 private:
     void poll();

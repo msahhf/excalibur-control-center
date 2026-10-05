@@ -70,6 +70,7 @@ void MainWindow::buildUi()
     // Telemetry: single source of truth; pages receive snapshots, never sysfs.
     m_model = new TelemetryModel(this);
     connect(m_model, &TelemetryModel::updated, m_dashboard, &DashboardPage::setSnapshot);
+    connect(m_model, &TelemetryModel::updated, m_cooling, &CoolingPage::setTelemetry);
 }
 
 void MainWindow::showPage(int index)

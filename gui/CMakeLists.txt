@@ -32,6 +32,10 @@ add_executable(excalibur-control-center
     src/components/fanstatus.h
     src/components/hardwaremodule.cpp
     src/components/hardwaremodule.h
+    src/components/sparkline.cpp
+    src/components/sparkline.h
+    src/components/thermalpanel.cpp
+    src/components/thermalpanel.h
     src/components/herostatus.cpp
     src/components/herostatus.h
     src/components/emptystate.cpp

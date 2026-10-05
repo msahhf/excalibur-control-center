@@ -1,5 +1,7 @@
 #include "theme.h"
 
+#include <QtGlobal>
+
 namespace Theme {
 namespace {
 
@@ -74,6 +76,7 @@ QFont font(int pointSize, QFont::Weight weight, int letterSpacing)
     f.setWeight(weight);
     if (letterSpacing != 100)
         f.setLetterSpacing(QFont::PercentageSpacing, letterSpacing);
+    enableTabularFigures(f);
     return f;
 }
 

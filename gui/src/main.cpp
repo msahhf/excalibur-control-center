@@ -1,8 +1,10 @@
 #include <QApplication>
+#include <QElapsedTimer>
 #include <QGraphicsOpacityEffect>
 #include <QPalette>
 #include <QPixmap>
 #include <QPropertyAnimation>
+#include <QThread>
 #include <QtGlobal>
 
 #include <cstdio>
@@ -96,6 +98,20 @@ int runScreenshot(const QStringList &args, const QString &path)
 
     window.show();
     QApplication::processEvents();
+
+    // Optional: let the telemetry model run for N seconds first so the history
+    // charts have real samples. Dev/validation only; never touches hardware.
+    const QString delay = flagValue(args, QStringLiteral("--shot-delay"));
+    if (!delay.isEmpty()) {
+        const int seconds = delay.toInt();
+        QElapsedTimer elapsed;
+        elapsed.start();
+        while (elapsed.elapsed() < seconds * 1000) {
+            QApplication::processEvents(QEventLoop::AllEvents, 100);
+            QThread::msleep(20);
+        }
+    }
+
     QApplication::processEvents();
 
     const QPixmap pm = window.grab();

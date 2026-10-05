@@ -62,5 +62,5 @@ void TelemetryModel::poll()
         m_history.removeFirst();
 
     m_snapshot = s;
-    emit updated(m_snapshot);
+    emit updated(m_snapshot, m_history);
 }
