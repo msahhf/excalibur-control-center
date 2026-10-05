@@ -10,11 +10,15 @@
 #include <QPaintEvent>
 #include <QVBoxLayout>
 
+namespace {
+constexpr int kModulePadding = 18;
+}
+
 // Thin, band-colored thermal bar. Internal to the module (no separate file).
 class HardwareModule::ThermalBar : public QWidget
 {
 public:
-    explicit ThermalBar(QWidget *parent = nullptr) : QWidget(parent) { setFixedHeight(6); }
+    explicit ThermalBar(QWidget *parent = nullptr) : QWidget(parent) { setFixedHeight(5); }
 
     void setValue(double celsius, bool valid, AppState::Band band)
     {
@@ -24,7 +28,7 @@ public:
         update();
     }
 
-    QSize sizeHint() const override { return QSize(180, 6); }
+    QSize sizeHint() const override { return QSize(180, 5); }
 
 protected:
     void paintEvent(QPaintEvent *) override
@@ -62,25 +66,25 @@ HardwareModule::HardwareModule(const QString &identity, QWidget *parent)
     : QWidget(parent)
 {
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    setMinimumHeight(230);
+    setMinimumHeight(196);
 
     auto *v = new QVBoxLayout(this);
-    v->setContentsMargins(Theme::CardPadding, Theme::CardPadding, Theme::CardPadding, Theme::CardPadding);
+    v->setContentsMargins(kModulePadding, kModulePadding, kModulePadding, kModulePadding);
     v->setSpacing(0);
 
     m_identity = new QLabel(identity);
-    m_identity->setFont(Theme::font(13, QFont::Bold, 105));
+    m_identity->setFont(Theme::font(12, QFont::Bold, 108));
     {
         QPalette p = m_identity->palette();
-        p.setColor(QPalette::WindowText, Theme::textPrimary());
+        p.setColor(QPalette::WindowText, Theme::textSecondary());
         m_identity->setPalette(p);
     }
     v->addWidget(m_identity);
-    v->addSpacing(Theme::Space::L);
+    v->addSpacing(Theme::Space::S);
 
-    // Big temperature + unit, baseline aligned.
+    // Big temperature + unit, baseline aligned. Temperature dominates.
     m_temp = new AnimatedNumber;
-    m_temp->setFont(Theme::font(46, QFont::DemiBold));
+    m_temp->setFont(Theme::font(40, QFont::DemiBold));
     m_temp->setInvalidText(QStringLiteral("\u2014"));
     {
         QPalette p = m_temp->palette();
@@ -89,7 +93,7 @@ HardwareModule::HardwareModule(const QString &identity, QWidget *parent)
     }
 
     m_unit = new QLabel(QStringLiteral("\u00B0C"));
-    m_unit->setFont(Theme::font(14, QFont::Medium));
+    m_unit->setFont(Theme::font(13, QFont::Medium));
     {
         QPalette p = m_unit->palette();
         p.setColor(QPalette::WindowText, Theme::textSecondary());
@@ -106,12 +110,19 @@ HardwareModule::HardwareModule(const QString &identity, QWidget *parent)
     v->addSpacing(Theme::Space::XS);
 
     m_band = new QLabel;
-    m_band->setFont(Theme::font(12, QFont::DemiBold));
+    m_band->setFont(Theme::font(11, QFont::DemiBold));
     v->addWidget(m_band);
-    v->addSpacing(Theme::Space::L);
+    v->addSpacing(Theme::Space::S);
 
     m_bar = new ThermalBar;
     v->addWidget(m_bar);
+    v->addSpacing(Theme::Space::M);
+
+    m_spark = new Sparkline;
+    m_spark->setFixedHeight(38);
+    m_spark->setMinimumSpan(4.0);
+    m_spark->setFillAlpha(60);
+    v->addWidget(m_spark);
     v->addStretch(1);
 
     m_fan = new FanStatus;
@@ -128,13 +139,20 @@ void HardwareModule::setTemperature(double celsius, bool valid, AppState::Band b
         QPalette p = m_band->palette();
         p.setColor(QPalette::WindowText, AppState::bandColor(band));
         m_band->setPalette(p);
+        m_spark->setLineColor(AppState::bandColor(band));
     } else {
         m_band->setText(QStringLiteral("\u2014"));
         QPalette p = m_band->palette();
         p.setColor(QPalette::WindowText, Theme::textMuted());
         m_band->setPalette(p);
+        m_spark->setLineColor(Theme::textMuted());
     }
     m_bar->setValue(celsius, valid, band);
+}
+
+void HardwareModule::setTemperatureHistory(const QVector<SparkPoint> &points)
+{
+    m_spark->setPoints(points);
 }
 
 void HardwareModule::setFan(int rpm, bool valid)
@@ -145,18 +163,4 @@ void HardwareModule::setFan(int rpm, bool valid)
 void HardwareModule::setFanCaption(const QString &caption)
 {
     m_fan->setCaption(caption);
-}
-
-void HardwareModule::paintEvent(QPaintEvent *)
-{
-    QPainter p(this);
-    p.setRenderHint(QPainter::Antialiasing, true);
-
-    const QRectF r = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-    QColor border = Theme::border();
-    border.setAlpha(170);
-
-    p.setPen(QPen(border, 1));
-    p.setBrush(Theme::surface());
-    p.drawRoundedRect(r, Theme::Radius, Theme::Radius);
 }

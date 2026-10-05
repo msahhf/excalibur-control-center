@@ -3,12 +3,30 @@
 #include "components/emptystate.h"
 #include "components/hardwaremodule.h"
 #include "components/herostatus.h"
+#include "components/thermalpanel.h"
 #include "pageutils.h"
 #include "theme/theme.h"
 
 #include <QHBoxLayout>
 #include <QStackedWidget>
 #include <QVBoxLayout>
+
+namespace {
+
+QVector<SparkPoint> tempPoints(const QVector<HistorySample> &history, bool cpu)
+{
+    QVector<SparkPoint> pts;
+    pts.reserve(history.size());
+    for (const HistorySample &s : history) {
+        SparkPoint p;
+        p.value = cpu ? s.cpuTempC : s.gpuTempC;
+        p.valid = cpu ? s.cpuTempValid : s.gpuTempValid;
+        pts.append(p);
+    }
+    return pts;
+}
+
+} // namespace
 
 DashboardPage::DashboardPage(QWidget *parent)
     : QWidget(parent)
@@ -32,16 +50,16 @@ DashboardPage::DashboardPage(QWidget *parent)
 
     m_stack = new QStackedWidget;
 
-    // Content page: two hardware modules.
+    // Content page: one wide thermal panel (CPU | GPU) instead of two boxes.
     m_content = new QWidget;
     auto *contentLayout = new QHBoxLayout(m_content);
     contentLayout->setContentsMargins(0, 0, 0, 0);
-    contentLayout->setSpacing(Theme::Space::L);
+    contentLayout->setSpacing(0);
 
-    m_cpu = new HardwareModule(QStringLiteral("CPU"));
-    m_gpu = new HardwareModule(QStringLiteral("GPU"));
-    contentLayout->addWidget(m_cpu, 1);
-    contentLayout->addWidget(m_gpu, 1);
+    m_panel = new ThermalPanel;
+    m_cpu = m_panel->cpu();
+    m_gpu = m_panel->gpu();
+    contentLayout->addWidget(m_panel, 1);
 
     m_empty = new EmptyState;
     m_empty->setMessage(
@@ -54,7 +72,7 @@ DashboardPage::DashboardPage(QWidget *parent)
     m_body->addWidget(m_stack, 1);
 }
 
-void DashboardPage::setSnapshot(const TelemetrySnapshot &s)
+void DashboardPage::setSnapshot(const TelemetrySnapshot &s, const QVector<HistorySample> &history)
 {
     if (s.status == AppState::Status::Disconnected) {
         m_haveBands = false; // fresh classification when it comes back
@@ -82,11 +100,14 @@ void DashboardPage::setSnapshot(const TelemetrySnapshot &s)
             m_gpuBand = AppState::classifyHysteresis(s.gpuTempC, gpuTh, m_gpuBand);
     }
 
-    AppState::Band sysBand = AppState::worst(m_cpuBand, m_gpuBand);
+    const AppState::Band sysBand = AppState::worst(m_cpuBand, m_gpuBand);
     m_hero->setSystemState(s.status, sysBand);
 
     m_cpu->setTemperature(s.cpuTempC, s.cpuTempValid, m_cpuBand);
+    m_cpu->setTemperatureHistory(tempPoints(history, true));
     m_cpu->setFan(s.cpuFanRpm, s.cpuFanValid);
+
     m_gpu->setTemperature(s.gpuTempC, s.gpuTempValid, m_gpuBand);
+    m_gpu->setTemperatureHistory(tempPoints(history, false));
     m_gpu->setFan(s.gpuFanRpm, s.gpuFanValid);
 }

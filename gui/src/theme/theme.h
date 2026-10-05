@@ -3,6 +3,7 @@
 #include <QColor>
 #include <QFont>
 #include <QString>
+#include <QtGlobal>
 
 // Central design tokens for the EXCALIBUR Control Center.
 //
@@ -61,5 +62,16 @@ constexpr int CardPadding = 22;
 QFont font(int pointSize, QFont::Weight weight = QFont::Normal, int letterSpacing = 100);
 // Small uppercase-ish caption/label style.
 QFont labelFont(int pointSize = 10, QFont::Weight weight = QFont::DemiBold, int letterSpacing = 135);
+
+// Tabular (fixed-width) figures, so animated numbers keep a stable width.
+// No-op on Qt < 6.7 where font features are unavailable.
+inline void enableTabularFigures(QFont &f)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    f.setFeature("tnum", 1);
+#else
+    Q_UNUSED(f);
+#endif
+}
 
 } // namespace Theme
