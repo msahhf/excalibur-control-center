@@ -1,0 +1,22 @@
+# Build output
+gui/build/
+build/
+
+# Large/reproducible analysis artifacts
+analysis/extracted/
+analysis/decompiled/
+analysis/binaries/
+analysis/tools/
+analysis/installer/
+analysis/phase3/*.o
+analysis/phase3/.*.cmd
+analysis/phase3/*.mod
+analysis/phase3/modules.order
+analysis/phase3/Module.symvers
+
+# Vendor installer
+EXCALIBUR_Control_Center_Setup.exe
+
+# Editor / OS
+*.swp
+.DS_Store
