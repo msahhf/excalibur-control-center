@@ -7,7 +7,7 @@
 #include "app/telemetrymodel.h"
 
 class QLabel;
-class QPushButton;
+class ActionButton;
 
 // Device page: read-only machine and interface facts, grouped and quiet. This is
 // where technical identifiers live (hwmon path, sensor file names, internal
@@ -43,5 +43,5 @@ private:
     QLabel *m_sensors = nullptr;
     QLabel *m_state = nullptr;
 
-    QPushButton *m_copy = nullptr;
+    ActionButton *m_copy = nullptr;
 };

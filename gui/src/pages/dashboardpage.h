@@ -23,6 +23,9 @@ class DashboardPage : public QWidget
 public:
     explicit DashboardPage(QWidget *parent = nullptr);
 
+    // One-shot startup stagger for the hero and hardware panel.
+    void playIntro();
+
 public slots:
     void setSnapshot(const TelemetrySnapshot &snapshot, const QVector<HistorySample> &history);
 

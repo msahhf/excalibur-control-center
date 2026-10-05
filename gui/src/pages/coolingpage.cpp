@@ -156,7 +156,7 @@ CoolingPage::Section CoolingPage::makeSection(const QString &identity)
     s.panel = panel;
 
     auto *v = new QVBoxLayout(panel);
-    v->setContentsMargins(Theme::Space::L, Theme::Space::M, Theme::Space::L, Theme::Space::M);
+    v->setContentsMargins(Theme::Space::L + 2, Theme::Space::L, Theme::Space::L + 2, Theme::Space::L);
     v->setSpacing(0);
 
     // Header: identity + fan RPM.

@@ -7,8 +7,12 @@
 #include "pageutils.h"
 #include "theme/theme.h"
 
+#include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
+#include <QParallelAnimationGroup>
+#include <QPropertyAnimation>
 #include <QStackedWidget>
+#include <QTimer>
 #include <QVBoxLayout>
 
 namespace {
@@ -24,6 +28,38 @@ QVector<SparkPoint> tempPoints(const QVector<HistorySample> &history, bool cpu)
         pts.append(p);
     }
     return pts;
+}
+
+// Fade a widget in while it settles upward by `dy`. Runs after `delayMs`.
+void settleIn(QWidget *w, int delayMs, int dy)
+{
+    if (!w)
+        return;
+    QTimer::singleShot(delayMs, w, [w, dy]() {
+        auto *effect = new QGraphicsOpacityEffect(w);
+        effect->setOpacity(0.0);
+        w->setGraphicsEffect(effect);
+        const QPoint end = w->pos();
+        const QPoint start = end + QPoint(0, dy);
+        w->move(start);
+
+        auto *group = new QParallelAnimationGroup(w);
+        auto *fade = new QPropertyAnimation(effect, "opacity", group);
+        fade->setDuration(200);
+        fade->setStartValue(0.0);
+        fade->setEndValue(1.0);
+        fade->setEasingCurve(QEasingCurve::OutCubic);
+        auto *slide = new QPropertyAnimation(w, "pos", group);
+        slide->setDuration(220);
+        slide->setStartValue(start);
+        slide->setEndValue(end);
+        slide->setEasingCurve(QEasingCurve::OutCubic);
+        QObject::connect(group, &QParallelAnimationGroup::finished, w, [w, end]() {
+            w->move(end);
+            w->setGraphicsEffect(nullptr);
+        });
+        group->start(QAbstractAnimation::DeleteWhenStopped);
+    });
 }
 
 } // namespace
@@ -57,7 +93,8 @@ DashboardPage::DashboardPage(QWidget *parent)
     m_panel = new ThermalPanel;
     m_cpu = m_panel->cpu();
     m_gpu = m_panel->gpu();
-    contentLayout->addWidget(m_panel, 1);
+    contentLayout->addWidget(m_panel);
+    contentLayout->setAlignment(Qt::AlignTop);
 
     m_empty = new EmptyState;
     m_empty->setMessage(
@@ -68,6 +105,14 @@ DashboardPage::DashboardPage(QWidget *parent)
     m_stack->addWidget(m_content);
     m_stack->addWidget(m_empty);
     m_body->addWidget(m_stack, 1);
+}
+
+void DashboardPage::playIntro()
+{
+    if (!qEnvironmentVariableIsEmpty("EXCALIBUR_NO_ANIM"))
+        return;
+    settleIn(m_hero, 40, 10);
+    settleIn(m_content, 90, 12);
 }
 
 void DashboardPage::setSnapshot(const TelemetrySnapshot &s, const QVector<HistorySample> &history)

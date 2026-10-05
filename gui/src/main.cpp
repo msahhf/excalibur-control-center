@@ -1,18 +1,18 @@
 #include <QApplication>
 #include <QElapsedTimer>
-#include <QGraphicsOpacityEffect>
 #include <QPalette>
 #include <QPixmap>
-#include <QPropertyAnimation>
 #include <QThread>
+#include <QTimer>
 #include <QtGlobal>
 
 #include <cstdio>
 
+#include "app/telemetrymodel.h"
+#include "app/version.h"
 #include "hwmonclient.h"
 #include "mainwindow.h"
 #include "theme/theme.h"
-#include "app/version.h"
 
 namespace {
 
@@ -128,26 +128,43 @@ int runScreenshot(const QStringList &args, const QString &path)
 }
 #endif // EXCALIBUR_DEV_HOOKS
 
-// Restrained app-start settle: a short content fade-in. Usability is never
-// delayed (the window is interactive immediately).
-void playStartupFade(MainWindow &window)
+#ifdef EXCALIBUR_DEV_HOOKS
+// Dev-only: run the telemetry model headlessly and print one line per poll so
+// runtime state transitions can be observed. Uses the same read-only hwmon path
+// the GUI uses.
+int runTrace(const QStringList &args)
 {
-    if (!qEnvironmentVariableIsEmpty("EXCALIBUR_NO_ANIM"))
-        return;
-    auto *effect = new QGraphicsOpacityEffect(window.centralWidget());
-    window.centralWidget()->setGraphicsEffect(effect);
-    auto *anim = new QPropertyAnimation(effect, "opacity", &window);
-    anim->setDuration(220);
-    anim->setStartValue(0.0);
-    anim->setEndValue(1.0);
-    anim->setEasingCurve(QEasingCurve::OutCubic);
-    anim->start(QAbstractAnimation::DeleteWhenStopped);
+    const QString secs = flagValue(args, QStringLiteral("--trace-seconds"));
+    const int seconds = secs.isEmpty() ? 20 : secs.toInt();
+
+    TelemetryModel model;
+    QObject::connect(&model, &TelemetryModel::updated, &model,
+                     [](const TelemetrySnapshot &s, const QVector<HistorySample> &) {
+                         const char *st = (s.status == AppState::Status::Connected)   ? "CONNECTED"
+                                          : (s.status == AppState::Status::Degraded)  ? "DEGRADED"
+                                                                                      : "DISCONNECTED";
+                         const QByteArray fan1 = s.cpuFanValid ? QByteArray::number(s.cpuFanRpm) : QByteArray("na");
+                         const QByteArray fan2 = s.gpuFanValid ? QByteArray::number(s.gpuFanRpm) : QByteArray("na");
+                         std::printf("state=%-12s hwmon=%s cpu=%.1f%s gpu=%.1f%s fan1=%s fan2=%s\n",
+                                     st, s.hwmonPath.toUtf8().constData(),
+                                     s.cpuTempC, s.cpuTempValid ? "" : "(na)",
+                                     s.gpuTempC, s.gpuTempValid ? "" : "(na)",
+                                     fan1.constData(), fan2.constData());
+                         std::fflush(stdout);
+                     });
+    model.start();
+    QTimer::singleShot(seconds * 1000, qApp, &QCoreApplication::quit);
+    return qApp->exec();
 }
+#endif // EXCALIBUR_DEV_HOOKS
 
 } // namespace
 
 int main(int argc, char **argv)
 {
+    QElapsedTimer startup;
+    startup.start();
+
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("excalibur-control-center"));
     app.setApplicationDisplayName(QStringLiteral("EXCALIBUR Control Center"));
@@ -164,10 +181,17 @@ int main(int argc, char **argv)
 
     if (const QString path = flagValue(args, QStringLiteral("--screenshot")); !path.isEmpty())
         return runScreenshot(args, path);
+
+    if (hasFlag(args, QStringLiteral("--trace")))
+        return runTrace(args);
 #endif
 
     MainWindow window;
     window.show();
-    playStartupFade(window);
+    QApplication::processEvents();
+#ifdef EXCALIBUR_DEV_HOOKS
+    std::fprintf(stderr, "first_frame_ms=%lld\n", static_cast<long long>(startup.elapsed()));
+#endif
+    window.playIntro();
     return app.exec();
 }

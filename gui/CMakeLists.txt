@@ -34,6 +34,8 @@ add_executable(excalibur-control-center
     src/app/version.h
     src/components/animatednumber.cpp
     src/components/animatednumber.h
+    src/components/actionbutton.cpp
+    src/components/actionbutton.h
     src/components/statuspill.cpp
     src/components/statuspill.h
     src/components/fanstatus.cpp
