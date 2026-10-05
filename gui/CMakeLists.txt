@@ -20,6 +20,22 @@ add_executable(excalibur-control-center
     src/mainwindow.h
     src/theme/theme.cpp
     src/theme/theme.h
+    src/app/appstate.cpp
+    src/app/appstate.h
+    src/app/telemetrymodel.cpp
+    src/app/telemetrymodel.h
+    src/components/animatednumber.cpp
+    src/components/animatednumber.h
+    src/components/statuspill.cpp
+    src/components/statuspill.h
+    src/components/fanstatus.cpp
+    src/components/fanstatus.h
+    src/components/hardwaremodule.cpp
+    src/components/hardwaremodule.h
+    src/components/herostatus.cpp
+    src/components/herostatus.h
+    src/components/emptystate.cpp
+    src/components/emptystate.h
     src/navigation/sidebar.cpp
     src/navigation/sidebar.h
     src/navigation/pagecontainer.cpp

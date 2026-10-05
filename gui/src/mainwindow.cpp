@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 
+#include "app/telemetrymodel.h"
 #include "navigation/pagecontainer.h"
 #include "navigation/sidebar.h"
 #include "pages/aboutpage.h"
@@ -16,6 +17,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     buildUi();
+    m_model->start();
 }
 
 void MainWindow::buildUi()
@@ -64,6 +66,10 @@ void MainWindow::buildUi()
 
     m_pages->setCurrentIndex(0);
     m_sidebar->setCurrentIndex(0);
+
+    // Telemetry: single source of truth; pages receive snapshots, never sysfs.
+    m_model = new TelemetryModel(this);
+    connect(m_model, &TelemetryModel::updated, m_dashboard, &DashboardPage::setSnapshot);
 }
 
 void MainWindow::showPage(int index)

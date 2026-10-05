@@ -8,6 +8,7 @@ class DashboardPage;
 class CoolingPage;
 class DevicePage;
 class AboutPage;
+class TelemetryModel;
 
 // EXCALIBUR Control Center application shell: a persistent navigation rail and
 // a content area that swaps product pages with a restrained transition.
@@ -29,6 +30,8 @@ private:
 
     Sidebar *m_sidebar = nullptr;
     PageContainer *m_pages = nullptr;
+
+    TelemetryModel *m_model = nullptr;
 
     DashboardPage *m_dashboard = nullptr;
     CoolingPage *m_cooling = nullptr;

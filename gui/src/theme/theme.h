@@ -38,6 +38,7 @@ QColor accent();     // EXCALIBUR red-orange, used sparingly
 QColor success();    // healthy
 QColor warning();    // caution
 QColor critical();   // dangerous / unavailable
+QColor cool();       // cool thermal band (informational blue)
 
 // --- Spacing scale (4/8/12/16/24/32/40) ----------------------------------
 namespace Space {
