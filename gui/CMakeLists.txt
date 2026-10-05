@@ -12,6 +12,11 @@ set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
+# Dev-only CLI hooks (--once, --screenshot, --shot-delay, --page, --size).
+# ON by default for development; release/packaging builds pass
+# -DEXCALIBUR_DEV_HOOKS=OFF to compile them out entirely.
+option(EXCALIBUR_DEV_HOOKS "Enable dev-only CLI hooks" ON)
+
 add_executable(excalibur-control-center
     src/main.cpp
     src/hwmonclient.cpp
@@ -24,6 +29,8 @@ add_executable(excalibur-control-center
     src/app/appstate.h
     src/app/telemetrymodel.cpp
     src/app/telemetrymodel.h
+    src/app/systeminfo.cpp
+    src/app/systeminfo.h
     src/components/animatednumber.cpp
     src/components/animatednumber.h
     src/components/statuspill.cpp
@@ -60,5 +67,9 @@ target_include_directories(excalibur-control-center PRIVATE src)
 target_link_libraries(excalibur-control-center PRIVATE Qt6::Widgets)
 
 target_compile_options(excalibur-control-center PRIVATE -Wall -Wextra)
+
+if(EXCALIBUR_DEV_HOOKS)
+    target_compile_definitions(excalibur-control-center PRIVATE EXCALIBUR_DEV_HOOKS)
+endif()
 
 install(TARGETS excalibur-control-center RUNTIME DESTINATION bin)

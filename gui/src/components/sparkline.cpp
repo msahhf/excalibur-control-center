@@ -3,9 +3,11 @@
 #include "theme/theme.h"
 
 #include <QLinearGradient>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPaintEvent>
+#include <QToolTip>
 
 #include <algorithm>
 #include <cmath>
@@ -15,6 +17,7 @@ Sparkline::Sparkline(QWidget *parent)
 {
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     setMinimumHeight(28);
+    setMouseTracking(true);
     m_color = Theme::textSecondary();
 }
 
@@ -46,6 +49,16 @@ void Sparkline::setShowGrid(bool on)
 {
     m_showGrid = on;
     update();
+}
+
+void Sparkline::setDecimals(int decimals)
+{
+    m_decimals = decimals;
+}
+
+void Sparkline::setValueSuffix(const QString &suffix)
+{
+    m_suffix = suffix;
 }
 
 QSize Sparkline::sizeHint() const { return QSize(200, 40); }
@@ -158,6 +171,22 @@ void Sparkline::paintEvent(QPaintEvent *)
         i = j + 1;
     }
 
+    // Hover guide (optional readout).
+    if (m_hoverIndex >= 0 && m_hoverIndex < m_points.size() && m_points.at(m_hoverIndex).valid) {
+        const QPointF hpt(xFor(m_hoverIndex), yFor(m_points.at(m_hoverIndex).value));
+        QColor guide = Theme::textMuted();
+        guide.setAlpha(120);
+        p.setPen(QPen(guide, 1, Qt::DashLine));
+        p.drawLine(QPointF(hpt.x(), top), QPointF(hpt.x(), bot));
+        QColor halo = m_color;
+        halo.setAlpha(55);
+        p.setPen(Qt::NoPen);
+        p.setBrush(halo);
+        p.drawEllipse(hpt, 6.0, 6.0);
+        p.setBrush(m_color);
+        p.drawEllipse(hpt, 3.0, 3.0);
+    }
+
     // Highlight the last valid sample.
     for (int k = m_points.size() - 1; k >= 0; --k) {
         if (!m_points.at(k).valid)
@@ -172,4 +201,50 @@ void Sparkline::paintEvent(QPaintEvent *)
         p.drawEllipse(pt, 3.0, 3.0);
         break;
     }
+}
+
+void Sparkline::mouseMoveEvent(QMouseEvent *e)
+{
+    if (m_points.size() < 2) {
+        m_hoverIndex = -1;
+        update();
+        return;
+    }
+
+    const QRectF r = QRectF(rect()).adjusted(1.0, 2.0, -1.0, -2.0);
+    if (r.width() <= 0.0)
+        return;
+    const double f = qBound(0.0, (e->position().x() - r.left()) / r.width(), 1.0);
+    int idx = qRound(f * (m_points.size() - 1));
+    idx = qBound(0, idx, m_points.size() - 1);
+
+    // Snap to a nearby valid sample (within a few samples) if possible.
+    int best = -1;
+    for (int d = 0; d <= 4 && best < 0; ++d) {
+        if (idx - d >= 0 && m_points.at(idx - d).valid)
+            best = idx - d;
+        else if (idx + d < m_points.size() && m_points.at(idx + d).valid)
+            best = idx + d;
+    }
+
+    m_hoverIndex = best;
+    update();
+
+    if (best >= 0 && m_points.at(best).valid) {
+        const int ago = m_points.size() - 1 - best;
+        const QString value = QString::number(m_points.at(best).value, 'f', m_decimals) + m_suffix;
+        QToolTip::showText(e->globalPosition().toPoint(),
+                           QStringLiteral("%1  \u00B7  %2s ago").arg(value).arg(ago), this);
+    } else {
+        QToolTip::hideText();
+    }
+}
+
+void Sparkline::leaveEvent(QEvent *)
+{
+    if (m_hoverIndex != -1) {
+        m_hoverIndex = -1;
+        update();
+    }
+    QToolTip::hideText();
 }

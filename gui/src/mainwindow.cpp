@@ -71,6 +71,7 @@ void MainWindow::buildUi()
     m_model = new TelemetryModel(this);
     connect(m_model, &TelemetryModel::updated, m_dashboard, &DashboardPage::setSnapshot);
     connect(m_model, &TelemetryModel::updated, m_cooling, &CoolingPage::setTelemetry);
+    connect(m_model, &TelemetryModel::updated, m_device, &DevicePage::setSnapshot);
 }
 
 void MainWindow::showPage(int index)

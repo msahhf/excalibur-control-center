@@ -37,6 +37,7 @@ void applyThemePalette(QApplication &app)
     app.setPalette(p);
 }
 
+#ifdef EXCALIBUR_DEV_HOOKS
 // Default data source; overridable only for testing (no hardware impact).
 QString hwmonRoot()
 {
@@ -67,12 +68,14 @@ int runOnce()
         std::printf("gpu_fan_rpm=%ld\n", t.gpuFanRpm);
     return 0;
 }
+#endif // EXCALIBUR_DEV_HOOKS
 
 bool hasFlag(const QStringList &args, const QString &flag)
 {
     return args.contains(flag);
 }
 
+#ifdef EXCALIBUR_DEV_HOOKS
 QString flagValue(const QStringList &args, const QString &flag)
 {
     const int i = args.indexOf(flag);
@@ -122,6 +125,7 @@ int runScreenshot(const QStringList &args, const QString &path)
     std::printf("screenshot=%s (%dx%d)\n", path.toUtf8().constData(), pm.width(), pm.height());
     return 0;
 }
+#endif // EXCALIBUR_DEV_HOOKS
 
 // Restrained app-start settle: a short content fade-in. Usability is never
 // delayed (the window is interactive immediately).
@@ -152,11 +156,13 @@ int main(int argc, char **argv)
     Theme::setMode(hasFlag(args, QStringLiteral("--light")) ? Theme::Mode::Light : Theme::Mode::Dark);
     applyThemePalette(app);
 
+#ifdef EXCALIBUR_DEV_HOOKS
     if (hasFlag(args, QStringLiteral("--once")))
         return runOnce();
 
     if (const QString path = flagValue(args, QStringLiteral("--screenshot")); !path.isEmpty())
         return runScreenshot(args, path);
+#endif
 
     MainWindow window;
     window.show();
