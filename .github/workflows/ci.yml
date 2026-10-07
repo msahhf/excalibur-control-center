@@ -66,13 +66,16 @@ jobs:
         run: |
           PKG=$(ls packaging/arch/excalibur-control-center-*.pkg.tar.zst)
           echo "Package: $PKG"
-          bsdtar -tf "$PKG" | sort
-          if bsdtar -tf "$PKG" | grep -E '(^|/)\.ko$|/home/|\.config|\.INSTALL|secret'; then
+          # Save the listing first: piping tar into `grep -q` under `pipefail`
+          # makes grep close the pipe early and SIGPIPE tar, failing the step.
+          bsdtar -tf "$PKG" | sort > /tmp/pkglist.txt
+          cat /tmp/pkglist.txt
+          if grep -E '(^|/)\.ko$|/home/|\.config|\.INSTALL|secret' /tmp/pkglist.txt; then
             echo "::error::forbidden content in package"; exit 1
           fi
-          bsdtar -tf "$PKG" | grep -q 'usr/bin/excalibur-control-center'
-          bsdtar -tf "$PKG" | grep -q "usr/src/excalibur-wmi-$VERSION/dkms.conf"
-          bsdtar -tf "$PKG" | grep -q 'usr/share/licenses/excalibur-control-center/LICENSE'
+          grep -q 'usr/bin/excalibur-control-center' /tmp/pkglist.txt
+          grep -q "usr/src/excalibur-wmi-$VERSION/dkms.conf" /tmp/pkglist.txt
+          grep -q 'usr/share/licenses/excalibur-control-center/LICENSE' /tmp/pkglist.txt
 
       - name: Validate .SRCINFO matches PKGBUILD
         run: |
