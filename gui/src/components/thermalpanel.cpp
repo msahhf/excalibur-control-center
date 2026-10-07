@@ -5,12 +5,11 @@
 
 #include <QHBoxLayout>
 #include <QPainter>
-#include <QPaintEvent>
 
 #include <cmath>
 
 ThermalPanel::ThermalPanel(QWidget *parent)
-    : QWidget(parent)
+    : SurfacePanel(parent)
 {
     auto *row = new QHBoxLayout(this);
     row->setContentsMargins(0, 0, 0, 0);
@@ -21,24 +20,15 @@ ThermalPanel::ThermalPanel(QWidget *parent)
     row->addWidget(m_cpu, 1);
     row->addWidget(m_gpu, 1);
 
-    // Cap the panel height so tall windows do not open up large empty areas
-    // inside the modules; leftover space stays outside the panel.
-    setMaximumHeight(300);
+    // A generous but bounded height: on taller windows the panel grows with the
+    // space below the hero instead of leaving a blank area, but it never becomes
+    // a giant empty card. The modules keep their internal hierarchy.
+    setMinimumHeight(230);
+    setMaximumHeight(380);
 }
 
-void ThermalPanel::paintEvent(QPaintEvent *)
+void ThermalPanel::paintOverlay(QPainter &p, const QRectF &r)
 {
-    QPainter p(this);
-    p.setRenderHint(QPainter::Antialiasing, true);
-
-    const QRectF r = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-    QColor border = Theme::border();
-    border.setAlpha(170);
-
-    p.setPen(QPen(border, 1));
-    p.setBrush(Theme::surface());
-    p.drawRoundedRect(r, Theme::Radius, Theme::Radius);
-
     // Subtle center divider (inset so it does not touch the rounded corners).
     QColor divider = Theme::border();
     divider.setAlpha(150);

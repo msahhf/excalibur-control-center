@@ -47,11 +47,6 @@ FanStatus::FanStatus(QWidget *parent)
     row->addStretch(1);
 }
 
-void FanStatus::setCaption(const QString &caption)
-{
-    m_caption->setText(caption);
-}
-
 void FanStatus::setFan(int rpm, bool valid)
 {
     m_rpm->setNumeric(rpm, valid);

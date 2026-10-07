@@ -1,52 +1,35 @@
 #include "coolingpage.h"
 
+#include "app/usersettings.h"
 #include "components/animatednumber.h"
 #include "components/emptystate.h"
 #include "components/fanstatus.h"
 #include "components/sparkline.h"
+#include "components/surfacepanel.h"
 #include "pageutils.h"
+#include "util/units.h"
 #include "theme/theme.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPainter>
-#include <QPaintEvent>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
 namespace {
 
-// Local rounded surface for a cooling section.
-class SectionSurface : public QWidget
-{
-public:
-    explicit SectionSurface(QWidget *parent = nullptr) : QWidget(parent) {}
-
-protected:
-    void paintEvent(QPaintEvent *) override
-    {
-        QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing, true);
-        const QRectF r = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-        QColor border = Theme::border();
-        border.setAlpha(170);
-        p.setPen(QPen(border, 1));
-        p.setBrush(Theme::surface());
-        p.drawRoundedRect(r, Theme::Radius, Theme::Radius);
-    }
-};
-
-QVector<SparkPoint> series(const QVector<HistorySample> &h, bool cpu, bool temp)
+QVector<SparkPoint> series(const QVector<HistorySample> &h, bool cpu, bool temp,
+                           Units::TemperatureUnit unit)
 {
     QVector<SparkPoint> pts;
     pts.reserve(h.size());
     for (const HistorySample &s : h) {
         SparkPoint p;
+        p.timestampMs = s.timestampMs;
         if (cpu) {
-            p.value = temp ? s.cpuTempC : static_cast<double>(s.cpuFanRpm);
+            p.value = temp ? Units::fromCelsius(s.cpuTempC, unit) : static_cast<double>(s.cpuFanRpm);
             p.valid = temp ? s.cpuTempValid : s.cpuFanValid;
         } else {
-            p.value = temp ? s.gpuTempC : static_cast<double>(s.gpuFanRpm);
+            p.value = temp ? Units::fromCelsius(s.gpuTempC, unit) : static_cast<double>(s.gpuFanRpm);
             p.valid = temp ? s.gpuTempValid : s.gpuFanValid;
         }
         pts.append(p);
@@ -152,7 +135,7 @@ CoolingPage::Section CoolingPage::makeSection(const QString &identity)
 {
     Section s;
 
-    auto *panel = new SectionSurface;
+    auto *panel = new SurfacePanel;
     s.panel = panel;
 
     auto *v = new QVBoxLayout(panel);
@@ -279,30 +262,25 @@ CoolingPage::Section CoolingPage::makeSection(const QString &identity)
 void CoolingPage::setTelemetry(const TelemetrySnapshot &s, const QVector<HistorySample> &history)
 {
     if (s.status == AppState::Status::Disconnected) {
-        m_haveBands = false;
+        m_bands.reset();
         m_stack->setCurrentWidget(m_empty);
         return;
     }
     m_stack->setCurrentWidget(m_content);
 
-    const auto cpuTh = AppState::cpuThresholds();
-    const auto gpuTh = AppState::gpuThresholds();
-    if (!m_haveBands) {
-        if (s.cpuTempValid)
-            m_cpuBand = AppState::classify(s.cpuTempC, cpuTh);
-        if (s.gpuTempValid)
-            m_gpuBand = AppState::classify(s.gpuTempC, gpuTh);
-        m_haveBands = true;
-    } else {
-        if (s.cpuTempValid)
-            m_cpuBand = AppState::classifyHysteresis(s.cpuTempC, cpuTh, m_cpuBand);
-        if (s.gpuTempValid)
-            m_gpuBand = AppState::classifyHysteresis(s.gpuTempC, gpuTh, m_gpuBand);
-    }
+    m_bands.update(s.cpuTempValid, s.cpuTempC, s.gpuTempValid, s.gpuTempC);
+
+    m_cpu.identity->setText(s.cpuLabel);
+    m_gpu.identity->setText(s.gpuLabel);
 
     const auto apply = [](Section &sec, double temp, bool tempValid, int fan, bool fanValid,
-                          AppState::Band band, const QVector<HistorySample> &h, bool cpu) {
-        sec.temp->setNumeric(temp, tempValid);
+                          AppState::Band band, const QVector<HistorySample> &h, bool cpu,
+                          Units::TemperatureUnit unit) {
+        const int dec = Units::decimals(unit);
+        const QString sym = Units::symbol(unit);
+        sec.temp->setDecimals(dec);
+        sec.unit->setText(sym);
+        sec.temp->setNumeric(Units::fromCelsius(temp, unit), tempValid);
         if (tempValid) {
             sec.band->setText(AppState::bandLabel(band));
             QPalette p = sec.band->palette();
@@ -317,8 +295,11 @@ void CoolingPage::setTelemetry(const TelemetrySnapshot &s, const QVector<History
             sec.tempSpark->setLineColor(Theme::textMuted());
         }
         sec.fan->setFan(fan, fanValid);
-        sec.tempSpark->setPoints(series(h, cpu, true));
-        sec.fanSpark->setPoints(series(h, cpu, false));
+        sec.tempSpark->setDecimals(dec);
+        sec.tempSpark->setValueSuffix(QStringLiteral(" ") + sym);
+        sec.tempSpark->setMinimumSpan(6.0 * Units::spanFactor(unit));
+        sec.tempSpark->setPoints(series(h, cpu, true, unit));
+        sec.fanSpark->setPoints(series(h, cpu, false, unit));
         sec.relation->setText(relationText(h, cpu));
 
         const int span = qBound(0, h.size(), TelemetryModel::kHistorySize);
@@ -328,6 +309,7 @@ void CoolingPage::setTelemetry(const TelemetrySnapshot &s, const QVector<History
         sec.fanAgo->setText(ago);
     };
 
-    apply(m_cpu, s.cpuTempC, s.cpuTempValid, s.cpuFanRpm, s.cpuFanValid, m_cpuBand, history, true);
-    apply(m_gpu, s.gpuTempC, s.gpuTempValid, s.gpuFanRpm, s.gpuFanValid, m_gpuBand, history, false);
+    const Units::TemperatureUnit unit = UserSettings::instance().tempUnit();
+    apply(m_cpu, s.cpuTempC, s.cpuTempValid, s.cpuFanRpm, s.cpuFanValid, m_bands.cpu, history, true, unit);
+    apply(m_gpu, s.gpuTempC, s.gpuTempValid, s.gpuFanRpm, s.gpuFanValid, m_bands.gpu, history, false, unit);
 }

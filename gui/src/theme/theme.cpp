@@ -1,5 +1,7 @@
 #include "theme.h"
 
+#include <QApplication>
+#include <QPalette>
 #include <QtGlobal>
 
 namespace Theme {
@@ -68,6 +70,28 @@ QColor success() { return isDark() ? kSuccessDark : kSuccessLight; }
 QColor warning() { return isDark() ? kWarningDark : kWarningLight; }
 QColor critical() { return isDark() ? kCriticalDark : kCriticalLight; }
 QColor cool() { return isDark() ? kCoolDark : kCoolLight; }
+
+void applyApplicationPalette()
+{
+    if (!qApp)
+        return;
+    QPalette p;
+    p.setColor(QPalette::Window, background());
+    p.setColor(QPalette::WindowText, textPrimary());
+    p.setColor(QPalette::Base, surface());
+    p.setColor(QPalette::AlternateBase, surfaceElevated());
+    p.setColor(QPalette::Text, textPrimary());
+    p.setColor(QPalette::Button, surfaceElevated());
+    p.setColor(QPalette::ButtonText, textPrimary());
+    p.setColor(QPalette::ToolTipBase, surfaceElevated());
+    p.setColor(QPalette::ToolTipText, textPrimary());
+    p.setColor(QPalette::Mid, border());
+    p.setColor(QPalette::Highlight, accent());
+    p.setColor(QPalette::HighlightedText, textPrimary());
+    p.setColor(QPalette::Disabled, QPalette::WindowText, textMuted());
+    p.setColor(QPalette::Disabled, QPalette::Text, textMuted());
+    qApp->setPalette(p);
+}
 
 QFont font(int pointSize, QFont::Weight weight, int letterSpacing)
 {

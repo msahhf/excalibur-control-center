@@ -14,7 +14,6 @@ class FanStatus : public QWidget
 public:
     explicit FanStatus(QWidget *parent = nullptr);
 
-    void setCaption(const QString &caption);
     void setFan(int rpm, bool valid);
 
 private:

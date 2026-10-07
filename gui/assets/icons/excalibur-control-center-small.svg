@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- EXCALIBUR Control Center icon — small-size variant (16/24 px).
+     Same badge, but the "E" is bolder and the gaps/min padding are tuned so the
+     mark survives rasterisation at taskbar sizes without turning to mush. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF5A48"/>
+      <stop offset="1" stop-color="#DE3327"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="6" y="6" width="244" height="244" rx="62" ry="62" fill="url(#tile)"/>
+
+  <g fill="#14171C">
+    <rect x="82" y="62" width="42" height="132" rx="14"/>
+    <rect x="82" y="62" width="102" height="42" rx="14"/>
+    <rect x="82" y="107" width="80" height="42" rx="14"/>
+    <rect x="82" y="152" width="102" height="42" rx="14"/>
+  </g>
+</svg>

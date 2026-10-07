@@ -4,9 +4,9 @@
 
 class QStackedWidget;
 
-// Holds the product pages and switches between them with a restrained
-// fade + small horizontal slide (Section 12). Pages are plain QWidgets; the
-// container owns presentation only.
+// Holds the product pages. Pages are created once and kept alive; switching just
+// changes which one is visible (an instant swap, no fade/reflow), so navigating
+// never appears to reload and never resets a page's last-known telemetry.
 class PageContainer : public QWidget
 {
     Q_OBJECT

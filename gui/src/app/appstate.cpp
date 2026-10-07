@@ -68,4 +68,62 @@ QColor bandColor(Band band)
     return Theme::textSecondary();
 }
 
+CoolingState coolingState(bool fanDataValid, bool fanMoving, Band band)
+{
+    if (!fanDataValid)
+        return CoolingState::Unavailable;
+    if (!fanMoving)
+        return CoolingState::Idle;
+    if (band >= Band::Warm)
+        return CoolingState::Elevated;
+    return CoolingState::Active;
+}
+
+QString coolingStateLabel(CoolingState state)
+{
+    switch (state) {
+    case CoolingState::Unavailable: return QStringLiteral("Cooling unavailable");
+    case CoolingState::Idle: return QStringLiteral("Cooling idle");
+    case CoolingState::Active: return QStringLiteral("Cooling active");
+    case CoolingState::Elevated: return QStringLiteral("Cooling elevated");
+    }
+    return QString();
+}
+
+QString displaySensorLabel(const QString &raw, const QString &fallback, int maxChars)
+{
+    QString s = raw.trimmed();
+    if (s.isEmpty())
+        s = fallback;
+    if (maxChars > 0 && s.size() > maxChars)
+        s = s.left(maxChars - 1) + QChar(0x2026); // ellipsis
+    return s;
+}
+
+void BandTracker::reset()
+{
+    have = false;
+    cpu = Band::Normal;
+    gpu = Band::Normal;
+}
+
+void BandTracker::update(bool cpuValid, double cpuCelsius, bool gpuValid, double gpuCelsius)
+{
+    const Thresholds cpuTh = cpuThresholds();
+    const Thresholds gpuTh = gpuThresholds();
+
+    if (!have) {
+        if (cpuValid)
+            cpu = classify(cpuCelsius, cpuTh);
+        if (gpuValid)
+            gpu = classify(gpuCelsius, gpuTh);
+        have = true;
+        return;
+    }
+    if (cpuValid)
+        cpu = classifyHysteresis(cpuCelsius, cpuTh, cpu);
+    if (gpuValid)
+        gpu = classifyHysteresis(gpuCelsius, gpuTh, gpu);
+}
+
 } // namespace AppState

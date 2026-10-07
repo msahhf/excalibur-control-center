@@ -1,48 +1,13 @@
 #include "aboutpage.h"
 
+#include "app/identity.h"
 #include "app/version.h"
 #include "pageutils.h"
 #include "theme/theme.h"
 
+#include <QIcon>
 #include <QLabel>
-#include <QPainter>
-#include <QPaintEvent>
 #include <QVBoxLayout>
-
-namespace {
-
-// Small product mark: a rounded surface tile with a restrained accent "E".
-class ProductMark : public QWidget
-{
-public:
-    explicit ProductMark(QWidget *parent = nullptr) : QWidget(parent) { setFixedSize(54, 54); }
-
-protected:
-    void paintEvent(QPaintEvent *) override
-    {
-        QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing, true);
-        const QRectF r = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-        QColor border = Theme::border();
-        border.setAlpha(170);
-        p.setPen(QPen(border, 1));
-        p.setBrush(Theme::surfaceElevated());
-        p.drawRoundedRect(r, 14, 14);
-
-        const qreal x = r.left() + 15.0;
-        const qreal y = r.top() + 15.0;
-        const qreal w = r.width() - 30.0;
-        const qreal h = r.height() - 30.0;
-        p.setPen(Qt::NoPen);
-        p.setBrush(Theme::accent());
-        p.drawRoundedRect(QRectF(x, y, w, 3.2), 1.6, 1.6);
-        p.drawRoundedRect(QRectF(x, y + h / 2.0 - 1.6, w * 0.68, 3.2), 1.6, 1.6);
-        p.drawRoundedRect(QRectF(x, y + h - 3.2, w, 3.2), 1.6, 1.6);
-        p.drawRoundedRect(QRectF(x, y, 3.2, h), 1.6, 1.6);
-    }
-};
-
-} // namespace
 
 AboutPage::AboutPage(QWidget *parent)
     : QWidget(parent)
@@ -52,11 +17,15 @@ AboutPage::AboutPage(QWidget *parent)
     root->addWidget(PageUtils::pageTitle(QStringLiteral("About")));
     root->addSpacing(Theme::Space::S);
 
-    auto *mark = new ProductMark;
+    // The real application icon, so branding matches the launcher/window/tray.
+    auto *mark = new QLabel;
+    mark->setFixedSize(54, 54);
+    mark->setPixmap(QIcon(QStringLiteral(":/icons/excalibur-control-center-128.png"))
+                        .pixmap(54, 54));
     root->addWidget(mark);
     root->addSpacing(Theme::Space::M);
 
-    auto *name = PageUtils::makeLabel(QStringLiteral("EXCALIBUR CONTROL CENTER"),
+    auto *name = PageUtils::makeLabel(AppIdentity::displayName().toUpper(),
                                       Theme::font(19, QFont::Bold, 104), Theme::textPrimary());
     auto *description = PageUtils::makeLabel(
         QStringLiteral("Native Linux control center for CASPER EXCALIBUR hardware."),

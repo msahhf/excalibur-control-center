@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- EXCALIBUR Control Center application icon (master vector).
+     The mark reuses the restrained "E" badge already used in-product (sidebar,
+     About, tray) so the identity is consistent across surfaces. Keep it bold and
+     free of fine detail so it stays legible down to 16x16. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF5A48"/>
+      <stop offset="1" stop-color="#DE3327"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded badge -->
+  <rect x="8" y="8" width="240" height="240" rx="56" ry="56" fill="url(#tile)"/>
+  <rect x="8" y="8" width="240" height="240" rx="56" ry="56" fill="url(#sheen)"/>
+
+  <!-- Bold "E" mark, near-black for maximum contrast at every size -->
+  <g fill="#14171C">
+    <rect x="88" y="70" width="30" height="116" rx="10"/>
+    <rect x="88" y="70" width="92" height="30" rx="10"/>
+    <rect x="88" y="113" width="74" height="30" rx="10"/>
+    <rect x="88" y="156" width="92" height="30" rx="10"/>
+  </g>
+</svg>

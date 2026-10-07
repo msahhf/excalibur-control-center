@@ -64,6 +64,36 @@ void Sparkline::setValueSuffix(const QString &suffix)
 QSize Sparkline::sizeHint() const { return QSize(200, 40); }
 QSize Sparkline::minimumSizeHint() const { return QSize(80, 28); }
 
+QString formatSampleAge(qint64 ageMs)
+{
+    if (ageMs < 1000)
+        return QStringLiteral("now");
+    return QStringLiteral("%1s ago").arg(ageMs / 1000);
+}
+
+qint64 sampleAgeMs(const QVector<SparkPoint> &points, int index)
+{
+    if (index < 0 || index >= points.size())
+        return 0;
+    const SparkPoint &pt = points.at(index);
+    if (pt.timestampMs <= 0) {
+        // No timestamps (plain SparkPoint users): assume the 1 Hz sampling that
+        // the history window is defined in.
+        return static_cast<qint64>(points.size() - 1 - index) * 1000;
+    }
+    // Reference "now" = the newest timestamped sample in the chart. This keeps
+    // the age bounded to the visible window even when steady telemetry means the
+    // page is not re-emitting every second (change-only emission).
+    qint64 ref = pt.timestampMs;
+    for (int k = points.size() - 1; k >= 0; --k) {
+        if (points.at(k).timestampMs > 0) {
+            ref = points.at(k).timestampMs;
+            break;
+        }
+    }
+    return qMax<qint64>(0, ref - pt.timestampMs);
+}
+
 void Sparkline::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
@@ -232,10 +262,12 @@ void Sparkline::mouseMoveEvent(QMouseEvent *e)
     update();
 
     if (best >= 0 && m_points.at(best).valid) {
-        const int ago = m_points.size() - 1 - best;
-        const QString value = QString::number(m_points.at(best).value, 'f', m_decimals) + m_suffix;
+        const SparkPoint &pt = m_points.at(best);
+        const QString value = QString::number(pt.value, 'f', m_decimals) + m_suffix;
         QToolTip::showText(e->globalPosition().toPoint(),
-                           QStringLiteral("%1  \u00B7  %2s ago").arg(value).arg(ago), this);
+                           QStringLiteral("%1  \u00B7  %2")
+                               .arg(value, formatSampleAge(sampleAgeMs(m_points, best))),
+                           this);
     } else {
         QToolTip::hideText();
     }

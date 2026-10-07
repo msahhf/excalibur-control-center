@@ -1,12 +1,13 @@
 #pragma once
 
-#include <QWidget>
+#include "components/surfacepanel.h"
 
 class HardwareModule;
+class QPainter;
 
 // A single wide surface holding the CPU and GPU modules, separated by a subtle
 // vertical divider. This reads as one instrument rather than two floating cards.
-class ThermalPanel : public QWidget
+class ThermalPanel : public SurfacePanel
 {
     Q_OBJECT
 
@@ -17,7 +18,7 @@ public:
     HardwareModule *gpu() const { return m_gpu; }
 
 protected:
-    void paintEvent(QPaintEvent *) override;
+    void paintOverlay(QPainter &p, const QRectF &surface) override;
 
 private:
     HardwareModule *m_cpu = nullptr;

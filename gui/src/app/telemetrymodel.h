@@ -27,10 +27,17 @@ struct TelemetrySnapshot {
 
     QString driverName; // e.g. "excalibur_wmi" when present
     QString hwmonPath;  // technical path, shown only on the Device page
+
+    // Sanitised sensor labels from the hwmon backend (fallback CPU/GPU/…).
+    QString cpuLabel;
+    QString gpuLabel;
+    QString cpuFanLabel;
+    QString gpuFanLabel;
 };
 
 // One history tick (1 sample/second). Kept in memory only; session only.
 struct HistorySample {
+    qint64 timestampMs = 0; // monotonic ms (QElapsedTimer reference) when sampled
     bool cpuTempValid = false;
     bool gpuTempValid = false;
     bool cpuFanValid = false;
@@ -55,6 +62,9 @@ public:
 
     void start(int intervalMs = 1000);
     void pollNow();
+    // Change the polling interval without recreating the timer or forcing an
+    // immediate read (used by the refresh-interval setting).
+    void setInterval(int intervalMs);
 
     const TelemetrySnapshot &snapshot() const { return m_snapshot; }
     const QVector<HistorySample> &history() const { return m_history; }
@@ -69,4 +79,5 @@ private:
     TelemetrySnapshot m_snapshot;
     QVector<HistorySample> m_history;
     QTimer *m_timer = nullptr;
+    bool m_hasEmitted = false;
 };

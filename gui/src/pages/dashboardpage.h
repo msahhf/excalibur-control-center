@@ -40,8 +40,6 @@ private:
     HardwareModule *m_gpu = nullptr;
     EmptyState *m_empty = nullptr;
 
-    // Hysteresis state (Section 6.1).
-    bool m_haveBands = false;
-    AppState::Band m_cpuBand = AppState::Band::Normal;
-    AppState::Band m_gpuBand = AppState::Band::Normal;
+    // Hysteresis-aware CPU/GPU band tracking (shared helper, Section 15).
+    AppState::BandTracker m_bands;
 };

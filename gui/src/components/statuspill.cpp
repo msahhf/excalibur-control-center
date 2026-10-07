@@ -45,7 +45,7 @@ QColor StatusPill::toneColor() const
 QSize StatusPill::sizeHint() const
 {
     const QFontMetrics fm(font());
-    const int w = fm.horizontalAdvance(m_text) + 34; // dot + paddings
+    const int w = fm.horizontalAdvance(m_text) + 42; // dot + paint insets + padding
     return QSize(w, 28);
 }
 
