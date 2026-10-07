@@ -1,10 +1,10 @@
 name: Release
 
-# Tag-driven release preparation. It builds the Arch package and produces a
-# SHA256SUMS file as build artifacts. It does NOT publish a GitHub Release
-# automatically (kept read-only to avoid unnecessary write permissions); the
-# maintainer creates the GitHub Release from the artifacts below, or enables the
-# commented draft-release step.
+# Tag-driven release preparation. Builds the Arch package from the public release
+# source and produces a SHA256SUMS file covering the package and the source
+# archive. It does NOT publish a GitHub Release automatically (read-only
+# permissions); the maintainer creates the Release from the artifacts, or enables
+# the commented draft-release step.
 
 on:
   push:
@@ -25,11 +25,11 @@ jobs:
         run: |
           pacman -Syu --noconfirm --needed \
             cmake ninja gcc qt6-base dkms desktop-file-utils appstream \
-            git tar gzip zstd libarchive
+            git tar gzip zstd libarchive curl
 
       - uses: actions/checkout@v4
 
-      - name: "Derive version (single source: CMake)"
+      - name: "Derive version and check tag (single source: CMake)"
         run: |
           VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
@@ -37,24 +37,22 @@ jobs:
             echo "::error::tag ($GITHUB_REF_NAME) does not match CMake VERSION (v$VERSION)"
             exit 1
           fi
+          echo "version: $VERSION"
 
-      - name: Build source tarball + package
+      - name: makepkg from the public release source (non-root)
         run: |
-          tar -c --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
-              --exclude='gui/build' \
-              --transform "s,^,excalibur-control-center-$VERSION/," \
-              -C . gui driver analysis/phase3/excalibur-wmi.c LICENSE \
-            | gzip -n > packaging/arch/excalibur-control-center-$VERSION.tar.gz
           useradd -m builder
           chown -R builder:builder .
           su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -C -c -f --noconfirm"
 
-      - name: Checksums
+      - name: Checksums (package + source archive)
         run: |
+          ARCH_URL="https://github.com/${{ github.repository }}/archive/refs/tags/v$VERSION.tar.gz"
+          curl -fsSL -o "excalibur-control-center-$VERSION.tar.gz" "$ARCH_URL"
           cd packaging/arch
           {
             echo "# EXCALIBUR Control Center v$VERSION release checksums"
-            sha256sum "excalibur-control-center-$VERSION.tar.gz" \
+            sha256sum "../../excalibur-control-center-$VERSION.tar.gz" \
                       excalibur-control-center-*.pkg.tar.zst
           } > SHA256SUMS
           cat SHA256SUMS
@@ -65,10 +63,10 @@ jobs:
           name: excalibur-control-center-v${{ env.VERSION }}
           path: |
             packaging/arch/excalibur-control-center-*.pkg.tar.zst
-            packaging/arch/excalibur-control-center-*.tar.gz
+            excalibur-control-center-*.tar.gz
             packaging/arch/SHA256SUMS
           if-no-files-found: error
 
       # To publish a GitHub Release automatically, add a step using
       # `softprops/action-gh-release@v2` and grant `permissions: contents: write`.
-      # It is left to the maintainer to keep the workflow least-privileged.
+      # Left to the maintainer to keep the workflow least-privileged.
