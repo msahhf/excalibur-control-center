@@ -64,6 +64,7 @@ jobs:
           # makes grep close the pipe early and SIGPIPE tar, failing the step.
           bsdtar -tf "$PKG" | sort > /tmp/pkglist.txt
           echo "--- package listing ---"; cat /tmp/pkglist.txt; echo "--- end listing ---"
+          echo "::notice::pkglist=$(tr '\n' '|' < /tmp/pkglist.txt)"
           if grep -E '(^|/)\.ko$|/home/|\.config|\.INSTALL|secret' /tmp/pkglist.txt; then
             echo "::error::forbidden content in package"; exit 1
           fi
