@@ -1,8 +1,8 @@
-# EXCALIBUR Control Center — GUI (v0.1)
+# EXCALIBUR Control Center — GUI (v0.5.1)
 
 Read-only telemetry dashboard for the **CASPER EXCALIBUR G870** (NLXB 001).
 
-## v0.1 scope
+## v0.5.1 scope
 
 - **Qt6 Widgets** (C++17), native KDE/Breeze look, Wayland-friendly.
 - **Read-only telemetry** only. **No** writes, **no** power mode, **no** RGB, **no** fan control.
@@ -53,6 +53,44 @@ excalibur-wmi.ko   →   hwmon device "excalibur_g870"
 
 The GUI works as a normal user; loading the module is outside the GUI's scope.
 
+## Application identity & desktop integration
+
+The application ships a real product identity, kept separate from the
+executable/package name (`excalibur-control-center`, a machine identifier):
+
+- **Display name:** `EXCALIBUR Control Center` (window title, About page, launcher).
+- **Icon:** `assets/icons/` — a vector master plus PNGs at 16/24/32/48/64/128/256,
+  installed under the freedesktop `share/icons/hicolor/<size>x<size>/apps/`
+  hierarchy and also embedded in the binary (Qt resource) so the window/tray icon
+  never depends on an installed theme or an absolute path.
+- **Desktop entry:** `assets/excalibur-control-center.desktop` (installed to
+  `share/applications/`), with `Categories=System;Monitor;`, `StartupWMClass`, and
+  `Icon=excalibur-control-center`.
+- **Version:** one source only — the CMake `project() VERSION`, surfaced through
+  `app/version.h` (`EXCALIBUR_VERSION`).
+
+Standard unprivileged install layout (`cmake --install`, `--prefix /usr`):
+
+```
+/usr/bin/excalibur-control-center
+/usr/share/applications/excalibur-control-center.desktop
+/usr/share/icons/hicolor/{16x16,…,256x256,scalable}/apps/excalibur-control-center.{png,svg}
+```
+
+## Cooling state
+
+The Dashboard hero shows an honest cooling state derived from real telemetry only
+(there is no programmatic OEM fan/performance mode):
+
+| State | Condition |
+|---|---|
+| Cooling unavailable | no usable fan RPM reading |
+| Cooling idle | fans readable but not turning |
+| Cooling active | fans turning, system band Normal/Cool |
+| Cooling elevated | fans turning with the system band Warm/High |
+
+It never claims a specific OEM mode ("Turbo"/"Fan Boost"/"Gaming") from RPM alone.
+
 ## Build
 
 ```sh
@@ -81,7 +119,7 @@ Headless / automated check (no display needed):
 `EXCALIBUR_HWMON_ROOT` overrides the scan root (default `/sys/class/hwmon`). It exists **only**
 to test parsing/status logic against a fake tree; it does not affect hardware.
 
-## Not present in v0.1
+## Not present in v0.5.1
 
 Power mode, keyboard RGB, fan boost, manual fan control — intentionally absent.
 (Manual fan control is unsupported by this firmware: `SET 0x205` is a no-op.)

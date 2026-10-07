@@ -1,5 +1,6 @@
 #include "dashboardpage.h"
 
+#include "app/usersettings.h"
 #include "components/emptystate.h"
 #include "components/hardwaremodule.h"
 #include "components/herostatus.h"
@@ -8,12 +9,12 @@
 #include "theme/theme.h"
 
 #include <QGraphicsOpacityEffect>
-#include <QHBoxLayout>
-#include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
 #include <QStackedWidget>
 #include <QTimer>
 #include <QVBoxLayout>
+
+#include <algorithm>
 
 namespace {
 
@@ -25,40 +26,61 @@ QVector<SparkPoint> tempPoints(const QVector<HistorySample> &history, bool cpu)
         SparkPoint p;
         p.value = cpu ? s.cpuTempC : s.gpuTempC;
         p.valid = cpu ? s.cpuTempValid : s.gpuTempValid;
+        p.timestampMs = s.timestampMs;
         pts.append(p);
     }
     return pts;
 }
 
-// Fade a widget in while it settles upward by `dy`. Runs after `delayMs`.
-void settleIn(QWidget *w, int delayMs, int dy)
+// Real 60 s range of a temperature channel, computed from the history window.
+// `ok` is false unless there are at least two valid samples, so we never show a
+// range that is not backed by data.
+void tempRange(const QVector<HistorySample> &history, bool cpu, bool &ok, double &mn, double &mx)
+{
+    ok = false;
+    int n = 0;
+    for (const HistorySample &s : history) {
+        const bool v = cpu ? s.cpuTempValid : s.gpuTempValid;
+        if (!v)
+            continue;
+        const double t = cpu ? s.cpuTempC : s.gpuTempC;
+        if (!ok) {
+            mn = mx = t;
+            ok = true;
+        } else {
+            mn = std::min(mn, t);
+            mx = std::max(mx, t);
+        }
+        ++n;
+    }
+    if (n < 2)
+        ok = false;
+}
+
+// Fade a widget in after `delayMs`. Opacity only: the hero and the thermal panel
+// are managed by layouts, and moving a layout-managed widget with move() fights
+// the layout. When the layout re-activates (resize, show, or a state change that
+// resizes the hero) it re-applies its own geometry on top of the stale captured
+// position, which left the hero area blank and let the panel below overlap it.
+// Fading keeps the restrained "settle in" feel without touching geometry.
+void fadeIn(QWidget *w, int delayMs)
 {
     if (!w)
         return;
-    QTimer::singleShot(delayMs, w, [w, dy]() {
+    QTimer::singleShot(delayMs, w, [w]() {
         auto *effect = new QGraphicsOpacityEffect(w);
         effect->setOpacity(0.0);
         w->setGraphicsEffect(effect);
-        const QPoint end = w->pos();
-        const QPoint start = end + QPoint(0, dy);
-        w->move(start);
 
-        auto *group = new QParallelAnimationGroup(w);
-        auto *fade = new QPropertyAnimation(effect, "opacity", group);
-        fade->setDuration(200);
+        auto *fade = new QPropertyAnimation(effect, "opacity", w);
+        fade->setDuration(220);
         fade->setStartValue(0.0);
         fade->setEndValue(1.0);
         fade->setEasingCurve(QEasingCurve::OutCubic);
-        auto *slide = new QPropertyAnimation(w, "pos", group);
-        slide->setDuration(220);
-        slide->setStartValue(start);
-        slide->setEndValue(end);
-        slide->setEasingCurve(QEasingCurve::OutCubic);
-        QObject::connect(group, &QParallelAnimationGroup::finished, w, [w, end]() {
-            w->move(end);
+        QObject::connect(fade, &QPropertyAnimation::finished, w, [w]() {
             w->setGraphicsEffect(nullptr);
         });
-        group->start(QAbstractAnimation::DeleteWhenStopped);
+        fade->start(QAbstractAnimation::DeleteWhenStopped);
     });
 }
 
@@ -86,15 +108,19 @@ DashboardPage::DashboardPage(QWidget *parent)
 
     // Content page: one wide thermal panel (CPU | GPU) instead of two boxes.
     m_content = new QWidget;
-    auto *contentLayout = new QHBoxLayout(m_content);
+    auto *contentLayout = new QVBoxLayout(m_content);
     contentLayout->setContentsMargins(0, 0, 0, 0);
     contentLayout->setSpacing(0);
 
     m_panel = new ThermalPanel;
     m_cpu = m_panel->cpu();
     m_gpu = m_panel->gpu();
-    contentLayout->addWidget(m_panel);
-    contentLayout->setAlignment(Qt::AlignTop);
+    // Let the panel take most of the space under the hero (bounded by its max
+    // height). The trailing stretch keeps it top-aligned, so taller windows grow
+    // the panel instead of leaving a blank area, without the panel floating in
+    // the middle of the page.
+    contentLayout->addWidget(m_panel, 10);
+    contentLayout->addStretch(1);
 
     m_empty = new EmptyState;
     m_empty->setMessage(
@@ -111,46 +137,65 @@ void DashboardPage::playIntro()
 {
     if (!qEnvironmentVariableIsEmpty("EXCALIBUR_NO_ANIM"))
         return;
-    settleIn(m_hero, 40, 10);
-    settleIn(m_content, 90, 12);
+    fadeIn(m_hero, 40);
+    fadeIn(m_content, 90);
 }
 
 void DashboardPage::setSnapshot(const TelemetrySnapshot &s, const QVector<HistorySample> &history)
 {
+    const Units::TemperatureUnit unit = UserSettings::instance().tempUnit();
+    m_hero->setTemperatureUnit(unit);
+    m_cpu->setTemperatureUnit(unit);
+    m_gpu->setTemperatureUnit(unit);
+
     if (s.status == AppState::Status::Disconnected) {
-        m_haveBands = false; // fresh classification when it comes back
+        m_bands.reset(); // fresh classification when it comes back
         m_hero->setSystemState(AppState::Status::Disconnected, AppState::Band::Normal);
+        m_hero->setCoolingState(AppState::CoolingState::Unavailable);
+        m_hero->setSensorLabels(s.cpuLabel, s.gpuLabel);
+        m_hero->setHeadlineTemps(false, 0.0, AppState::Band::Normal,
+                                 false, 0.0, AppState::Band::Normal);
         m_stack->setCurrentWidget(m_empty);
         return;
     }
 
     m_stack->setCurrentWidget(m_content);
 
-    // Classify with hysteresis.
-    const auto cpuTh = AppState::cpuThresholds();
-    const auto gpuTh = AppState::gpuThresholds();
+    // Classify with hysteresis (shared across Dashboard/Cooling).
+    m_bands.update(s.cpuTempValid, s.cpuTempC, s.gpuTempValid, s.gpuTempC);
 
-    if (!m_haveBands) {
-        if (s.cpuTempValid)
-            m_cpuBand = AppState::classify(s.cpuTempC, cpuTh);
-        if (s.gpuTempValid)
-            m_gpuBand = AppState::classify(s.gpuTempC, gpuTh);
-        m_haveBands = true;
-    } else {
-        if (s.cpuTempValid)
-            m_cpuBand = AppState::classifyHysteresis(s.cpuTempC, cpuTh, m_cpuBand);
-        if (s.gpuTempValid)
-            m_gpuBand = AppState::classifyHysteresis(s.gpuTempC, gpuTh, m_gpuBand);
-    }
+    const AppState::Band sysBand = m_bands.systemBand();
+    const bool fanValid = s.cpuFanValid || s.gpuFanValid;
+    const bool fanMoving = (s.cpuFanValid && s.cpuFanRpm > 0) || (s.gpuFanValid && s.gpuFanRpm > 0);
+    const AppState::CoolingState cooling = AppState::coolingState(fanValid, fanMoving, sysBand);
 
-    const AppState::Band sysBand = AppState::worst(m_cpuBand, m_gpuBand);
     m_hero->setSystemState(s.status, sysBand);
+    m_hero->setCoolingState(cooling);
+    m_hero->setSensorLabels(s.cpuLabel, s.gpuLabel);
+    m_hero->setHeadlineTemps(s.cpuTempValid, s.cpuTempC, m_bands.cpu,
+                             s.gpuTempValid, s.gpuTempC, m_bands.gpu);
 
-    m_cpu->setTemperature(s.cpuTempC, s.cpuTempValid, m_cpuBand);
+    m_cpu->setIdentity(s.cpuLabel);
+    m_gpu->setIdentity(s.gpuLabel);
+    m_cpu->setTemperature(s.cpuTempC, s.cpuTempValid, m_bands.cpu);
     m_cpu->setTemperatureHistory(tempPoints(history, true));
     m_cpu->setFan(s.cpuFanRpm, s.cpuFanValid);
+    {
+        bool ok = false;
+        double mn = 0.0;
+        double mx = 0.0;
+        tempRange(history, true, ok, mn, mx);
+        m_cpu->setTemperatureRange(ok, mn, mx);
+    }
 
-    m_gpu->setTemperature(s.gpuTempC, s.gpuTempValid, m_gpuBand);
+    m_gpu->setTemperature(s.gpuTempC, s.gpuTempValid, m_bands.gpu);
     m_gpu->setTemperatureHistory(tempPoints(history, false));
     m_gpu->setFan(s.gpuFanRpm, s.gpuFanValid);
+    {
+        bool ok = false;
+        double mn = 0.0;
+        double mx = 0.0;
+        tempRange(history, false, ok, mn, mx);
+        m_gpu->setTemperatureRange(ok, mn, mx);
+    }
 }

@@ -1,46 +1,33 @@
 #include "devicepage.h"
 
+#include "app/usersettings.h"
 #include "components/actionbutton.h"
+#include "components/surfacepanel.h"
 #include "pageutils.h"
 #include "theme/theme.h"
+#include "util/units.h"
 
 #include <QClipboard>
 #include <QDateTime>
 #include <QGridLayout>
 #include <QGuiApplication>
 #include <QLabel>
-#include <QPainter>
-#include <QPaintEvent>
 #include <QTimer>
 #include <QVBoxLayout>
 
 namespace {
-
-class GroupSurface : public QWidget
-{
-public:
-    explicit GroupSurface(QWidget *parent = nullptr) : QWidget(parent) {}
-
-protected:
-    void paintEvent(QPaintEvent *) override
-    {
-        QPainter p(this);
-        p.setRenderHint(QPainter::Antialiasing, true);
-        const QRectF r = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-        QColor border = Theme::border();
-        border.setAlpha(170);
-        p.setPen(QPen(border, 1));
-        p.setBrush(Theme::surface());
-        p.drawRoundedRect(r, Theme::Radius, Theme::Radius);
-    }
-};
 
 QString notAvailable(const QString &v)
 {
     return v.isEmpty() ? QStringLiteral("Not available") : v;
 }
 
-const QString kSensors = QStringLiteral("temp1_input \u00B7 temp2_input \u00B7 fan1_input \u00B7 fan2_input");
+// Raw hwmon channel names — technical, shown only in the copied diagnostics.
+const QString kSensorsRaw =
+    QStringLiteral("temp1_input \u00B7 temp2_input \u00B7 fan1_input \u00B7 fan2_input");
+// User-facing description of what the driver exposes (no raw file names).
+const QString kSensorChannels =
+    QStringLiteral("CPU temp \u00B7 GPU temp \u00B7 CPU fan \u00B7 GPU fan");
 
 QLabel *captionLabel(const QString &text)
 {
@@ -82,7 +69,7 @@ QWidget *makeGroup(const QString &title, QGridLayout *&gridOut, QWidget *parent)
         titleLabel->setPalette(p);
     }
 
-    auto *surface = new GroupSurface;
+    auto *surface = new SurfacePanel;
     gridOut = new QGridLayout(surface);
     gridOut->setContentsMargins(Theme::Space::XL, Theme::Space::S, Theme::Space::XL, Theme::Space::S);
     gridOut->setHorizontalSpacing(Theme::Space::XL);
@@ -161,15 +148,13 @@ DevicePage::DevicePage(QWidget *parent)
     m_interface = valueLabel(QStringLiteral("WMI \u2192 hwmon"));
     m_sensorStatus = valueLabel(QString());
     m_hwmon = valueLabel(QString());
-    m_sensors = valueLabel(kSensors);
-    m_state = valueLabel(QString());
+    m_sensors = valueLabel(kSensorChannels);
     r = 0;
     addRow(telGrid, r++, captionLabel(QStringLiteral("Telemetry Driver")), m_driver);
     addRow(telGrid, r++, captionLabel(QStringLiteral("Interface")), m_interface);
     addRow(telGrid, r++, captionLabel(QStringLiteral("Sensor Status")), m_sensorStatus);
     addRow(telGrid, r++, captionLabel(QStringLiteral("Device")), m_hwmon);
     addRow(telGrid, r++, captionLabel(QStringLiteral("Sensors")), m_sensors);
-    addRow(telGrid, r++, captionLabel(QStringLiteral("Internal State")), m_state);
     root->addWidget(telGroup);
 
     // Copy diagnostics action.
@@ -203,7 +188,7 @@ void DevicePage::refreshStatus()
     m_driver->setText(m_snapshot.deviceFound ? QStringLiteral("excalibur_wmi")
                                              : QStringLiteral("Not available"));
     m_sensorStatus->setText(friendly);
-    m_state->setText(raw);
+    m_stateText = raw;
     m_hwmon->setText(disconnected ? QStringLiteral("Not available") : notAvailable(m_snapshot.hwmonPath));
 
     QColor statusColor = Theme::textMuted();
@@ -221,8 +206,12 @@ QString DevicePage::diagnosticsText() const
     const auto reading = [](const QString &label, bool valid, const QString &value) {
         return QStringLiteral("%1: %2\n").arg(label, valid ? value : QStringLiteral("Not available"));
     };
-    const QString cpuTemp = QStringLiteral("%1 \u00B0C").arg(QString::number(m_snapshot.cpuTempC, 'f', 1));
-    const QString gpuTemp = QStringLiteral("%1 \u00B0C").arg(QString::number(m_snapshot.gpuTempC, 'f', 1));
+    const Units::TemperatureUnit unit = UserSettings::instance().tempUnit();
+    const QString unitSym = Units::symbol(unit);
+    const QString cpuTemp = QStringLiteral("%1 %2")
+                                .arg(QString::number(Units::fromCelsius(m_snapshot.cpuTempC, unit), 'f', 1), unitSym);
+    const QString gpuTemp = QStringLiteral("%1 %2")
+                                .arg(QString::number(Units::fromCelsius(m_snapshot.gpuTempC, unit), 'f', 1), unitSym);
     const QString cpuFan = QStringLiteral("%1 RPM").arg(m_snapshot.cpuFanRpm);
     const QString gpuFan = QStringLiteral("%1 RPM").arg(m_snapshot.gpuFanRpm);
     const QString kernel = m_info.kernelVersion.isEmpty()
@@ -241,9 +230,9 @@ QString DevicePage::diagnosticsText() const
     t += QStringLiteral("Driver: %1\n").arg(notAvailable(m_snapshot.deviceFound ? QStringLiteral("excalibur_wmi") : QString()));
     t += QStringLiteral("Interface: WMI \u2192 hwmon\n");
     t += QStringLiteral("Sensor status: %1\n").arg(m_sensorStatus->text());
-    t += QStringLiteral("Internal state: %1\n").arg(m_state->text());
+    t += QStringLiteral("Internal state: %1\n").arg(m_stateText);
     t += QStringLiteral("hwmon: %1\n").arg(notAvailable(m_snapshot.hwmonPath));
-    t += QStringLiteral("Sensors: %1\n\n").arg(kSensors);
+    t += QStringLiteral("Sensors: %1\n\n").arg(kSensorsRaw);
     t += QStringLiteral("Current readings\n");
     t += reading(QStringLiteral("CPU temperature"), m_snapshot.cpuTempValid, cpuTemp);
     t += reading(QStringLiteral("GPU temperature"), m_snapshot.gpuTempValid, gpuTemp);

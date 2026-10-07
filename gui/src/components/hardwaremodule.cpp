@@ -144,21 +144,61 @@ HardwareModule::HardwareModule(const QString &identity, QWidget *parent)
     v->addSpacing(Theme::Space::M);
 
     m_spark = new Sparkline;
-    m_spark->setFixedHeight(38);
+    // Bounded growth: on taller windows the history chart (not empty space) uses
+    // the extra height, so the panel fills without a large internal gap.
+    m_spark->setMinimumHeight(38);
+    m_spark->setMaximumHeight(96);
     m_spark->setMinimumSpan(4.0);
     m_spark->setFillAlpha(60);
-    v->addWidget(m_spark);
+    v->addWidget(m_spark, 1);
     v->addStretch(1);
 
     m_fan = new FanStatus;
-    v->addWidget(m_fan);
+    m_range = new QLabel;
+    m_range->setFont(Theme::font(9, QFont::Normal));
+    m_range->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    {
+        QPalette p = m_range->palette();
+        p.setColor(QPalette::WindowText, Theme::textMuted());
+        m_range->setPalette(p);
+    }
+    m_range->setVisible(false);
+
+    auto *footer = new QHBoxLayout;
+    footer->setContentsMargins(0, 0, 0, 0);
+    footer->setSpacing(Theme::Space::S);
+    footer->addWidget(m_fan, 0, Qt::AlignVCenter);
+    footer->addStretch(1);
+    footer->addWidget(m_range, 0, Qt::AlignVCenter);
+    v->addLayout(footer);
 
     setTemperature(0.0, false, AppState::Band::Normal);
+    setTemperatureUnit(Units::TemperatureUnit::Celsius);
+}
+
+void HardwareModule::setIdentity(const QString &identity)
+{
+    m_identity->setText(identity);
+}
+
+void HardwareModule::setTemperatureUnit(Units::TemperatureUnit unit)
+{
+    m_tempUnit = unit;
+    const QString sym = Units::symbol(unit);
+    const int dec = Units::decimals(unit);
+    m_unit->setText(sym);
+    m_temp->setDecimals(dec);
+    m_spark->setDecimals(dec);
+    m_spark->setValueSuffix(QStringLiteral(" ") + sym);
+    m_spark->setMinimumSpan(4.0 * Units::spanFactor(unit));
+    // Reformat the secondary range in the new unit.
+    setTemperatureRange(m_rangeValid, m_rMin, m_rMax);
 }
 
 void HardwareModule::setTemperature(double celsius, bool valid, AppState::Band band)
 {
-    m_temp->setNumeric(celsius, valid);
+    // The bar keeps the raw Celsius scale (0..100 °C); only the label converts.
+    m_temp->setNumeric(Units::fromCelsius(celsius, m_tempUnit), valid);
     if (valid) {
         m_band->setText(AppState::bandLabel(band));
         QPalette p = m_band->palette();
@@ -177,15 +217,31 @@ void HardwareModule::setTemperature(double celsius, bool valid, AppState::Band b
 
 void HardwareModule::setTemperatureHistory(const QVector<SparkPoint> &points)
 {
-    m_spark->setPoints(points);
+    QVector<SparkPoint> converted = points;
+    for (SparkPoint &p : converted)
+        p.value = Units::fromCelsius(p.value, m_tempUnit);
+    m_spark->setPoints(converted);
+}
+
+void HardwareModule::setTemperatureRange(bool valid, double minValue, double maxValue)
+{
+    m_rangeValid = valid;
+    m_rMin = minValue;
+    m_rMax = maxValue;
+    m_range->setVisible(valid);
+    if (!valid)
+        return;
+    const int dec = Units::decimals(m_tempUnit);
+    const QString sym = Units::symbol(m_tempUnit);
+    const QString lo = QString::number(Units::fromCelsius(minValue, m_tempUnit), 'f', dec);
+    const QString hi = QString::number(Units::fromCelsius(maxValue, m_tempUnit), 'f', dec);
+    if (lo == hi)
+        m_range->setText(QStringLiteral("60s %1 %2").arg(lo, sym));
+    else
+        m_range->setText(QStringLiteral("60s %1\u2013%2 %3").arg(lo, hi, sym));
 }
 
 void HardwareModule::setFan(int rpm, bool valid)
 {
     m_fan->setFan(rpm, valid);
-}
-
-void HardwareModule::setFanCaption(const QString &caption)
-{
-    m_fan->setCaption(caption);
 }

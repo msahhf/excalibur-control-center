@@ -10,9 +10,10 @@ class QLabel;
 class ActionButton;
 
 // Device page: read-only machine and interface facts, grouped and quiet. This is
-// where technical identifiers live (hwmon path, sensor file names, internal
-// state). Identity comes from DMI + kernel; anything unreadable shows
-// "Not available". Includes a real clipboard "Copy diagnostics" action.
+// where technical identifiers live (hwmon path, sensor channel names). Identity
+// comes from DMI + kernel; anything unreadable shows "Not available". Includes a
+// real clipboard "Copy diagnostics" action (which carries the raw file names and
+// the raw internal connection state).
 class DevicePage : public QWidget
 {
     Q_OBJECT
@@ -41,7 +42,7 @@ private:
     QLabel *m_sensorStatus = nullptr;
     QLabel *m_hwmon = nullptr;
     QLabel *m_sensors = nullptr;
-    QLabel *m_state = nullptr;
+    QString m_stateText; // raw CONNECTED/DEGRADED/DISCONNECTED, diagnostics only
 
     ActionButton *m_copy = nullptr;
 };

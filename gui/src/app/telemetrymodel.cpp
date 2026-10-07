@@ -1,6 +1,37 @@
 #include "telemetrymodel.h"
 
+#include <QElapsedTimer>
 #include <QTimer>
+
+namespace {
+
+// Monotonic "now" in milliseconds, from a process-wide timer. Monotonic so that
+// sample ages are unaffected by wall-clock/NTP jumps.
+qint64 monotonicMs()
+{
+    static QElapsedTimer timer = []() {
+        QElapsedTimer t;
+        t.start();
+        return t;
+    }();
+    return timer.elapsed();
+}
+
+// Two snapshots are "equal" when every value the UI can display is unchanged.
+// Used to avoid repainting the whole UI every second while telemetry is steady.
+bool sameSnapshot(const TelemetrySnapshot &a, const TelemetrySnapshot &b)
+{
+    return a.deviceFound == b.deviceFound && a.status == b.status
+           && a.cpuTempValid == b.cpuTempValid && a.gpuTempValid == b.gpuTempValid
+           && a.cpuFanValid == b.cpuFanValid && a.gpuFanValid == b.gpuFanValid
+           && a.cpuTempC == b.cpuTempC && a.gpuTempC == b.gpuTempC
+           && a.cpuFanRpm == b.cpuFanRpm && a.gpuFanRpm == b.gpuFanRpm
+           && a.driverName == b.driverName && a.hwmonPath == b.hwmonPath
+           && a.cpuLabel == b.cpuLabel && a.gpuLabel == b.gpuLabel
+           && a.cpuFanLabel == b.cpuFanLabel && a.gpuFanLabel == b.gpuFanLabel;
+}
+
+} // namespace
 
 TelemetryModel::TelemetryModel(QObject *parent)
     : QObject(parent),
@@ -21,6 +52,14 @@ void TelemetryModel::start(int intervalMs)
 void TelemetryModel::pollNow()
 {
     poll();
+}
+
+void TelemetryModel::setInterval(int intervalMs)
+{
+    if (m_timer)
+        m_timer->start(intervalMs);
+    else
+        start(intervalMs);
 }
 
 void TelemetryModel::poll()
@@ -48,7 +87,14 @@ void TelemetryModel::poll()
     if (t.deviceFound)
         s.driverName = QStringLiteral("excalibur_wmi");
 
+    // Backend labels, sanitised once here (fallback keeps the product language).
+    s.cpuLabel = AppState::displaySensorLabel(t.cpuTempLabel, QStringLiteral("CPU"));
+    s.gpuLabel = AppState::displaySensorLabel(t.gpuTempLabel, QStringLiteral("GPU"));
+    s.cpuFanLabel = AppState::displaySensorLabel(t.cpuFanLabel, QStringLiteral("CPU Fan"));
+    s.gpuFanLabel = AppState::displaySensorLabel(t.gpuFanLabel, QStringLiteral("GPU Fan"));
+
     HistorySample h;
+    h.timestampMs = monotonicMs();
     h.cpuTempValid = s.cpuTempValid;
     h.gpuTempValid = s.gpuTempValid;
     h.cpuFanValid = s.cpuFanValid;
@@ -61,6 +107,14 @@ void TelemetryModel::poll()
     while (m_history.size() > kHistorySize)
         m_history.removeFirst();
 
+    // Emit while the history window is still filling (so the charts build up),
+    // then only when a displayed value/state actually changed. Polling and
+    // history sampling stay at 1 Hz; this only avoids redundant repaints.
+    const bool historyFilling = m_history.size() < kHistorySize;
+    const bool changed = !m_hasEmitted || !sameSnapshot(s, m_snapshot);
     m_snapshot = s;
+    if (!changed && !historyFilling)
+        return;
+    m_hasEmitted = true;
     emit updated(m_snapshot, m_history);
 }

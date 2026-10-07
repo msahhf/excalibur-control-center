@@ -5,6 +5,7 @@
 
 #include "app/appstate.h"
 #include "components/sparkline.h"
+#include "util/units.h"
 
 class AnimatedNumber;
 class FanStatus;
@@ -21,10 +22,16 @@ class HardwareModule : public QWidget
 public:
     explicit HardwareModule(const QString &identity, QWidget *parent = nullptr);
 
-    void setTemperature(double celsius, bool valid, AppState::Band band);
+    void setIdentity(const QString &identity);
+    // Presentation unit only; values passed to setTemperature/setTemperatureRange
+    // are already in this unit. The snapshot always stays Celsius.
+    void setTemperatureUnit(Units::TemperatureUnit unit);
+    void setTemperature(double value, bool valid, AppState::Band band);
     void setTemperatureHistory(const QVector<SparkPoint> &points);
+    // Secondary 60 s range of the shown temperature (from real history, already in
+    // the display unit). Hidden when there is not enough valid data.
+    void setTemperatureRange(bool valid, double minValue, double maxValue);
     void setFan(int rpm, bool valid);
-    void setFanCaption(const QString &caption);
 
 private:
     class ThermalBar;
@@ -35,5 +42,11 @@ private:
     QLabel *m_band = nullptr;
     ThermalBar *m_bar = nullptr;
     Sparkline *m_spark = nullptr;
+    QLabel *m_range = nullptr;
     FanStatus *m_fan = nullptr;
+
+    Units::TemperatureUnit m_tempUnit = Units::TemperatureUnit::Celsius;
+    bool m_rangeValid = false;
+    double m_rMin = 0.0;
+    double m_rMax = 0.0;
 };

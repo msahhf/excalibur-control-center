@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata for EXCALIBUR Control Center.
+     Only verified, implemented features are described: this is a read-only
+     telemetry/monitor application. There is NO fan control, RGB, power or
+     performance-mode control. -->
+<component type="desktop-application">
+  <id>excalibur-control-center.desktop</id>
+  <name>EXCALIBUR Control Center</name>
+  <summary>Read-only telemetry monitor for EXCALIBUR laptops</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-only</project_license>
+
+  <description>
+    <p>
+      EXCALIBUR Control Center is a native Qt6 desktop application that shows the
+      live thermal and cooling telemetry exposed by CASPER EXCALIBUR laptops
+      through the Linux hwmon interface.
+    </p>
+    <p>It is strictly read-only and runs entirely as a normal user:</p>
+    <ul>
+      <li>CPU and GPU temperature</li>
+      <li>CPU and GPU fan RPM telemetry</li>
+      <li>60-second temperature and fan history</li>
+      <li>Hardware, firmware and kernel information</li>
+      <li>Diagnostics view with JSON export for support</li>
+      <li>Light/dark themes, Celsius/Fahrenheit and adjustable refresh rate</li>
+      <li>System tray with background operation</li>
+    </ul>
+    <p>
+      The application never writes to the hardware. It does not control fans, does
+      not provide RGB, power or performance modes, and never requires root.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">excalibur-control-center.desktop</launchable>
+
+  <categories>
+    <category>System</category>
+    <category>Monitor</category>
+  </categories>
+
+  <keywords>
+    <keyword>excalibur</keyword>
+    <keyword>telemetry</keyword>
+    <keyword>temperature</keyword>
+    <keyword>fan</keyword>
+    <keyword>hwmon</keyword>
+    <keyword>system monitor</keyword>
+  </keywords>
+
+  <provides>
+    <binary>excalibur-control-center</binary>
+  </provides>
+
+  <content_rating type="oars-1.1"/>
+</component>

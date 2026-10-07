@@ -21,6 +21,11 @@ void setMode(Mode mode);
 Mode mode();
 bool isDark();
 
+// Applies the current tokens to the running QApplication's palette so native
+// controls (combo boxes, tooltips, menus, selection) match the product surface.
+// Safe to call again at runtime after a theme change.
+void applyApplicationPalette();
+
 // --- Surfaces (layered by tone; borders stay subtle) ---------------------
 QColor background();       // page background
 QColor sidebar();          // navigation surface

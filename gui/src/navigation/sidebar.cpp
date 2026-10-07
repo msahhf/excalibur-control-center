@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPaintEvent>
 #include <QPropertyAnimation>
 #include <QResizeEvent>
@@ -213,6 +214,19 @@ private:
             }
             break;
         }
+        case Sidebar::Icon::Diagnostics: {
+            // A small "pulse" line — the diagnostics / monitor mark.
+            const qreal mid = y + s * 0.5;
+            QPainterPath path;
+            path.moveTo(x + s * 0.06, mid);
+            path.lineTo(x + s * 0.34, mid);
+            path.lineTo(x + s * 0.44, mid - s * 0.28);
+            path.lineTo(x + s * 0.56, mid + s * 0.30);
+            path.lineTo(x + s * 0.66, mid);
+            path.lineTo(x + s * 0.94, mid);
+            p.drawPath(path);
+            break;
+        }
         case Sidebar::Icon::About: {
             p.drawEllipse(box.adjusted(s * 0.08, s * 0.08, -s * 0.08, -s * 0.08));
             const QPointF ctr = box.center();
@@ -223,6 +237,18 @@ private:
             dot.setCapStyle(Qt::RoundCap);
             p.setPen(dot);
             p.drawLine(ctr + QPointF(0.0, -s * 0.04), ctr + QPointF(0.0, s * 0.24));
+            break;
+        }
+        case Sidebar::Icon::Settings: {
+            // Three "slider" rails with knobs — a plain, readable settings mark.
+            const qreal ys[3] = { y + s * 0.28, y + s * 0.50, y + s * 0.72 };
+            const qreal kx[3] = { x + s * 0.66, x + s * 0.34, x + s * 0.60 };
+            for (int i = 0; i < 3; ++i)
+                p.drawLine(QPointF(x + s * 0.14, ys[i]), QPointF(x + s * 0.86, ys[i]));
+            p.setBrush(c);
+            p.setPen(Qt::NoPen);
+            for (int i = 0; i < 3; ++i)
+                p.drawEllipse(QPointF(kx[i], ys[i]), s * 0.085, s * 0.085);
             break;
         }
         }

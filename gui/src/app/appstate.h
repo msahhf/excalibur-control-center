@@ -42,10 +42,48 @@ Band classify(double celsius, const Thresholds &th);
 // same sensor. Use classify() for the first reading, then this afterwards.
 Band classifyHysteresis(double celsius, const Thresholds &th, Band previous);
 
-// The hottest of two bands (system state = worst of CPU/GPU).
+// Hottest of two bands (system state = worst of CPU/GPU).
 Band worst(Band a, Band b);
 
 QString bandLabel(Band band); // "Cool" / "Normal" / "Warm" / "High"
 QColor bandColor(Band band);
+
+// --- Cooling state -------------------------------------------------------
+// We do NOT have a programmatic fan/OEM-performance mode. This is an honest,
+// conservative read derived only from what the hwmon backend actually reports:
+//   - no usable fan reading            -> Unavailable
+//   - fans present but not turning     -> Idle
+//   - fans turning while load is warm+ -> Elevated
+//   - fans turning, load normal/cool   -> Active
+// It deliberately never claims a specific OEM mode ("Turbo"/"Boost"/"Gaming").
+enum class CoolingState { Unavailable, Idle, Active, Elevated };
+
+// fanDataValid: at least one fan RPM reading was readable.
+// fanMoving:    at least one valid fan RPM is above zero.
+// band:         the current system thermal band (worst of CPU/GPU).
+CoolingState coolingState(bool fanDataValid, bool fanMoving, Band band);
+
+QString coolingStateLabel(CoolingState state); // "Cooling Active", etc.
+
+// Sanitises a backend hwmon label for UI use: trims whitespace, falls back when
+// empty, and caps the length so an unexpected driver label cannot break a compact
+// layout. The semantic fallback ("CPU"/"GPU"/"CPU Fan"/"GPU Fan") is what the
+// product shows when the backend provides nothing.
+QString displaySensorLabel(const QString &raw, const QString &fallback, int maxChars = 14);
+
+// --- BandTracker ---------------------------------------------------------
+// Hysteresis-aware per-sensor band tracking across polls. Both Dashboard and
+// Cooling need the same CPU/GPU classification, so the logic lives in one place
+// instead of being duplicated per page. Behaviour is identical to calling
+// classify() once and classifyHysteresis() thereafter.
+struct BandTracker {
+    bool have = false;
+    Band cpu = Band::Normal;
+    Band gpu = Band::Normal;
+
+    void reset();
+    void update(bool cpuValid, double cpuCelsius, bool gpuValid, double gpuCelsius);
+    Band systemBand() const { return worst(cpu, gpu); }
+};
 
 } // namespace AppState

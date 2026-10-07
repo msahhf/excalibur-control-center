@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=EXCALIBUR Control Center
+GenericName=System Control Center
+Comment=Monitor EXCALIBUR G870 temperatures, fan speeds and cooling state
+Exec=excalibur-control-center
+Icon=excalibur-control-center
+Terminal=false
+Categories=System;Monitor;
+Keywords=excalibur;hardware;temperature;fan;cooling;telemetry;system;
+StartupNotify=true
+StartupWMClass=excalibur-control-center
