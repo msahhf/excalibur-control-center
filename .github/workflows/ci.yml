@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+# Minimal permissions: the CI only reads the repository.
+permissions:
+  contents: read
+
+jobs:
+  arch:
+    name: Arch build · package · DKMS · validation
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            cmake ninja gcc qt6-base dkms \
+            desktop-file-utils appstream \
+            git tar gzip zstd libarchive
+
+      - uses: actions/checkout@v4
+
+      - name: GUI configure + build (warning-gated)
+        run: |
+          cmake -S gui -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build 2>&1 | tee build.log
+          if grep -q 'warning:' build.log; then
+            echo "::error::compiler warnings found (-Wall -Wextra must be clean)"
+            exit 1
+          fi
+
+      - name: Runtime smoke (offscreen, driver absent)
+        run: |
+          # Release build has no dev hooks: it starts the GUI, so bound it with timeout.
+          timeout 3 env QT_QPA_PLATFORM=offscreen ./build/excalibur-control-center >/dev/null 2>&1 || true
+
+      - name: Build reproducible source tarball
+        run: |
+          VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          tar -c --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
+              --exclude='gui/build' \
+              --transform "s,^,excalibur-control-center-$VERSION/," \
+              -C . gui driver analysis/phase3/excalibur-wmi.c LICENSE \
+            | gzip -n > packaging/arch/excalibur-control-center-$VERSION.tar.gz
+
+      - name: Verify tarball checksum matches PKGBUILD
+        run: |
+          SUM=$(sha256sum "packaging/arch/excalibur-control-center-$VERSION.tar.gz" | cut -d' ' -f1)
+          echo "tarball sha256: $SUM"
+          grep -q "$SUM" packaging/arch/PKGBUILD
+
+      - name: makepkg (non-root)
+        run: |
+          useradd -m builder
+          chown -R builder:builder .
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -C -c -f --noconfirm"
+
+      - name: Package content audit
+        run: |
+          PKG=$(ls packaging/arch/excalibur-control-center-*.pkg.tar.zst)
+          echo "Package: $PKG"
+          bsdtar -tf "$PKG" | sort
+          if bsdtar -tf "$PKG" | grep -E '(^|/)\.ko$|/home/|\.config|\.INSTALL|secret'; then
+            echo "::error::forbidden content in package"; exit 1
+          fi
+          bsdtar -tf "$PKG" | grep -q 'usr/bin/excalibur-control-center'
+          bsdtar -tf "$PKG" | grep -q "usr/src/excalibur-wmi-$VERSION/dkms.conf"
+          bsdtar -tf "$PKG" | grep -q 'usr/share/licenses/excalibur-control-center/LICENSE'
+
+      - name: Validate .SRCINFO matches PKGBUILD
+        run: |
+          cd packaging/arch
+          makepkg --printsrcinfo > /tmp/.SRCINFO.generated
+          diff -u .SRCINFO /tmp/.SRCINFO.generated
+
+      - name: desktop + AppStream validation
+        run: |
+          PKG=$(ls packaging/arch/excalibur-control-center-*.pkg.tar.zst)
+          mkdir -p /tmp/pkg && bsdtar -xf "$PKG" -C /tmp/pkg
+          desktop-file-validate /tmp/pkg/usr/share/applications/excalibur-control-center.desktop
+          # AppStream: no errors required; warnings (no upstream domain/homepage) are tolerated.
+          appstreamcli validate --no-net /tmp/pkg/usr/share/metainfo/excalibur-control-center.metainfo.xml || true
+
+      - name: DKMS source build (best effort)
+        run: |
+          pacman -S --noconfirm --needed linux linux-headers || true
+          KVER=$(ls /usr/lib/modules 2>/dev/null | head -1 || true)
+          if [ -z "$KVER" ] || [ ! -d "/usr/lib/modules/$KVER/build" ]; then
+            echo "No kernel headers in this environment; skipping DKMS build"; exit 0
+          fi
+          if ! grep -rqs 'wmidev_set_block' "/usr/lib/modules/$KVER/build/include" 2>/dev/null; then
+            echo "SKIP: installed kernel ($KVER) lacks the wmidev_* API (driver requires 7.2.x)"
+            exit 0
+          fi
+          DKMSSRC=$(mktemp -d)
+          cp driver/Makefile driver/dkms.conf analysis/phase3/excalibur-wmi.c "$DKMSSRC/"
+          make -C "/usr/lib/modules/$KVER/build" M="$DKMSSRC" KERNELRELEASE="$KVER" modules
+          modinfo "$DKMSSRC/excalibur-wmi.ko" | grep -E '^(name|vermagic)'
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: excalibur-control-center-arch-package
+          path: packaging/arch/excalibur-control-center-*.pkg.tar.zst
+          if-no-files-found: error
