@@ -1,0 +1,83 @@
+# Maintainer: Muhammedşah Fidan <muhammedsahfidan@gmail.com>
+#
+# Single user-facing product package: EXCALIBUR Control Center.
+#   * the Qt6 GUI (Dashboard/Cooling/Device/Diagnostics/Settings/About + tray)
+#   * the excalibur-wmi read-only hwmon driver, integrated as DKMS
+#
+# There is intentionally no separate `excalibur-wmi-dkms` package and no meta
+# package: one AUR package, `excalibur-control-center`, provides both. Arch's
+# `dkms` pacman hooks build/install the module on package install and on kernel
+# updates, and remove it on package removal (they trigger on
+# usr/src/*/dkms.conf and usr/lib/modules/*/build/include/), so no custom
+# .install script and no root helper are needed.
+#
+# Local source build:
+#   Place `excalibur-control-center-$pkgver.tar.gz` (containing
+#   `excalibur-control-center-$pkgver/{gui/,driver/,analysis/phase3/excalibur-wmi.c,LICENSE}`)
+#   next to this PKGBUILD and run `makepkg`. No network is used.
+#
+# pkgver must equal the CMake project() VERSION (GUI) and the DKMS
+# PACKAGE_VERSION; the prepare() step fails the build on any drift.
+
+pkgname=excalibur-control-center
+pkgver=0.5.1
+pkgrel=1
+pkgdesc="EXCALIBUR Control Center: read-only telemetry GUI and excalibur-wmi hwmon driver (DKMS)"
+arch=('x86_64')
+license=('GPL-2.0-only')
+depends=('qt6-base' 'dkms')
+makedepends=('cmake' 'ninja' 'gcc')
+# Disable LTO for a bit-reproducible GUI payload (system-wide LTO is
+# non-deterministic here). No install hooks.
+options=('!lto')
+source=("$pkgname-$pkgver.tar.gz")
+# Checksum of the reproducible source tarball (see README). For the final AUR
+# submission `source` must be replaced with the upstream release URL and the
+# checksum regenerated (`updpkgsums`); the local tarball is a development input.
+# Intended final form once a Git remote exists:
+#   source=("https://github.com/<owner>/<repo>/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('5b309a5017a0231b6d2caacb6d2b3b7b40c3c0adb11414238ab840a3c766703d')
+
+prepare() {
+  # GUI version must match pkgver (single source: CMake project VERSION).
+  local cmakever
+  cmakever="$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' \
+    "$srcdir/$pkgname-$pkgver/gui/CMakeLists.txt" | head -n1)"
+  if [[ "$cmakever" != "$pkgver" ]]; then
+    printf 'error: PKGBUILD pkgver (%s) != CMake project VERSION (%s)\n' \
+      "$pkgver" "$cmakever" >&2
+    exit 1
+  fi
+
+  # DKMS version must match pkgver (keeps the version in one place).
+  source "$srcdir/$pkgname-$pkgver/driver/dkms.conf"
+  if [[ "$PACKAGE_VERSION" != "$pkgver" ]]; then
+    printf 'error: PKGBUILD pkgver (%s) != DKMS PACKAGE_VERSION (%s)\n' \
+      "$pkgver" "$PACKAGE_VERSION" >&2
+    exit 1
+  fi
+}
+
+build() {
+  cmake -S "$srcdir/$pkgname-$pkgver/gui" -B build -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr
+  cmake --build build
+}
+
+package() {
+  # 1. GUI + desktop + icons + metainfo + license.
+  DESTDIR="$pkgdir" cmake --install build
+
+  # 2. DKMS driver sources under the Arch/DKMS standard path. The directory name
+  #    must be <PACKAGE_NAME>-<PACKAGE_VERSION> (Arch's dkms hook parses it).
+  #    The prebuilt analysis/phase3/excalibur-wmi.ko is NOT packaged — DKMS builds
+  #    the module for each installed kernel from excalibur-wmi.c.
+  source "$srcdir/$pkgname-$pkgver/driver/dkms.conf"
+  local dkmsdir="$pkgdir/usr/src/${PACKAGE_NAME}-${PACKAGE_VERSION}"
+  install -dm755 "$dkmsdir"
+  install -m644 "$srcdir/$pkgname-$pkgver/driver/dkms.conf" "$dkmsdir/dkms.conf"
+  install -m644 "$srcdir/$pkgname-$pkgver/driver/Makefile" "$dkmsdir/Makefile"
+  install -m644 "$srcdir/$pkgname-$pkgver/analysis/phase3/excalibur-wmi.c" "$dkmsdir/excalibur-wmi.c"
+  install -m644 "$srcdir/$pkgname-$pkgver/LICENSE" "$dkmsdir/LICENSE"
+}
