@@ -36,11 +36,27 @@ Driver compatibility depends on the kernel API; no header package is hardcoded a
 no artificial `BUILD_EXCLUSIVE_KERNEL` range is declared. The driver source is
 protected and not modified here.
 
-## Build the package (local development source)
+## Build the package
 
-`makepkg` expects a **reproducible** source tarball named
-`excalibur-control-center-<pkgver>.tar.gz` next to the `PKGBUILD`, containing
-`gui/`, `driver/`, `analysis/phase3/excalibur-wmi.c` and `LICENSE`.
+`makepkg` fetches the versioned **GitHub release archive** and verifies its
+checksum:
+
+```
+source=("https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('365a804c65a5dc5ba132e1c41f762c439d65981bea5cd979396fb72f47d2fa93')
+```
+
+```bash
+cd packaging/arch
+makepkg --cleanbuild --clean -f      # downloads + builds the release archive
+makepkg --printsrcinfo > .SRCINFO    # regenerate when metadata changes
+```
+
+### Development override (no network)
+
+To build from a local working tree instead of the release archive, generate a
+reproducible tarball and point `source` at it (or use `makepkg --noextract` with a
+prepared `$srcdir`):
 
 ```bash
 VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
@@ -49,28 +65,16 @@ tar -c --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
     --transform "s,^,excalibur-control-center-$VERSION/," \
     -C . gui driver analysis/phase3/excalibur-wmi.c LICENSE \
   | gzip -n > packaging/arch/excalibur-control-center-$VERSION.tar.gz
-
-cd packaging/arch
-makepkg --cleanbuild --clean -f      # clean, reproducible build
-makepkg --printsrcinfo > .SRCINFO    # regenerate when metadata changes
 ```
 
-The tarball is reproducible (fixed mtimes/owner, sorted, `gzip -n`); its sha256 is
-recorded in `PKGBUILD`/`.SRCINFO`.
+The tarball is reproducible (fixed mtimes/owner, sorted, `gzip -n`).
 
-## Final AUR source model
+## AUR source model
 
-The AUR repository should ship **`PKGBUILD` + `.SRCINFO`** and pull the source from
-the upstream release archive, not from a committed tarball:
-
-```
-source=("<upstream-release-url>/excalibur-control-center-$pkgver.tar.gz")
-sha256sums=('<checksum of the release archive>')   # regenerate with updpkgsums
-```
-
-The current `source=("$pkgname-$pkgver.tar.gz")` + real checksum is the local
-development input; swapping it for the upstream URL is the only change needed once a
-public release URL exists.
+The release is published on GitHub:
+`https://github.com/msahhf/excalibur-control-center` (tag `v0.5.1`). The PKGBUILD
+uses the tag archive URL above; on a new release, bump `pkgver`, then
+`updpkgsums` (or recompute the archive sha256) and regenerate `.SRCINFO`.
 
 ## What the package installs
 

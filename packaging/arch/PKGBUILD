@@ -30,13 +30,8 @@ makedepends=('cmake' 'ninja' 'gcc')
 # Disable LTO for a bit-reproducible GUI payload (system-wide LTO is
 # non-deterministic here). No install hooks.
 options=('!lto')
-source=("$pkgname-$pkgver.tar.gz")
-# Checksum of the reproducible source tarball (see README). For the final AUR
-# submission `source` must be replaced with the upstream release URL and the
-# checksum regenerated (`updpkgsums`); the local tarball is a development input.
-# Intended final form once a Git remote exists:
-#   source=("https://github.com/<owner>/<repo>/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('5b309a5017a0231b6d2caacb6d2b3b7b40c3c0adb11414238ab840a3c766703d')
+source=("https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('365a804c65a5dc5ba132e1c41f762c439d65981bea5cd979396fb72f47d2fa93')
 
 prepare() {
   # GUI version must match pkgver (single source: CMake project VERSION).
