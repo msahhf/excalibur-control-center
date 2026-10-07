@@ -11,8 +11,16 @@ analysis/installer/
 analysis/phase3/*.o
 analysis/phase3/.*.cmd
 analysis/phase3/*.mod
+analysis/phase3/*.mod.c
 analysis/phase3/modules.order
 analysis/phase3/Module.symvers
+
+# Internal analysis / AI-workflow artifacts (must not go to the public source tree)
+analysis/reports/
+analysis/resources/
+analysis/drivers/
+analysis/phase2c/
+docs/plans_real_final/
 
 # Vendor installer
 EXCALIBUR_Control_Center_Setup.exe
@@ -20,9 +28,13 @@ EXCALIBUR_Control_Center_Setup.exe
 # Personal / local-only
 AGENTS.md
 
-# Working screenshot artifacts (generated during validation phases;
-# the curated reports/*.md remain tracked)
-analysis/reports/screenshots/
+# Logs and temp/editor artifacts
+*.log
+*.tmp
+*.bak
+*.orig
+*.trace
+*.dump
 
 # Editor / OS
 *.swp
