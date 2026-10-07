@@ -17,6 +17,13 @@ analysis/phase3/Module.symvers
 # Vendor installer
 EXCALIBUR_Control_Center_Setup.exe
 
+# Personal / local-only
+AGENTS.md
+
+# Working screenshot artifacts (generated during validation phases;
+# the curated reports/*.md remain tracked)
+analysis/reports/screenshots/
+
 # Editor / OS
 *.swp
 .DS_Store
