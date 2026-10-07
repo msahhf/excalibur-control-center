@@ -22,9 +22,16 @@ jobs:
           pacman -Syu --noconfirm --needed \
             cmake ninja gcc qt6-base dkms \
             desktop-file-utils appstream \
-            git tar gzip zstd libarchive
+            git tar gzip zstd libarchive curl
 
       - uses: actions/checkout@v4
+
+      - name: "Derive version (single source: CMake)"
+        run: |
+          VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          [ -n "$VERSION" ] || { echo "::error::could not read CMake project VERSION"; exit 1; }
+          echo "version: $VERSION"
 
       - name: GUI configure + build (warning-gated)
         run: |
@@ -37,27 +44,12 @@ jobs:
 
       - name: Runtime smoke (offscreen, driver absent)
         run: |
-          # Release build has no dev hooks: it starts the GUI, so bound it with timeout.
           timeout 3 env QT_QPA_PLATFORM=offscreen ./build/excalibur-control-center >/dev/null 2>&1 || true
 
-      - name: Build reproducible source tarball
+      - name: makepkg from the public release source (non-root)
         run: |
-          VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          tar -c --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
-              --exclude='gui/build' \
-              --transform "s,^,excalibur-control-center-$VERSION/," \
-              -C . gui driver analysis/phase3/excalibur-wmi.c LICENSE \
-            | gzip -n > packaging/arch/excalibur-control-center-$VERSION.tar.gz
-
-      - name: Verify tarball checksum matches PKGBUILD
-        run: |
-          SUM=$(sha256sum "packaging/arch/excalibur-control-center-$VERSION.tar.gz" | cut -d' ' -f1)
-          echo "tarball sha256: $SUM"
-          grep -q "$SUM" packaging/arch/PKGBUILD
-
-      - name: makepkg (non-root)
-        run: |
+          # PKGBUILD source is the GitHub release archive for v$VERSION; makepkg
+          # downloads it and verifies the sha256 itself.
           useradd -m builder
           chown -R builder:builder .
           su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -C -c -f --noconfirm"
@@ -88,7 +80,7 @@ jobs:
           PKG=$(ls packaging/arch/excalibur-control-center-*.pkg.tar.zst)
           mkdir -p /tmp/pkg && bsdtar -xf "$PKG" -C /tmp/pkg
           desktop-file-validate /tmp/pkg/usr/share/applications/excalibur-control-center.desktop
-          # AppStream: no errors required; warnings (no upstream domain/homepage) are tolerated.
+          # AppStream: no errors required; warnings (no upstream domain/homepage) tolerated.
           appstreamcli validate --no-net /tmp/pkg/usr/share/metainfo/excalibur-control-center.metainfo.xml || true
 
       - name: DKMS source build (best effort)
