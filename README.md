@@ -37,22 +37,42 @@ absent.
 
 ## Install (Arch Linux / CachyOS)
 
-> The AUR package is **planned**; it is not published yet. The steps below describe
-> the intended user flow once the AUR entry is live.
-
-```bash
-yay -S excalibur-control-center        # or: paru -S excalibur-control-center
-```
+> **AUR publication is pending registration availability.** The package is not on
+> the AUR yet. Until then, build/install from the GitHub release or from source.
 
 The single `excalibur-control-center` package provides the GUI **and** the
 `excalibur-wmi` DKMS driver. `dkms` (a runtime dependency) and its pacman hooks
 build/install the module for every installed kernel and rebuild it on kernel updates.
 
-- **Runtime:** the GUI needs **no root**.
-- **Installation / module:** the package manager and DKMS hooks may use root.
-- **Driver:** provided as a DKMS kernel module (`excalibur_wmi`).
+### Control Center (GUI)
 
-Until the AUR entry exists, build from source (see below).
+Runs as a normal, unprivileged user.
+
+### Driver
+
+Provided as a DKMS kernel module (`excalibur_wmi`); the kernel module is built during
+package installation (and rebuilt by the `dkms` hooks on kernel updates).
+
+### Privileges
+
+The GUI runtime needs **no root**. Package installation and the kernel-module
+lifecycle (DKMS) may use root.
+
+### Install methods
+
+AUR (once published):
+
+```bash
+yay -S excalibur-control-center        # or: paru -S excalibur-control-center
+```
+
+From the GitHub release (a built package is attached to the `v0.5.1` release):
+
+```bash
+sudo pacman -U excalibur-control-center-0.5.1-1-x86_64.pkg.tar.zst
+```
+
+From source: see below.
 
 ## Build from source
 

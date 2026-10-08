@@ -1,10 +1,8 @@
 name: Release
 
-# Tag-driven release preparation. Builds the Arch package from the public release
-# source and produces a SHA256SUMS file covering the package and the source
-# archive. It does NOT publish a GitHub Release automatically (read-only
-# permissions); the maintainer creates the Release from the artifacts, or enables
-# the commented draft-release step.
+# Tag-driven release. Builds the Arch package from the public release source,
+# computes SHA256SUMS (package + source archive), uploads build artifacts, and
+# publishes a GitHub Release for the tag with the package and checksums attached.
 
 on:
   push:
@@ -12,11 +10,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # required to create the GitHub Release for the tag
 
 jobs:
   release:
-    name: v* package + checksums
+    name: v* package + release
     runs-on: ubuntu-latest
     container:
       image: archlinux:base-devel
@@ -57,7 +55,7 @@ jobs:
           } > SHA256SUMS
           cat SHA256SUMS
 
-      - name: Upload release artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: excalibur-control-center-v${{ env.VERSION }}
@@ -67,6 +65,16 @@ jobs:
             packaging/arch/SHA256SUMS
           if-no-files-found: error
 
-      # To publish a GitHub Release automatically, add a step using
-      # `softprops/action-gh-release@v2` and grant `permissions: contents: write`.
-      # Left to the maintainer to keep the workflow least-privileged.
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: EXCALIBUR Control Center v${{ env.VERSION }}
+          body_path: .github/release-notes/v${{ env.VERSION }}.md
+          files: |
+            packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst
+            excalibur-control-center-*.tar.gz
+            packaging/arch/SHA256SUMS
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
