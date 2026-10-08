@@ -56,10 +56,9 @@ jobs:
 
       - name: Package content audit
         run: |
-          PKG=$(ls packaging/arch/excalibur-control-center-*.pkg.tar.zst)
+          PKG=$(ls packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst)
           echo "Package: $PKG"
           echo "VERSION=$VERSION"
-          echo "::notice::pkgfiles=$(ls -l packaging/arch/*.pkg.tar.zst | tr '\n' '|')"
           # List with GNU tar (Arch container); fall back to bsdtar. Save the
           # listing first: piping tar into `grep -q` under `pipefail` makes grep
           # close the pipe early and SIGPIPE tar, failing the step.
@@ -70,7 +69,6 @@ jobs:
           echo "--- package listing ($(wc -l < /tmp/pkglist.txt) entries) ---"
           cat /tmp/pkglist.txt
           echo "--- end listing ---"
-          echo "::notice::pkglist=$(tr '\n' '|' < /tmp/pkglist.txt)"
           if grep -E '(^|/)\.ko$|/home/|\.config|\.INSTALL|secret' /tmp/pkglist.txt; then
             echo "::error::forbidden content in package"; exit 1
           fi
@@ -89,7 +87,7 @@ jobs:
 
       - name: desktop + AppStream validation
         run: |
-          PKG=$(ls packaging/arch/excalibur-control-center-*.pkg.tar.zst)
+          PKG=$(ls packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst)
           mkdir -p /tmp/pkg
           tar --zstd -xf "$PKG" -C /tmp/pkg 2>/dev/null || bsdtar -xf "$PKG" -C /tmp/pkg
           desktop-file-validate /tmp/pkg/usr/share/applications/excalibur-control-center.desktop
@@ -116,5 +114,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: excalibur-control-center-arch-package
-          path: packaging/arch/excalibur-control-center-*.pkg.tar.zst
+          path: packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst
           if-no-files-found: error

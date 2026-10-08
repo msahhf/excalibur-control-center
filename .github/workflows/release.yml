@@ -53,7 +53,7 @@ jobs:
           {
             echo "# EXCALIBUR Control Center v$VERSION release checksums"
             sha256sum "../../excalibur-control-center-$VERSION.tar.gz" \
-                      excalibur-control-center-*.pkg.tar.zst
+                      excalibur-control-center-[0-9]*.pkg.tar.zst
           } > SHA256SUMS
           cat SHA256SUMS
 
@@ -62,7 +62,7 @@ jobs:
         with:
           name: excalibur-control-center-v${{ env.VERSION }}
           path: |
-            packaging/arch/excalibur-control-center-*.pkg.tar.zst
+            packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst
             excalibur-control-center-*.tar.gz
             packaging/arch/SHA256SUMS
           if-no-files-found: error
