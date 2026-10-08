@@ -1,0 +1,61 @@
+name: Publish v0.5.1 release (one-shot)
+
+# Temporary helper: the repository Actions token (contents: write) creates the
+# GitHub Release for the already-pushed tag v0.5.1, attaching the built package
+# and SHA256SUMS. Removed after it runs once.
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            cmake ninja gcc qt6-base dkms desktop-file-utils appstream \
+            git tar gzip zstd libarchive curl
+
+      - uses: actions/checkout@v4
+
+      - name: Build package from the public release source (non-root)
+        run: |
+          useradd -m builder
+          chown -R builder:builder .
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -C -c -f --noconfirm"
+
+      - name: Checksums (package + source archive)
+        run: |
+          VERSION=0.5.1
+          curl -fsSL -o "excalibur-control-center-$VERSION.tar.gz" \
+            "https://github.com/${{ github.repository }}/archive/refs/tags/v$VERSION.tar.gz"
+          cd packaging/arch
+          {
+            echo "# EXCALIBUR Control Center v$VERSION release checksums"
+            sha256sum "../../excalibur-control-center-$VERSION.tar.gz" \
+                      excalibur-control-center-[0-9]*.pkg.tar.zst
+          } > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish GitHub Release v0.5.1
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.5.1
+          name: EXCALIBUR Control Center v0.5.1
+          body_path: .github/release-notes/v0.5.1.md
+          files: |
+            packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst
+            excalibur-control-center-*.tar.gz
+            packaging/arch/SHA256SUMS
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
