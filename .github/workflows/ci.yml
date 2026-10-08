@@ -81,13 +81,14 @@ jobs:
 
       - name: Validate .SRCINFO matches PKGBUILD
         run: |
+          # makepkg refuses to run as root: generate as the build user.
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg --printsrcinfo" > /tmp/.SRCINFO.generated
           cd packaging/arch
-          makepkg --printsrcinfo > /tmp/.SRCINFO.generated
           # Order-insensitive comparison: makepkg versions may emit option/source
           # lines in a different order while the content is identical.
           if ! diff -u <(sort .SRCINFO) <(sort /tmp/.SRCINFO.generated) > /tmp/srcdiff.txt; then
             echo "::error::.SRCINFO content differs from generated"
-            echo "::error::$(tr '\n' '|' < /tmp/srcdiff.txt)"
+            echo "::error::$(tr '\n' '|' < /tmp/srcdiff.txt | head -c 1500)"
             exit 1
           fi
 
