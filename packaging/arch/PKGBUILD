@@ -28,8 +28,9 @@ license=('GPL-2.0-only')
 depends=('qt6-base' 'dkms')
 makedepends=('cmake' 'ninja' 'gcc')
 # Disable LTO for a bit-reproducible GUI payload (system-wide LTO is
-# non-deterministic here). No install hooks.
-options=('!lto')
+# non-deterministic here) and disable the auto-generated -debug subpackage so the
+# package is a single, consistent artifact everywhere. No install hooks.
+options=('!lto' '!debug')
 source=("https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('365a804c65a5dc5ba132e1c41f762c439d65981bea5cd979396fb72f47d2fa93')
 
