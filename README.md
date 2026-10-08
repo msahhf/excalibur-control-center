@@ -1,82 +1,92 @@
 # EXCALIBUR Control Center
 
-A native Linux desktop application that shows the **read-only** thermal and cooling
-telemetry of CASPER EXCALIBUR laptops (EXCALIBUR G870 / NLXB 001), plus an integrated
-read-only hwmon kernel driver delivered via DKMS.
+Native Linux hardware telemetry control center for CASPER EXCALIBUR laptops.
+
+[![Release](https://img.shields.io/github/v/release/msahhf/excalibur-control-center?sort=semver)](https://github.com/msahhf/excalibur-control-center/releases/latest)
+[![CI](https://github.com/msahhf/excalibur-control-center/actions/workflows/ci.yml/badge.svg)](https://github.com/msahhf/excalibur-control-center/actions/workflows/ci.yml)
+[![License: GPL-2.0-only](https://img.shields.io/badge/license-GPL--2.0--only-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Arch%20Linux-1793D1.svg)](https://archlinux.org)
+
+![EXCALIBUR Control Center — Dashboard](docs/screenshots/dashboard-dark.png)
+
+---
+
+## Introduction
+
+EXCALIBUR Control Center is a native Linux desktop application for monitoring CASPER
+EXCALIBUR hardware. It provides real-time thermal and fan telemetry, system
+information, diagnostics, configurable display preferences, and background operation
+through the system tray.
+
+The application is built with **Qt6** and runs entirely as an unprivileged user. The
+integrated **`excalibur-wmi`** driver is a read-only hwmon kernel module delivered
+through **DKMS**, so it is rebuilt automatically for each installed kernel.
+
+## Features
+
+| Area          | Capabilities                                                        |
+| ------------- | ------------------------------------------------------------------- |
+| Telemetry     | CPU / GPU temperature, CPU / GPU fan RPM                            |
+| History       | 60-second temperature and fan history                               |
+| Dashboard     | Live system state and thermal overview                              |
+| Cooling       | Per-channel temperature, fan speed and history view                 |
+| Device        | Hardware, firmware and kernel information                           |
+| Diagnostics   | Runtime diagnostics and JSON export                                 |
+| Settings      | Theme (System / Light / Dark), Celsius / Fahrenheit, refresh rate   |
+| Background    | System tray, hide/show, single-instance runtime                     |
+| Driver        | Integrated read-only `excalibur-wmi` DKMS module                    |
+
+The current release focuses on read-only telemetry; hardware control features are
+outside the current capability set.
+
+## Screenshots
+
+| Dashboard (dark) | Dashboard (light) |
+| ---------------- | ----------------- |
+| ![Dashboard dark](docs/screenshots/dashboard-dark.png) | ![Dashboard light](docs/screenshots/dashboard-light.png) |
+
+| Cooling | About |
+| ------- | ----- |
+| ![Cooling](docs/screenshots/cooling-dark.png) | ![About](docs/screenshots/about-dark.png) |
+
+## Architecture
 
 ```
-                  EXCALIBUR Control Center
-                           │
-             ┌─────────────┴─────────────┐
-             │ GUI (Qt6)                 │ excalibur-wmi (DKMS driver)
-             └──────────── same package ─┘
-                           │
-                     one AUR package
+EXCALIBUR Control Center
+        │
+        ├── Qt6 GUI
+        │
+        ├── AppState / TelemetrySnapshot
+        │
+        ├── HwmonClient
+        │
+        └── excalibur-wmi   (read-only hwmon driver)
+                │
+              DKMS
 ```
 
-## What it does
+The GUI reads from a single central telemetry state. Pages never access `sysfs`
+directly — `HwmonClient` is the only telemetry read boundary — and the driver
+exposes read-only hwmon telemetry.
 
-- CPU and GPU temperature
-- CPU and GPU fan RPM telemetry
-- 60-second temperature / fan history
-- Hardware, firmware and kernel information
-- Diagnostics view with JSON export (for support)
-- Settings: theme (System/Light/Dark), Celsius/Fahrenheit, refresh interval
-- System tray with background operation and single-instance enforcement
+## Installation
 
-Everything is **unprivileged and read-only**. The application reads
-`/sys/class/hwmon/*` through its own `HwmonClient`; it never writes to the hardware,
-never touches WMI/ACPI/EC, and never needs root at runtime.
+### Arch Linux / CachyOS
 
-## What it is NOT
+The package provides **both the application and the integrated DKMS driver**.
 
-This is **not** a control tool. There is **no** fan control, **no** RGB control,
-**no** power/performance modes, and **no** overclocking. The only declared kernel
-feature is read-only telemetry. Claims of fan/RGB/power control are intentionally
-absent.
-
-## Install (Arch Linux / CachyOS)
-
-> **AUR publication is pending registration availability.** The package is not on
-> the AUR yet. Until then, build/install from the GitHub release or from source.
-
-The single `excalibur-control-center` package provides the GUI **and** the
-`excalibur-wmi` DKMS driver. `dkms` (a runtime dependency) and its pacman hooks
-build/install the module for every installed kernel and rebuild it on kernel updates.
-
-### Control Center (GUI)
-
-Runs as a normal, unprivileged user.
-
-### Driver
-
-Provided as a DKMS kernel module (`excalibur_wmi`); the kernel module is built during
-package installation (and rebuilt by the `dkms` hooks on kernel updates).
-
-### Privileges
-
-The GUI runtime needs **no root**. Package installation and the kernel-module
-lifecycle (DKMS) may use root.
-
-### Install methods
-
-AUR (once published):
-
-```bash
-yay -S excalibur-control-center        # or: paru -S excalibur-control-center
-```
-
-From the GitHub release (a built package is attached to the `v0.5.1` release):
+Download the latest release package and install it:
 
 ```bash
 sudo pacman -U excalibur-control-center-0.5.1-1-x86_64.pkg.tar.zst
 ```
 
-From source: see below.
+The application itself runs without root. Package installation and the DKMS
+kernel-module lifecycle may use root.
 
-## Build from source
+### Build from source
 
-Requirements: Qt6 Widgets, CMake ≥ 3.16, Ninja, a C++17 compiler.
+Requirements: Qt6 Widgets, CMake, Ninja, and a C++17 compiler.
 
 ```bash
 cmake -S gui -B gui/build -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -84,19 +94,13 @@ cmake --build gui/build
 ./gui/build/excalibur-control-center
 ```
 
-The app works without the driver (the Dashboard shows `Telemetry Unavailable`) and
-switches to live telemetry automatically once the module is loaded.
+The application starts without the driver and reports `Telemetry Unavailable` until
+the module is available.
 
-## Driver (DKMS)
+## Driver
 
-The driver source is `analysis/phase3/excalibur-wmi.c` (single source of truth) and
-is packaged as a DKMS module:
-
-```
-/usr/src/excalibur-wmi-<version>/{dkms.conf, Makefile, excalibur-wmi.c}
-```
-
-Build/install is automatic via the distro `dkms` pacman hooks. Manual commands:
+The `excalibur-wmi` kernel module is packaged with the application and built through
+DKMS for the installed kernel.
 
 ```bash
 dkms status
@@ -104,29 +108,51 @@ sudo modprobe excalibur_wmi
 cat /sys/class/hwmon/hwmon*/name     # excalibur_g870
 ```
 
-### Kernel compatibility (known limitation)
+## Hardware
 
-The driver uses the `wmidev_set_block` / `wmidev_query_block` kernel API:
+```
+CASPER EXCALIBUR G870 / NLXB 001
+```
 
-- **7.2.x — verified** (builds and loads on 7.2.9-1-cachyos).
-- **6.18.x-lts — known incompatibility** (`wmidev_*` API absent → build fails).
+## Compatibility
 
-Driver compatibility therefore depends on the kernel API. No header package is
-hardcoded and no artificial compatibility range is declared.
+| Kernel                 | Status                             |
+| ---------------------- | ---------------------------------- |
+| CachyOS `7.2.x`        | Verified                           |
+| `6.18.x-lts`           | Driver API incompatibility         |
 
-## Telemetry fidelity
+The driver targets the `wmidev_set_block` / `wmidev_query_block` kernel API. That
+API is not present in the 6.18 LTS kernel, so the module does not build there.
 
-The GUI displays the raw hwmon value unmodified. It does **not** smooth, average,
-median-filter, clamp or otherwise alter readings. If the firmware/EC emits an
-anomalous sample (e.g. a sudden CPU-temperature step), it is shown as-is; that is a
-backend/EC investigation, not something the GUI hides.
+## Telemetry
+
+Telemetry values are displayed from the underlying hwmon readings without smoothing,
+averaging or arbitrary clamping. What the hardware reports is what the application
+shows.
 
 ## Diagnostics
 
-The Diagnostics page shows the application's real runtime state and can export it as
-pretty JSON (no secrets, no environment dump; canonical temperatures are Celsius,
-with the user's unit recorded separately).
+The Diagnostics view presents the application's runtime state and can export it as
+JSON. Exported temperatures are canonical Celsius values; unavailable readings are
+represented honestly rather than as invented numbers. The export contains no
+environment variables, credentials or personal data.
+
+## Status
+
+```
+Current release : v0.5.1
+Stage           : Public release / active development
+Platform        : Linux
+Primary target  : CachyOS / Arch Linux
+License         : GPL-2.0-only
+```
+
+> AUR publication is pending account registration availability.
 
 ## License
 
-GPL-2.0-only. See [`LICENSE`](LICENSE).
+GPL-2.0-only. See [LICENSE](LICENSE).
+
+## Author
+
+Muhammedşah Fidan — [@msahhf](https://github.com/msahhf)
