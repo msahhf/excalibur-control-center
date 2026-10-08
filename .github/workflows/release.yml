@@ -47,13 +47,12 @@ jobs:
         run: |
           ARCH_URL="https://github.com/${{ github.repository }}/archive/refs/tags/v$VERSION.tar.gz"
           curl -fsSL -o "excalibur-control-center-$VERSION.tar.gz" "$ARCH_URL"
-          cd packaging/arch
           {
             echo "# EXCALIBUR Control Center v$VERSION release checksums"
-            sha256sum "../../excalibur-control-center-$VERSION.tar.gz" \
-                      excalibur-control-center-[0-9]*.pkg.tar.zst
-          } > SHA256SUMS
-          cat SHA256SUMS
+            ( cd "$GITHUB_WORKSPACE" && sha256sum "excalibur-control-center-$VERSION.tar.gz" )
+            ( cd packaging/arch && sha256sum excalibur-control-center-[0-9]*.pkg.tar.zst )
+          } > packaging/arch/SHA256SUMS
+          cat packaging/arch/SHA256SUMS
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
