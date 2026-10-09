@@ -45,6 +45,12 @@ MainWindow::MainWindow(QWidget *parent)
     m_model = new TelemetryModel(this);
     m_sysInfo = readSystemInfo();
 
+    // The diagnostics viewer is rebuilt from the same snapshot (single source).
+    // Connected ONCE here, not in installCentral(): the receiver is `this`
+    // (MainWindow), which survives a theme rebuild, so re-connecting there would
+    // accumulate duplicate slots on every theme change.
+    connect(m_model, &TelemetryModel::updated, this, [this]() { refreshDiagnostics(); });
+
     // Apply the resolved theme before any widget is built, then build the shell.
     applyThemeTokens();
     installCentral();
@@ -128,8 +134,6 @@ void MainWindow::installCentral()
     connect(m_model, &TelemetryModel::updated, m_dashboard, &DashboardPage::setSnapshot);
     connect(m_model, &TelemetryModel::updated, m_cooling, &CoolingPage::setTelemetry);
     connect(m_model, &TelemetryModel::updated, m_device, &DevicePage::setSnapshot);
-    // The diagnostics viewer is rebuilt from the same snapshot (single source).
-    connect(m_model, &TelemetryModel::updated, this, [this]() { refreshDiagnostics(); });
 
     m_pages->setCurrentIndex(0);
     m_sidebar->setCurrentIndex(0);
