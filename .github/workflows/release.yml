@@ -23,7 +23,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm --needed \
             cmake ninja gcc qt6-base dkms desktop-file-utils appstream \
-            git tar gzip zstd libarchive curl
+            pacman-contrib git tar gzip zstd libarchive curl
 
       - uses: actions/checkout@v4
 
@@ -41,7 +41,11 @@ jobs:
         run: |
           useradd -m builder
           chown -R builder:builder .
-          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -C -c -f --noconfirm"
+          # The PKGBUILD source is this tag's own archive, so its SHA256 cannot
+          # be known before the tag exists (self-referential). Refresh the source
+          # checksum from the actual published archive so the release is always
+          # self-consistent, then build.
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && updpkgsums && makepkg -C -c -f --noconfirm"
 
       - name: Checksums (package + source archive)
         run: |

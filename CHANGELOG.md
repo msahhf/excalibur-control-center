@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.5.2
+
+Patch release from the V1.0 hardening pass. Two real defects found on real
+hardware were fixed; no new capabilities were added. Still strictly read-only.
+
+### Fixed
+
+- **Duplicate diagnostics connection on theme change.** The telemetry → diagnostics
+  connection was re-established on every theme rebuild (the receiver is the main
+  window, which survives the rebuild), so slots accumulated with each theme switch
+  and diagnostics work grew with the number of switches. The connection is now made
+  once. (Reproduced: 20 s of theme switching produced 3546 diagnostics rebuilds;
+  after the fix, 354.)
+- **History window semantics.** History kept a fixed 60 **samples**, which at the
+  default 2 s refresh produced ~120 s of history while the UI and diagnostics export
+  reported "60 s" (up to ~600 s at a 10 s refresh). History is now a true rolling
+  **60-second** window based on real sample timestamps at every refresh rate; the
+  Cooling "…s ago" label is derived from the same timestamps.
+
+### Changed
+
+- Release workflow regenerates the source checksum from the published tag archive
+  before building (the PKGBUILD source is the tag's own archive, so its SHA256 cannot
+  be embedded in the tagged commit).
+
+### Notes
+
+- Known kernel API incompatibility is unchanged: the driver builds against the
+  **7.2.x** API and does **not** build against **6.18.x-lts** (`wmidev_*` absent).
+- No fan/RGB/power/performance control; no hardware writes.
+
 ## v0.5.1
 
 First public release of **EXCALIBUR Control Center** — a native Linux desktop

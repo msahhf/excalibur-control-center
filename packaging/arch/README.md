@@ -18,7 +18,7 @@ module (`modprobe`) is left to the user / the boot process — the app does not 
 
 After install:
 ```bash
-dkms status                       # excalibur-wmi/0.5.1, <kernel>: installed
+dkms status                       # excalibur-wmi/0.5.2, <kernel>: installed
 sudo modprobe excalibur_wmi
 cat /sys/class/hwmon/hwmon*/name  # excalibur_g870
 ```
@@ -72,7 +72,7 @@ The tarball is reproducible (fixed mtimes/owner, sorted, `gzip -n`).
 ## AUR source model
 
 The release is published on GitHub:
-`https://github.com/msahhf/excalibur-control-center` (tag `v0.5.1`). The PKGBUILD
+`https://github.com/msahhf/excalibur-control-center` (tag `v0.5.2`). The PKGBUILD
 uses the tag archive URL above; on a new release, bump `pkgver`, then
 `updpkgsums` (or recompute the archive sha256) and regenerate `.SRCINFO`.
 
@@ -85,15 +85,15 @@ uses the tag archive URL above; on a new release, bump `pkgver`, then
 /usr/share/icons/hicolor/scalable/apps/excalibur-control-center.svg
 /usr/share/metainfo/excalibur-control-center.metainfo.xml
 /usr/share/licenses/excalibur-control-center/LICENSE
-/usr/src/excalibur-wmi-0.5.1/{dkms.conf,Makefile,excalibur-wmi.c,LICENSE}
+/usr/src/excalibur-wmi-0.5.2/{dkms.conf,Makefile,excalibur-wmi.c,LICENSE}
 ```
 
 The prebuilt `analysis/phase3/excalibur-wmi.ko` is **not** packaged.
 
 ## DKMS naming / lifecycle (Arch)
 
-- DKMS `PACKAGE_NAME` = `excalibur-wmi`, version = `0.5.1` → source dir
-  `/usr/src/excalibur-wmi-0.5.1/` (DKMS identity may differ from the package name;
+- DKMS `PACKAGE_NAME` = `excalibur-wmi`, version = `0.5.2` → source dir
+  `/usr/src/excalibur-wmi-0.5.2/` (DKMS identity may differ from the package name;
   cf. `virtualbox-host-dkms` → `vboxhost`). The Arch `dkms` hook derives the module
   id from that directory name.
 - Kernel module `excalibur_wmi` (built `excalibur-wmi.ko`).
@@ -131,10 +131,10 @@ desktop-file-validate pkg/*/usr/share/applications/excalibur-control-center.desk
 appstreamcli validate --no-net pkg/*/usr/share/metainfo/excalibur-control-center.metainfo.xml
 
 # DKMS source build (non-root; DKMS install itself needs root)
-make -C /usr/src/excalibur-wmi-0.5.1 KERNELRELEASE=$(uname -r)   # → excalibur-wmi.ko
+make -C /usr/src/excalibur-wmi-0.5.2 KERNELRELEASE=$(uname -r)   # → excalibur-wmi.ko
 
 # Package contents
-bsdtar -tf excalibur-control-center-0.5.1-1-x86_64.pkg.tar.zst | sort
+bsdtar -tf excalibur-control-center-0.5.2-1-x86_64.pkg.tar.zst | sort
 ```
 
 ## Security

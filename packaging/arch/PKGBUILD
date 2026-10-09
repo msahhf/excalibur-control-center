@@ -20,7 +20,7 @@
 # PACKAGE_VERSION; the prepare() step fails the build on any drift.
 
 pkgname=excalibur-control-center
-pkgver=0.5.1
+pkgver=0.5.2
 pkgrel=1
 pkgdesc="EXCALIBUR Control Center: read-only telemetry GUI and excalibur-wmi hwmon driver (DKMS)"
 arch=('x86_64')
