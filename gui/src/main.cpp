@@ -301,6 +301,93 @@ int runTrayStress(const QStringList &args)
 }
 #endif // EXCALIBUR_DEV_HOOKS
 
+#ifdef EXCALIBUR_DEV_HOOKS
+// Dev-only: sustained mixed-runtime stress. Repeatedly cycles navigation,
+// hide/show, theme, temperature unit and refresh interval inside ONE process (a
+// theme change rebuilds the central shell), then reports the live counts of the
+// runtime singletons so duplicate pages/timers/trays and resource growth become
+// observable. Read-only telemetry; no hardware control.
+int runStress(const QStringList &args)
+{
+    qputenv("EXCALIBUR_NO_ANIM", "1");
+
+    MainWindow window;
+    window.resize(1100, 700);
+    window.show();
+    QApplication::processEvents();
+
+    int seconds = 30;
+    if (const QString s = flagValue(args, QStringLiteral("--seconds")); !s.isEmpty())
+        seconds = s.toInt();
+
+    UserSettings &us = UserSettings::instance();
+    const UserSettings::AppTheme themes[] = {
+        UserSettings::AppTheme::System,
+        UserSettings::AppTheme::Dark,
+        UserSettings::AppTheme::Light,
+    };
+
+    // Isolation switches (dev diagnostics): disable one class of mutation at a
+    // time so a residual RSS trend can be attributed to a specific runtime path.
+    const bool doNav = !hasFlag(args, QStringLiteral("--no-nav"));
+    const bool doHide = !hasFlag(args, QStringLiteral("--no-hide"));
+    const bool doTheme = !hasFlag(args, QStringLiteral("--no-theme"));
+    const bool doUnit = !hasFlag(args, QStringLiteral("--no-unit"));
+    const bool doRefresh = !hasFlag(args, QStringLiteral("--no-refresh"));
+
+    QElapsedTimer total;
+    total.start();
+    long iter = 0;
+    while (total.elapsed() < seconds * 1000) {
+        if (doNav)
+            window.showPage(int(iter % 6));
+        QApplication::processEvents();
+        if (doHide) {
+            window.hide();
+            QApplication::processEvents();
+            window.show();
+            QApplication::processEvents();
+        }
+
+        // persist=false: exercise the live path without touching stored settings.
+        if (doTheme)
+            us.setTheme(themes[iter % 3], false);
+        if (doUnit)
+            us.setTempUnit((iter % 2) ? Units::TemperatureUnit::Fahrenheit
+                                      : Units::TemperatureUnit::Celsius, false);
+        if (doRefresh)
+            us.setRefreshMs(UserSettings::refreshOptions().at(int(iter % 4)), false);
+
+        // Flush the deferred theme rebuild and any pending telemetry tick.
+        QElapsedTimer tick;
+        tick.start();
+        while (tick.elapsed() < 60)
+            QApplication::processEvents(QEventLoop::AllEvents, 10);
+        ++iter;
+    }
+
+    TelemetryModel *model = window.findChild<TelemetryModel *>();
+    PageContainer *pc = window.findChild<PageContainer *>();
+    const int hist = model ? model->history().size() : -1;
+    const qint64 spanMs = (model && model->history().size() >= 2)
+                              ? model->history().last().timestampMs
+                                    - model->history().first().timestampMs
+                              : 0;
+    std::printf("stress seconds=%d iters=%ld models=%lld timers=%d trays=%lld pages=%d page=%d widgets=%lld hist=%d hist_span_s=%lld\n",
+                seconds, iter,
+                static_cast<long long>(window.findChildren<TelemetryModel *>().size()),
+                model ? static_cast<int>(model->findChildren<QTimer *>().size()) : -1,
+                static_cast<long long>(window.findChildren<QSystemTrayIcon *>().size()),
+                pc ? pc->count() : -1,
+                pc ? pc->currentIndex() : -1,
+                static_cast<long long>(window.findChildren<QWidget *>().size()),
+                hist,
+                static_cast<long long>(spanMs / 1000));
+    std::fflush(stdout);
+    return 0;
+}
+#endif // EXCALIBUR_DEV_HOOKS
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -330,6 +417,9 @@ int main(int argc, char **argv)
 #ifdef EXCALIBUR_DEV_HOOKS
     if (hasFlag(args, QStringLiteral("--tray-stress")))
         return runTrayStress(args);
+
+    if (hasFlag(args, QStringLiteral("--stress")))
+        return runStress(args);
 
     if (!flagValue(args, QStringLiteral("--export-diagnostics")).isEmpty())
         return runExportDiagnostics(args);
