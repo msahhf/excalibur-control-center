@@ -104,6 +104,12 @@ void TelemetryModel::poll()
     h.cpuFanRpm = s.cpuFanRpm;
     h.gpuFanRpm = s.gpuFanRpm;
     m_history.append(h);
+    // Rolling 60-second window: trim by the real sample timestamp so the window
+    // stays 60 s at every refresh interval (the poll timer also drives sampling),
+    // with kHistorySize as a hard cap for the fastest 1 s refresh.
+    const qint64 cutoff = h.timestampMs - static_cast<qint64>(kHistorySeconds) * 1000;
+    while (!m_history.isEmpty() && m_history.first().timestampMs < cutoff)
+        m_history.removeFirst();
     while (m_history.size() > kHistorySize)
         m_history.removeFirst();
 

@@ -56,7 +56,8 @@ class TelemetryModel : public QObject
     Q_OBJECT
 
 public:
-    static constexpr int kHistorySize = 60; // 60 samples at 1 Hz = 60 s
+    static constexpr int kHistorySize = 60;    // max samples retained (1 s refresh)
+    static constexpr int kHistorySeconds = 60; // rolling window duration (seconds)
 
     explicit TelemetryModel(QObject *parent = nullptr);
 
