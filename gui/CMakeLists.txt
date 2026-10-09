@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(excalibur-control-center
-    VERSION 0.5.1
+    VERSION 0.5.2
     DESCRIPTION "EXCALIBUR G870 Control Center (Qt6 Widgets)"
     LANGUAGES CXX)
 
