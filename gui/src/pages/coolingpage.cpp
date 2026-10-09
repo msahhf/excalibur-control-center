@@ -302,9 +302,12 @@ void CoolingPage::setTelemetry(const TelemetrySnapshot &s, const QVector<History
         sec.fanSpark->setPoints(series(h, cpu, false, unit));
         sec.relation->setText(relationText(h, cpu));
 
-        const int span = qBound(0, h.size(), TelemetryModel::kHistorySize);
-        const QString ago = (span <= 1) ? QStringLiteral("now")
-                                        : QStringLiteral("%1s ago").arg(span);
+        const qint64 spanMs = (h.size() >= 2)
+                                  ? (h.last().timestampMs - h.first().timestampMs)
+                                  : 0;
+        const int spanSec = int(spanMs / 1000);
+        const QString ago = (spanSec <= 0) ? QStringLiteral("now")
+                                           : QStringLiteral("%1s ago").arg(spanSec);
         sec.tempAgo->setText(ago);
         sec.fanAgo->setText(ago);
     };
