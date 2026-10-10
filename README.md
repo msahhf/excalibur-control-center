@@ -78,7 +78,7 @@ The package provides **both the application and the integrated DKMS driver**.
 Download the latest release package and install it:
 
 ```bash
-sudo pacman -U excalibur-control-center-0.5.2-1-x86_64.pkg.tar.zst
+sudo pacman -U excalibur-control-center-0.5.3-1-x86_64.pkg.tar.zst
 ```
 
 The application itself runs without root. Package installation and the DKMS
@@ -140,7 +140,7 @@ environment variables, credentials or personal data.
 ## Status
 
 ```
-Current release : v0.5.2
+Current release : v0.5.3
 Stage           : Public release / active development
 Platform        : Linux
 Primary target  : CachyOS / Arch Linux
