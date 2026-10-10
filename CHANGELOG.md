@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.5.3
+
+Packaging/release hardening patch. No new capabilities; still strictly read-only
+telemetry.
+
+### Fixed
+
+- **Prebuilt package could install on an incompatible Qt.** The release binary is
+  linked against a specific Qt and needs that symbol version at runtime
+  (`Qt_6.N`), but the package declared only an unversioned `qt6-base` dependency,
+  so it installed on older Qt and then failed to start. The release package now
+  declares the exact minimum Qt it was built against (derived from the build
+  environment and verified against the binary), so pacman refuses to install it
+  where it could not run. Source/AUR builds stay unconstrained and compile against
+  the system Qt.
+- **Self-referential source checksum.** The PKGBUILD records the SHA-256 of the
+  release source archive, but that archive contained the PKGBUILD itself, making
+  the checksum impossible to satisfy for the tagged commit. `packaging/` and
+  `.github/` are now excluded from source archives (`.gitattributes`
+  `export-ignore`), so the checksum is a stable function of the build inputs. CI
+  verifies the PKGBUILD checksum against the published tag archive.
+
+### Changed
+
+- Removed the deprecated `CLEAN` directive from `driver/dkms.conf` (DKMS >= 3
+  ignores it and warned about it).
+
+### Notes
+
+- Kernel API incompatibility is unchanged: the driver builds against the
+  **7.2.x** API and does **not** build against **6.18.x-lts** (`wmidev_*` absent).
+- No fan/RGB/power/performance control; no hardware writes.
+
 ## v0.5.2
 
 Patch release from the V1.0 hardening pass. Two real defects found on real
