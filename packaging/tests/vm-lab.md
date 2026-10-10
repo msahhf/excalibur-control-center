@@ -47,3 +47,16 @@ Use `VBoxManage` (headless). Do **not** touch the existing VMs ("Zorin OS",
 8. Record distro/kernel/Qt/package versions and logs per test.
 
 See `vm-lab.sh` for a parameterised skeleton.
+
+## Official ISO sources and disk requirements (for the next phase)
+
+| Distro | Official ISO | Approx. size |
+| --- | --- | --- |
+| Debian 13 | https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/ | ~0.7 GB (netinst) |
+| Ubuntu 24.04 LTS | https://releases.ubuntu.com/24.04/ | ~2.6 GB (desktop) / ~2.0 GB (server) |
+| Ubuntu 26.04 LTS | https://releases.ubuntu.com/26.04/ | ~2.6 GB |
+| Fedora 44 | https://download.fedoraproject.org/pub/fedora/linux/releases/44/ | ~2.2 GB (Workstation) |
+
+Per-VM disk: 20 GB VDI (thin). Three VMs ~= 60 GB; host `/home` had ~109 GB free
+and ~9.5 GiB RAM available, so the lab fits. No ISO was downloaded and no VM was
+created in this phase.

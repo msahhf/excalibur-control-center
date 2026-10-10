@@ -1,0 +1,13 @@
+#!/bin/sh
+# AppImage entry point.
+#
+# linuxdeploy's default AppRun is a symlink to the binary, which relies on the
+# executable's RUNPATH ($ORIGIN/../lib). RUNPATH is NOT consulted when Qt
+# dlopen()s platform plugins, so plugins such as libqxcb.so cannot find bundled
+# libraries like libQt6XcbQpa.so.6. This wrapper sets LD_LIBRARY_PATH and
+# QT_PLUGIN_PATH explicitly so every bundled plugin loads.
+HERE="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export QT_PLUGIN_PATH="$HERE/usr/plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+export XDG_DATA_DIRS="$HERE/usr/share${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+exec "$HERE/usr/bin/excalibur-control-center" "$@"
