@@ -37,6 +37,21 @@ jobs:
           fi
           echo "version: $VERSION"
 
+      - name: "Resolve the minimum Qt ABI of the release binary"
+        run: |
+          # Qt symbol-versioning baseline: the binary built here requires this Qt
+          # major.minor (verified below against the ELF). Derived from the build
+          # environment, not hard-coded, so the package metadata stays honest as
+          # Arch rolls Qt forward.
+          QT_MIN="$(qmake6 -query QT_VERSION 2>/dev/null \
+                    || pkg-config --modversion Qt6Core 2>/dev/null || true)"
+          QT_MIN="$(printf '%s' "$QT_MIN" | cut -d. -f1,2)"
+          if [[ ! "$QT_MIN" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::could not determine the build Qt version"; exit 1
+          fi
+          echo "QT_MIN=$QT_MIN" >> "$GITHUB_ENV"
+          echo "build Qt: $QT_MIN"
+
       - name: makepkg from the public release source (non-root)
         run: |
           useradd -m builder
@@ -44,13 +59,42 @@ jobs:
           # The PKGBUILD source is this tag's own archive, so its SHA256 cannot
           # be known before the tag exists (self-referential). Refresh the source
           # checksum from the actual published archive so the release is always
-          # self-consistent, then build.
-          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && updpkgsums && makepkg -C -c -f --noconfirm"
+          # self-consistent, then build. EXCALIBUR_RELEASE_QT_MIN makes the
+          # published package declare the exact Qt ABI the binary was linked
+          # against (source/AUR builds stay unconstrained).
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && updpkgsums && EXCALIBUR_RELEASE_QT_MIN='$QT_MIN' makepkg -C -c -f --noconfirm"
+
+      - name: "Verify package Qt dependency satisfies the binary ABI"
+        run: |
+          PKG="$(ls packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst)"
+          TMP="$(mktemp -d)"
+          tar --zstd -xf "$PKG" -C "$TMP" usr/bin/excalibur-control-center 2>/dev/null \
+            || bsdtar -xf "$PKG" -C "$TMP" usr/bin/excalibur-control-center
+          # Write .PKGINFO to a file (avoid piping tar into an early-exiting
+          # reader, which can SIGPIPE tar under pipefail).
+          tar --zstd -xOf "$PKG" .PKGINFO > "$TMP/PKGINFO" 2>/dev/null \
+            || bsdtar -xOf "$PKG" .PKGINFO > "$TMP/PKGINFO"
+          DECLARED="$(awk -F'qt6-base>=' '/^depend = qt6-base>=/{print $2; exit}' "$TMP/PKGINFO")"
+          # Declared minimum must be >= the binary's real Qt requirement; a higher
+          # declaration is safe (more restrictive), a lower one is a false ABI
+          # claim and must fail the workflow.
+          bash packaging/arch/verify-qt-abi.sh \
+            "$TMP/usr/bin/excalibur-control-center" "${DECLARED:-0}"
 
       - name: Checksums (package + source archive)
         run: |
           ARCH_URL="https://github.com/${{ github.repository }}/archive/refs/tags/v$VERSION.tar.gz"
           curl -fsSL -o "excalibur-control-center-$VERSION.tar.gz" "$ARCH_URL"
+          # The source archive MUST NOT contain the packaging recipe: otherwise the
+          # PKGBUILD checksum would be self-referential (the archive would contain
+          # the file that stores its own hash). .gitattributes export-ignore keeps
+          # packaging/ and .github/ out. Write the listing to a file first to avoid
+          # SIGPIPE-ing tar under pipefail.
+          tar -tzf "excalibur-control-center-$VERSION.tar.gz" > /tmp/archive-list.txt
+          if grep -qE '/packaging/arch/PKGBUILD$|/\.github/workflows/' /tmp/archive-list.txt; then
+            echo "::error::source archive contains packaging/.github content (self-referential checksum)"
+            exit 1
+          fi
           {
             echo "# EXCALIBUR Control Center v$VERSION release checksums"
             ( cd "$GITHUB_WORKSPACE" && sha256sum "excalibur-control-center-$VERSION.tar.gz" )

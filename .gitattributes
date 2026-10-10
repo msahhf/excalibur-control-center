@@ -1,0 +1,12 @@
+# Keep the packaging recipe and CI configuration out of the auto-generated
+# source archives (GitHub's /archive/refs/tags/<tag>.tar.gz and git archive).
+#
+# The PKGBUILD records the SHA-256 of the release source archive. If that archive
+# contained the PKGBUILD itself, the recorded checksum would be self-referential
+# (the archive's hash would depend on a file that stores its own hash), which is
+# impossible to satisfy for the tagged commit. Excluding the packaging recipe
+# makes the archive a pure function of the build inputs that the PKGBUILD needs
+# (gui/, driver/, analysis/phase3/excalibur-wmi.c, LICENSE, ...), so the checksum
+# is stable and verifiable.
+packaging/ export-ignore
+.github/ export-ignore
