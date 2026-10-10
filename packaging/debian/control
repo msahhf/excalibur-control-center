@@ -2,7 +2,7 @@ Source: excalibur-control-center
 Section: admin
 Priority: optional
 Maintainer: Muhammedsah Fidan <muhammedsahfidan@gmail.com>
-Build-Depends: debhelper-compat (= 13), cmake, ninja-build, qt6-base-dev
+Build-Depends: debhelper-compat (= 13), cmake, ninja-build, qt6-base-dev (>= 6.5)
 Standards-Version: 4.6.2
 Homepage: https://github.com/msahhf/excalibur-control-center
 Rules-Requires-Root: no
