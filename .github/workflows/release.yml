@@ -1,8 +1,9 @@
 name: Release
 
-# Tag-driven release. Builds the Arch package from the public release source,
-# computes SHA256SUMS (package + source archive), uploads build artifacts, and
-# publishes a GitHub Release for the tag with the package and checksums attached.
+# Tag-driven release. Builds the Arch package from the public release source and
+# builds+tests the GUI-only AppImage (Debian 12), computes SHA256SUMS (package +
+# source archive + AppImage), uploads build artifacts, and publishes a GitHub
+# Release for the tag with the package, AppImage and checksums attached.
 
 on:
   push:
@@ -13,8 +14,49 @@ permissions:
   contents: write   # required to create the GitHub Release for the tag
 
 jobs:
+  # Builds and tests the GUI-only AppImage in a pinned Debian 12 environment and
+  # uploads it as an artifact. The release job depends on this, so a failed
+  # AppImage build/test blocks the release (no stale AppImage is ever shipped).
+  appimage:
+    name: AppImage (Debian 12) build + test
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+    steps:
+      - name: Install git (container prerequisite for actions/checkout)
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends git ca-certificates
+
+      - uses: actions/checkout@v4
+
+      - name: "Derive version (single source: CMake)"
+        run: |
+          VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
+          [ -n "$VERSION" ] || { echo "::error::could not read CMake VERSION"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version: $VERSION"
+
+      - name: Build AppImage (reuses packaging/appimage/build-appimage-container.sh)
+        run: |
+          export REPO="$GITHUB_WORKSPACE" OUT="$GITHUB_WORKSPACE/appimage-dist"
+          mkdir -p "$OUT"
+          bash packaging/appimage/build-appimage-container.sh
+
+      - name: Test AppImage (offscreen + xcb gate; Wayland best-effort)
+        run: |
+          bash packaging/appimage/test-appimage.sh "$GITHUB_WORKSPACE/appimage-dist/"*.AppImage
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: excalibur-control-center-appimage
+          path: appimage-dist/*.AppImage
+          if-no-files-found: error
+
   release:
     name: v* package + release
+    needs: appimage
     runs-on: ubuntu-latest
     container:
       image: archlinux:base-devel
@@ -26,6 +68,12 @@ jobs:
             pacman-contrib git tar gzip zstd libarchive curl
 
       - uses: actions/checkout@v4
+
+      - name: Download AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: excalibur-control-center-appimage
+          path: appimage-dist
 
       - name: "Derive version and check tag (single source: CMake)"
         run: |
@@ -99,6 +147,7 @@ jobs:
             echo "# EXCALIBUR Control Center v$VERSION release checksums"
             ( cd "$GITHUB_WORKSPACE" && sha256sum "excalibur-control-center-$VERSION.tar.gz" )
             ( cd packaging/arch && sha256sum excalibur-control-center-[0-9]*.pkg.tar.zst )
+            ( cd "$GITHUB_WORKSPACE/appimage-dist" && sha256sum ./*.AppImage )
           } > packaging/arch/SHA256SUMS
           cat packaging/arch/SHA256SUMS
 
@@ -109,6 +158,7 @@ jobs:
           path: |
             packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst
             excalibur-control-center-*.tar.gz
+            appimage-dist/*.AppImage
             packaging/arch/SHA256SUMS
           if-no-files-found: error
 
@@ -121,6 +171,7 @@ jobs:
           files: |
             packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst
             excalibur-control-center-*.tar.gz
+            appimage-dist/*.AppImage
             packaging/arch/SHA256SUMS
           fail_on_unmatched_files: true
           draft: false

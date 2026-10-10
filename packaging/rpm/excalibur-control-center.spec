@@ -1,5 +1,5 @@
 Name:           excalibur-control-center
-Version:        0.5.3
+Version:        0.5.4
 Release:        1%{?dist}
 Summary:        Read-only hardware telemetry for CASPER EXCALIBUR laptops
 License:        GPL-2.0-only

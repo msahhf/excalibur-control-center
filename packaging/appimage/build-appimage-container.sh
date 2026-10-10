@@ -11,6 +11,8 @@
 # GUI ONLY: the AppImage never installs the excalibur-wmi DKMS driver, never asks
 # for root and never writes outside itself.
 set -e
+REPO="${REPO:-/repo}"
+OUT="${OUT:-/out}"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null 2>&1
 apt-get install -y -qq --no-install-recommends \
@@ -26,7 +28,7 @@ chmod +x linuxdeploy linuxdeploy-plugin-qt appimagetool
 export PATH=/tools:$PATH ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 QMAKE=qmake6
 
 rm -rf /build /AppDir
-cmake -S /repo/gui -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+cmake -S "$REPO/gui" -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
 cmake --build /build
 mkdir -p /AppDir
 DESTDIR=/AppDir cmake --install /build
@@ -35,7 +37,7 @@ DESTDIR=/AppDir cmake --install /build
 # binary's RUNPATH; RUNPATH is not honoured when Qt dlopen()s platform plugins,
 # so bundled plugins (e.g. libqxcb) cannot find libQt6XcbQpa. The wrapper sets
 # LD_LIBRARY_PATH and QT_PLUGIN_PATH explicitly.
-./linuxdeploy --appdir /AppDir --plugin qt --custom-apprun /repo/packaging/appimage/AppRun \
+./linuxdeploy --appdir /AppDir --plugin qt --custom-apprun "$REPO/packaging/appimage/AppRun" \
   --desktop-file /AppDir/usr/share/applications/excalibur-control-center.desktop \
   --icon-file /AppDir/usr/share/icons/hicolor/256x256/apps/excalibur-control-center.png
 
@@ -48,7 +50,7 @@ done
 # The Wayland platform plugins need the Qt Wayland client library and the
 # libwayland client stack; linuxdeploy does not pull them for a non-Wayland app.
 for l in libwayland-client.so.0 libwayland-cursor.so.0 libwayland-egl.so.1 \
-         libQt6WaylandClient.so.6 libQt6WaylandEglClientHwIntegration.so.6; do
+         libQt6WaylandClient.so.6 libQt6WaylandEglClientHwIntegration.so.6 libQt6OpenGL.so.6; do
   [ -f "/usr/lib/x86_64-linux-gnu/$l" ] && cp "/usr/lib/x86_64-linux-gnu/$l" /AppDir/usr/lib/ 2>/dev/null
 done
 # The wayland platform plugin still needs a shell-integration plugin (xdg-shell)
@@ -62,5 +64,5 @@ echo "platform plugins: $(ls /AppDir/usr/plugins/platforms)"
 echo "shell integration: $(ls /AppDir/usr/plugins/wayland-shell-integration 2>/dev/null)"
 
 ARCH=x86_64 ./appimagetool /AppDir /EXCALIBUR_Control_Center-x86_64.AppImage
-[ -d /out ] && cp /EXCALIBUR_Control_Center-x86_64.AppImage /out/ && echo "AppImage -> /out/"
+[ -d "$OUT" ] && cp /EXCALIBUR_Control_Center-x86_64.AppImage "$OUT/" && echo "AppImage -> $OUT/"
 echo "NOTE: GUI only. The excalibur-wmi DKMS driver must be installed separately."

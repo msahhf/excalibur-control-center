@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.5.4
+
+Packaging and compatibility patch. No new application capabilities; still strictly
+read-only telemetry.
+
+### Added
+
+- **AppImage (GUI only)** distribution: a single-file AppImage built on Debian 12
+  (glibc >= 2.35), now produced and tested by the release CI (offscreen + Xvfb)
+  and published alongside the Arch package. It bundles the Qt6 GUI **only** — it
+  does not install the DKMS driver, does not require root and does not touch the
+  system.
+- **Debian (`.deb`) and Fedora (`.rpm`) packaging prototypes** under `packaging/`
+  (not published; see the repository for build scripts).
+
+### Changed
+
+- **Qt 6.4 support:** the GUI now builds on Qt 6.4 (Ubuntu 24.04, Debian 12) by
+  guarding `QStyleHints::colorScheme` (Qt >= 6.5). Behaviour on Qt >= 6.5 is
+  unchanged.
+- **DKMS:** `BUILD_EXCLUSIVE_KERNEL_MIN="7.2"` so DKMS skips kernels older than
+  7.2 (e.g. 6.18.x-lts) **before compiling**, with a clear message, instead of a
+  misleading build failure.
+
+### Known limitations
+
+- **Fedora:** the RPM/VM path is **NOT TESTED** (deferred; VirtualBox unattended
+  install is not compatible with the Fedora Workstation Live ISO).
+- **AppImage Wayland:** the platform plugin loads under an isolated headless
+  compositor, but the EGL client buffer integration is not guaranteed →
+  **PARTIAL**.
+- **Real hardware / kernel API:** live CASPER telemetry and the `wmidev_*` kernel
+  API are **NOT TESTED** here (verified only on the maintainer's 7.2.x device).
+- **Kernel API compatibility:** the driver builds against the **7.2.x** API and
+  does **not** build against **6.18.x-lts**.
+
 ## v0.5.3
 
 Packaging/release hardening patch. No new capabilities; still strictly read-only

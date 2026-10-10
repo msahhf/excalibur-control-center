@@ -1,4 +1,4 @@
-excalibur-control-center (0.5.3-1) unstable; urgency=medium
+excalibur-control-center (0.5.4-1) unstable; urgency=medium
 
   * Initial Debian packaging prototype (GUI + DKMS source package).
 
