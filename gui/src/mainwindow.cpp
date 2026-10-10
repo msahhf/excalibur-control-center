@@ -22,6 +22,7 @@
 #include <QIcon>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QPalette>
 #include <QPropertyAnimation>
 #include <QShowEvent>
 #include <QStyleHints>
@@ -63,10 +64,14 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&us, &UserSettings::refreshMsChanged, this, &MainWindow::onRefreshChanged);
 
     // Follow the OS colour scheme while the preference is "System".
+    // QStyleHints::colorScheme() (Qt >= 6.5) is not available on older Qt; there
+    // the System theme is resolved once from the palette instead (see below).
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
     connect(qApp->styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() {
         if (UserSettings::instance().theme() == UserSettings::AppTheme::System)
             onThemeChanged();
     });
+#endif
 
     m_model->start(us.refreshMs());
 }
@@ -80,8 +85,14 @@ void MainWindow::applyThemeTokens()
     } else if (pref == UserSettings::AppTheme::Dark) {
         mode = Theme::Mode::Dark;
     } else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
         const Qt::ColorScheme scheme = qApp->styleHints()->colorScheme();
         mode = (scheme == Qt::ColorScheme::Light) ? Theme::Mode::Light : Theme::Mode::Dark;
+#else
+        // Qt < 6.5 has no QStyleHints::colorScheme(); infer System from the palette.
+        const QColor window = qApp->palette().color(QPalette::Window);
+        mode = (window.lightness() >= 128) ? Theme::Mode::Light : Theme::Mode::Dark;
+#endif
     }
     Theme::setMode(mode);
     Theme::applyApplicationPalette();
