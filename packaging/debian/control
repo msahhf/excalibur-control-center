@@ -1,0 +1,26 @@
+Source: excalibur-control-center
+Section: admin
+Priority: optional
+Maintainer: Muhammedsah Fidan <muhammedsahfidan@gmail.com>
+Build-Depends: debhelper-compat (= 13), cmake, ninja-build, qt6-base-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/msahhf/excalibur-control-center
+Rules-Requires-Root: no
+
+Package: excalibur-control-center
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, dkms
+Recommends: excalibur-control-center-dkms
+Description: Read-only hardware telemetry for CASPER EXCALIBUR laptops
+ Native Qt6 desktop application that shows CPU/GPU temperature and fan RPM
+ telemetry exposed through the Linux hwmon interface, plus diagnostics and a
+ system tray. It is strictly read-only and never requires root.
+
+Package: excalibur-control-center-dkms
+Architecture: all
+Depends: dkms, ${misc:Depends}
+Recommends: excalibur-control-center, linux-headers-amd64 | linux-headers-generic
+Description: excalibur-wmi read-only hwmon driver sources (DKMS)
+ DKMS kernel module sources for the CASPER EXCALIBUR G870 (NLXB 001). The dkms
+ framework builds the read-only hwmon module against each installed kernel.
+ Requires the 7.2.x kernel WMI API (wmidev_set_block/query_block).

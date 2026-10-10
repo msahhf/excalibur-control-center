@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+if [ "$1" = remove ]; then
+    dkms remove -m excalibur-wmi -v 0.5.3 --all >/dev/null 2>&1 || true
+fi
+#DEBHELPER#
+exit 0

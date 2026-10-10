@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+export DH_VERBOSE=1
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	cmake -S gui -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+
+override_dh_auto_build:
+	cmake --build build
+
+override_dh_auto_test:
+	@echo "no runtime tests in the Debian build"
+
+override_dh_auto_install:
+	DESTDIR=$(CURDIR)/debian/tmp cmake --install build
+	VERSION=$$(dpkg-parsechangelog -S Version | cut -d- -f1); \
+	install -d debian/tmp/usr/src/excalibur-wmi-$$VERSION; \
+	install -m644 driver/dkms.conf driver/Makefile analysis/phase3/excalibur-wmi.c LICENSE \
+		debian/tmp/usr/src/excalibur-wmi-$$VERSION/

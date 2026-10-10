@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+#DEBHELPER#
+for kver in $(ls /lib/modules 2>/dev/null); do
+    dkms add -m excalibur-wmi -v 0.5.3 >/dev/null 2>&1 || true
+    dkms build -m excalibur-wmi -v 0.5.3 -k "$kver" >/dev/null 2>&1 || true
+    dkms install -m excalibur-wmi -v 0.5.3 -k "$kver" >/dev/null 2>&1 || true
+done
+exit 0

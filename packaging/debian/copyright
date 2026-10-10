@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: excalibur-control-center
+Source: https://github.com/msahhf/excalibur-control-center
+
+Files: *
+Copyright: 2026 Muhammedsah Fidan
+License: GPL-2.0-only
+ On Debian systems the full text of the GNU General Public License version 2
+ can be found in /usr/share/common-licenses/GPL-2.
