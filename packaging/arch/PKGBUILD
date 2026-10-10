@@ -20,12 +20,29 @@
 # PACKAGE_VERSION; the prepare() step fails the build on any drift.
 
 pkgname=excalibur-control-center
-pkgver=0.5.2
+pkgver=0.5.3
 pkgrel=1
 pkgdesc="EXCALIBUR Control Center: read-only telemetry GUI and excalibur-wmi hwmon driver (DKMS)"
 arch=('x86_64')
 license=('GPL-2.0-only')
-depends=('qt6-base' 'dkms')
+# Runtime dependencies.
+#
+# The source/AUR build depends on plain "qt6-base" and is compiled against
+# whatever Qt the system provides (verified to build and run on Qt 6.11.2).
+#
+# A *prebuilt* binary is different: Qt uses symbol versioning (Qt_6.N), so a
+# binary linked against Qt 6.N will not load on a system whose Qt is older than
+# 6.N. The release pipeline therefore opts into an ABI-accurate minimum via the
+# EXCALIBUR_RELEASE_QT_MIN environment variable (the Qt major.minor it built
+# against). This keeps the published package metadata consistent with the actual
+# binary, so pacman refuses to install it on an older Qt instead of silently
+# installing a binary that cannot start. The variable is unset for normal
+# source/AUR builds, which therefore stay unconstrained.
+if [[ -n ${EXCALIBUR_RELEASE_QT_MIN:-} ]]; then
+  depends=("qt6-base>=${EXCALIBUR_RELEASE_QT_MIN}" 'dkms')
+else
+  depends=('qt6-base' 'dkms')
+fi
 makedepends=('cmake' 'ninja' 'gcc')
 # Disable LTO for a bit-reproducible GUI payload (system-wide LTO is
 # non-deterministic here) and disable the auto-generated -debug subpackage so the
