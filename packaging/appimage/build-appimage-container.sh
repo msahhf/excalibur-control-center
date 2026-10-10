@@ -42,10 +42,24 @@ DESTDIR=/AppDir cmake --install /build
 # Provision the platform plugins that actually exist on the build host.
 QP=/usr/lib/x86_64-linux-gnu/qt6/plugins/platforms
 mkdir -p /AppDir/usr/plugins/platforms
-for p in libqoffscreen.so libqxcb.so libqwayland-generic.so libqwayland-egl.so; do
+for p in libqoffscreen.so libqxcb.so libqwayland-generic.so libqwayland-egl.so libqwayland.so; do
   [ -f "$QP/$p" ] && cp "$QP/$p" /AppDir/usr/plugins/platforms/
 done
-echo "bundled platform plugins: $(ls /AppDir/usr/plugins/platforms)"
+# The Wayland platform plugins need the Qt Wayland client library and the
+# libwayland client stack; linuxdeploy does not pull them for a non-Wayland app.
+for l in libwayland-client.so.0 libwayland-cursor.so.0 libwayland-egl.so.1 \
+         libQt6WaylandClient.so.6 libQt6WaylandEglClientHwIntegration.so.6; do
+  [ -f "/usr/lib/x86_64-linux-gnu/$l" ] && cp "/usr/lib/x86_64-linux-gnu/$l" /AppDir/usr/lib/ 2>/dev/null
+done
+# The wayland platform plugin still needs a shell-integration plugin (xdg-shell)
+# and its graphics integration; without them the platform loads but cannot create
+# a window ("No shell integration named xdg-shell found").
+for d in wayland-shell-integration wayland-graphics-integration-client; do
+  src="/usr/lib/x86_64-linux-gnu/qt6/plugins/$d"
+  if [ -d "$src" ]; then mkdir -p "/AppDir/usr/plugins/$d"; cp "$src"/*.so "/AppDir/usr/plugins/$d/" 2>/dev/null; fi
+done
+echo "platform plugins: $(ls /AppDir/usr/plugins/platforms)"
+echo "shell integration: $(ls /AppDir/usr/plugins/wayland-shell-integration 2>/dev/null)"
 
 ARCH=x86_64 ./appimagetool /AppDir /EXCALIBUR_Control_Center-x86_64.AppImage
 [ -d /out ] && cp /EXCALIBUR_Control_Center-x86_64.AppImage /out/ && echo "AppImage -> /out/"
