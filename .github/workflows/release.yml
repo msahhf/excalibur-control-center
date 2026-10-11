@@ -1,9 +1,13 @@
 name: Release
 
-# Tag-driven release. Builds the Arch package from the public release source and
-# builds+tests the GUI-only AppImage (Debian 12), computes SHA256SUMS (package +
-# source archive + AppImage), uploads build artifacts, and publishes a GitHub
-# Release for the tag with the package, AppImage and checksums attached.
+# Tag-driven release. Builds the Arch package from the public release source,
+# builds+tests the GUI-only AppImage (Debian 12), builds+tests the Debian 13 and
+# Ubuntu 24.04 .deb packages, computes SHA256SUMS (package + source archive +
+# AppImage + both .deb sets), uploads build artifacts, and publishes a GitHub
+# Release for the tag with everything attached.
+#
+# The release job needs every required build/test job, so a failed package can
+# never produce a release with missing or stale artifacts.
 
 on:
   push:
@@ -54,9 +58,128 @@ jobs:
           path: appimage-dist/*.AppImage
           if-no-files-found: error
 
+  # Debian 13 (.deb): built from the repository sources in the distribution's own
+  # environment so the declared Qt ABI matches that distribution, then installed,
+  # launched and removed inside the same isolated container.
+  debian:
+    name: Debian 13 .deb build + test
+    runs-on: ubuntu-latest
+    container:
+      image: debian:stable
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+            git ca-certificates build-essential dpkg-dev debhelper fakeroot \
+            cmake ninja-build qt6-base-dev
+
+      - uses: actions/checkout@v4
+
+      - name: "Derive version (single source: CMake)"
+        run: |
+          VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
+          [ -n "$VERSION" ] || { echo "::error::could not read CMake VERSION"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version: $VERSION"
+
+      - name: Build .deb (distro-specific revision; deterministic filenames)
+        run: |
+          export OUT="$GITHUB_WORKSPACE/packaging/debian/dist"
+          export DEB_VERSION="$VERSION-1~deb13"
+          bash packaging/debian/build-deb.sh
+
+      - name: Verify .deb metadata + install/launch/remove (isolated container)
+        run: |
+          set -e
+          GUI_DEB=$(ls packaging/debian/dist/excalibur-control-center_"$VERSION"-1~deb13_*.deb)
+          DKMS_DEB=$(ls packaging/debian/dist/excalibur-control-center-dkms_"$VERSION"-1~deb13_*.deb)
+          dpkg-deb -f "$GUI_DEB" Package Version Architecture Depends Recommends
+          # No stale hard-coded DKMS version and no missing dependency:
+          dpkg-deb -f "$DKMS_DEB" Depends | grep -q 'dkms' || { echo "::error::dkms package must depend on dkms"; exit 1; }
+          if dpkg-deb -e "$DKMS_DEB" /tmp/ctl && grep -rq 'dkms add -m excalibur-wmi -v 0\.5' /tmp/ctl; then
+            echo "::error::DKMS hook hard-codes a version (must derive it)"; exit 1
+          fi
+          dpkg-deb -c "$DKMS_DEB" | grep -q "usr/src/excalibur-wmi-$VERSION/dkms.conf" \
+            || { echo "::error::missing /usr/src/excalibur-wmi-$VERSION/dkms.conf"; exit 1; }
+          dpkg-deb -c "$GUI_DEB" | grep -q 'usr/share/applications/excalibur-control-center.desktop' \
+            || { echo "::error::missing desktop entry"; exit 1; }
+          # Real install (dependency closure from the distro repos) + launch + remove.
+          apt-get install -y -qq --no-install-recommends ./packaging/debian/dist/*.deb
+          dpkg -l | grep -q excalibur-control-center
+          export QT_QPA_PLATFORM=offscreen XDG_RUNTIME_DIR=/tmp/rt; mkdir -p /tmp/rt; chmod 700 /tmp/rt
+          rc=0; timeout 5 excalibur-control-center >/tmp/gui.log 2>&1 || rc=$?
+          if [ "$rc" != 124 ] && [ "$rc" != 0 ]; then echo "::error::GUI failed to start (rc=$rc)"; tail -5 /tmp/gui.log; exit 1; fi
+          apt-get purge -y -qq excalibur-control-center excalibur-control-center-dkms
+          test ! -e /usr/bin/excalibur-control-center || { echo "::error::binary left after purge"; exit 1; }
+          echo "debian .deb lifecycle OK"
+
+      - name: Upload Debian 13 .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: excalibur-control-center-deb-debian13
+          path: packaging/debian/dist/*.deb
+          if-no-files-found: error
+
+  # Ubuntu 24.04 (.deb): built in the Ubuntu 24.04 environment. The Qt ABI is
+  # different from Debian 13 (Qt 6.4 vs 6.8), so this is a separate build — the
+  # Debian package is NOT reused under a different name.
+  ubuntu:
+    name: Ubuntu 24.04 .deb build + test
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+            git ca-certificates build-essential dpkg-dev debhelper fakeroot \
+            cmake ninja-build qt6-base-dev
+
+      - uses: actions/checkout@v4
+
+      - name: "Derive version (single source: CMake)"
+        run: |
+          VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
+          [ -n "$VERSION" ] || { echo "::error::could not read CMake VERSION"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version: $VERSION"
+
+      - name: Build .deb (distro-specific revision; deterministic filenames)
+        run: |
+          export OUT="$GITHUB_WORKSPACE/packaging/debian/dist"
+          export DEB_VERSION="$VERSION-1~ubuntu24.04"
+          bash packaging/debian/build-deb.sh
+
+      - name: Verify .deb metadata + install/launch/remove (isolated container)
+        run: |
+          set -e
+          GUI_DEB=$(ls packaging/debian/dist/excalibur-control-center_"$VERSION"-1~ubuntu24.04_*.deb)
+          DKMS_DEB=$(ls packaging/debian/dist/excalibur-control-center-dkms_"$VERSION"-1~ubuntu24.04_*.deb)
+          dpkg-deb -f "$GUI_DEB" Package Version Architecture Depends Recommends
+          dpkg-deb -f "$DKMS_DEB" Depends | grep -q 'dkms' || { echo "::error::dkms package must depend on dkms"; exit 1; }
+          dpkg-deb -c "$DKMS_DEB" | grep -q "usr/src/excalibur-wmi-$VERSION/dkms.conf" \
+            || { echo "::error::missing /usr/src/excalibur-wmi-$VERSION/dkms.conf"; exit 1; }
+          apt-get install -y -qq --no-install-recommends ./packaging/debian/dist/*.deb
+          dpkg -l | grep -q excalibur-control-center
+          export QT_QPA_PLATFORM=offscreen XDG_RUNTIME_DIR=/tmp/rt; mkdir -p /tmp/rt; chmod 700 /tmp/rt
+          rc=0; timeout 5 excalibur-control-center >/tmp/gui.log 2>&1 || rc=$?
+          if [ "$rc" != 124 ] && [ "$rc" != 0 ]; then echo "::error::GUI failed to start (rc=$rc)"; tail -5 /tmp/gui.log; exit 1; fi
+          apt-get purge -y -qq excalibur-control-center excalibur-control-center-dkms
+          test ! -e /usr/bin/excalibur-control-center || { echo "::error::binary left after purge"; exit 1; }
+          echo "ubuntu .deb lifecycle OK"
+
+      - name: Upload Ubuntu 24.04 .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: excalibur-control-center-deb-ubuntu2404
+          path: packaging/debian/dist/*.deb
+          if-no-files-found: error
+
   release:
     name: v* package + release
-    needs: appimage
+    needs: [ appimage, debian, ubuntu ]
     runs-on: ubuntu-latest
     container:
       image: archlinux:base-devel
@@ -74,6 +197,18 @@ jobs:
         with:
           name: excalibur-control-center-appimage
           path: appimage-dist
+
+      - name: Download Debian 13 .deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: excalibur-control-center-deb-debian13
+          path: deb-debian13
+
+      - name: Download Ubuntu 24.04 .deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: excalibur-control-center-deb-ubuntu2404
+          path: deb-ubuntu2404
 
       - name: "Derive version and check tag (single source: CMake)"
         run: |
@@ -129,7 +264,16 @@ jobs:
           bash packaging/arch/verify-qt-abi.sh \
             "$TMP/usr/bin/excalibur-control-center" "${DECLARED:-0}"
 
-      - name: Checksums (package + source archive)
+      - name: Guard against stale/renamed artifacts
+        run: |
+          # Every release binary must carry this version in its filename, so an
+          # old artifact can never be uploaded as the new release.
+          set -e
+          ls appimage-dist/*.AppImage >/dev/null
+          ls deb-debian13/*"$VERSION"*.deb >/dev/null || { echo "::error::no Debian .deb for v$VERSION"; exit 1; }
+          ls deb-ubuntu2404/*"$VERSION"*.deb >/dev/null || { echo "::error::no Ubuntu .deb for v$VERSION"; exit 1; }
+
+      - name: Checksums (package + source archive + debs + AppImage)
         run: |
           ARCH_URL="https://github.com/${{ github.repository }}/archive/refs/tags/v$VERSION.tar.gz"
           curl -fsSL -o "excalibur-control-center-$VERSION.tar.gz" "$ARCH_URL"
@@ -148,6 +292,8 @@ jobs:
             ( cd "$GITHUB_WORKSPACE" && sha256sum "excalibur-control-center-$VERSION.tar.gz" )
             ( cd packaging/arch && sha256sum excalibur-control-center-[0-9]*.pkg.tar.zst )
             ( cd "$GITHUB_WORKSPACE/appimage-dist" && sha256sum ./*.AppImage )
+            ( cd "$GITHUB_WORKSPACE/deb-debian13" && sha256sum ./*.deb )
+            ( cd "$GITHUB_WORKSPACE/deb-ubuntu2404" && sha256sum ./*.deb )
           } > packaging/arch/SHA256SUMS
           cat packaging/arch/SHA256SUMS
 
@@ -159,6 +305,8 @@ jobs:
             packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst
             excalibur-control-center-*.tar.gz
             appimage-dist/*.AppImage
+            deb-debian13/*.deb
+            deb-ubuntu2404/*.deb
             packaging/arch/SHA256SUMS
           if-no-files-found: error
 
@@ -172,6 +320,8 @@ jobs:
             packaging/arch/excalibur-control-center-[0-9]*.pkg.tar.zst
             excalibur-control-center-*.tar.gz
             appimage-dist/*.AppImage
+            deb-debian13/*.deb
+            deb-ubuntu2404/*.deb
             packaging/arch/SHA256SUMS
           fail_on_unmatched_files: true
           draft: false

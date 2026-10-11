@@ -1,10 +1,14 @@
 Name:           excalibur-control-center
-Version:        0.5.4
+Version:        0.5.5
 Release:        1%{?dist}
 Summary:        Read-only hardware telemetry for CASPER EXCALIBUR laptops
 License:        GPL-2.0-only
 URL:            https://github.com/msahhf/excalibur-control-center
 Source0:        %{name}-%{version}.tar.gz
+
+# Keep the RPM set to the same single, small artifact set as the other packages:
+# no auto-generated -debuginfo/-debugsource subpackages.
+%global debug_package %{nil}
 
 BuildRequires:  cmake
 BuildRequires:  ninja-build
@@ -63,5 +67,8 @@ fi
 /usr/src/excalibur-wmi-%{version}
 
 %changelog
-* Fri Oct 10 2026 Muhammedsah Fidan <muhammedsahfidan@gmail.com> - 0.5.3-1
+* Sun Oct 11 2026 Muhammedsah Fidan <muhammedsahfidan@gmail.com> - 0.5.5-1
+- Track the 0.5.5 release (GUI + DKMS subpackage).
+
+* Sat Oct 10 2026 Muhammedsah Fidan <muhammedsahfidan@gmail.com> - 0.5.3-1
 - Initial RPM packaging prototype (GUI + DKMS subpackage).

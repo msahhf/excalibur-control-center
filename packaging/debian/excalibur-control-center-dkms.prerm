@@ -1,7 +1,13 @@
 #!/bin/sh
 set -e
 if [ "$1" = remove ]; then
-    dkms remove -m excalibur-wmi -v 0.5.3 --all >/dev/null 2>&1 || true
+    # Version derived from the installed source dir, not hard-coded.
+    for src in /usr/src/excalibur-wmi-*/; do
+        [ -f "$src/dkms.conf" ] || continue
+        version="$(basename "$src")"
+        version="${version#excalibur-wmi-}"
+        dkms remove -m excalibur-wmi -v "$version" --all >/dev/null 2>&1 || true
+    done
 fi
 #DEBHELPER#
 exit 0

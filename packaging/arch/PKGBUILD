@@ -20,7 +20,7 @@
 # PACKAGE_VERSION; the prepare() step fails the build on any drift.
 
 pkgname=excalibur-control-center
-pkgver=0.5.4
+pkgver=0.5.5
 pkgrel=1
 pkgdesc="EXCALIBUR Control Center: read-only telemetry GUI and excalibur-wmi hwmon driver (DKMS)"
 arch=('x86_64')
@@ -49,7 +49,7 @@ makedepends=('cmake' 'ninja' 'gcc')
 # package is a single, consistent artifact everywhere. No install hooks.
 options=('!lto' '!debug')
 source=("https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('bd886cad951c8ac6623a196c5c9e59c0d96d3d48781c78ba6faee4a8a3f700ae')
+sha256sums=('TO_BE_SET_AFTER_TAG')
 
 prepare() {
   # GUI version must match pkgver (single source: CMake project VERSION).

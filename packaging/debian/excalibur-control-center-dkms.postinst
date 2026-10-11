@@ -1,9 +1,22 @@
 #!/bin/sh
 set -e
 #DEBHELPER#
-for kver in $(ls /lib/modules 2>/dev/null); do
-    dkms add -m excalibur-wmi -v 0.5.3 >/dev/null 2>&1 || true
-    dkms build -m excalibur-wmi -v 0.5.3 -k "$kver" >/dev/null 2>&1 || true
-    dkms install -m excalibur-wmi -v 0.5.3 -k "$kver" >/dev/null 2>&1 || true
+# Build/install the excalibur-wmi module for every installed kernel.
+#
+# The DKMS version is NOT hard-coded: it is read from the installed source
+# directory name (/usr/src/excalibur-wmi-<version>, which is exactly how the
+# DKMS framework identifies the module). Hard-coding it in the past made the
+# hooks target a stale version and silently do nothing (the commands are
+# best-effort because a kernel without the required WMI API simply cannot build
+# the module, which must not fail the package install).
+for src in /usr/src/excalibur-wmi-*/; do
+    [ -f "$src/dkms.conf" ] || continue
+    version="$(basename "$src")"
+    version="${version#excalibur-wmi-}"
+    for kver in $(ls /lib/modules 2>/dev/null); do
+        dkms add -m excalibur-wmi -v "$version" >/dev/null 2>&1 || true
+        dkms build -m excalibur-wmi -v "$version" -k "$kver" >/dev/null 2>&1 || true
+        dkms install -m excalibur-wmi -v "$version" -k "$kver" >/dev/null 2>&1 || true
+    done
 done
 exit 0

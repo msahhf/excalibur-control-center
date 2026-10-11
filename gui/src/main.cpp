@@ -436,23 +436,29 @@ int main(int argc, char **argv)
     if (hasFlag(args, QStringLiteral("--trace")))
         return runTrace(args);
 
-    // Headless settings persistence hooks (dev only).
+    // Headless settings persistence hooks (dev only). Several may be combined in
+    // one invocation (e.g. --reset-settings --set-theme dark); they are all
+    // applied together and the process exits once, so a combined run behaves the
+    // same as the equivalent sequence of single-flag runs.
+    bool settingsMutated = false;
+    if (hasFlag(args, QStringLiteral("--reset-settings"))) {
+        UserSettings::instance().resetToDefaults();
+        settingsMutated = true;
+    }
     if (const QString v = flagValue(args, QStringLiteral("--set-theme")); !v.isEmpty()) {
         UserSettings::instance().setTheme(UserSettings::themeFromString(v));
-        return 0;
+        settingsMutated = true;
     }
     if (const QString v = flagValue(args, QStringLiteral("--set-unit")); !v.isEmpty()) {
         UserSettings::instance().setTempUnit(UserSettings::tempUnitFromString(v));
-        return 0;
+        settingsMutated = true;
     }
     if (const QString v = flagValue(args, QStringLiteral("--set-refresh")); !v.isEmpty()) {
         UserSettings::instance().setRefreshMs(v.toInt());
-        return 0;
+        settingsMutated = true;
     }
-    if (hasFlag(args, QStringLiteral("--reset-settings"))) {
-        UserSettings::instance().resetToDefaults();
+    if (settingsMutated)
         return 0;
-    }
     if (hasFlag(args, QStringLiteral("--dump-settings"))) {
         UserSettings &us = UserSettings::instance();
         std::printf("theme=%s\n", UserSettings::themeToString(us.theme()).toUtf8().constData());

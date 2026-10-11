@@ -1,8 +1,14 @@
 #!/bin/sh
-# Build the RPM prototype from a source tarball. Run inside a Fedora container.
+# Build the RPM from the repository sources. Run inside a Fedora container.
+#
+# The version is derived from the RPM spec (single source of truth) so the
+# source tarball and the spec can never disagree about the version.
 set -eu
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
-VERSION=0.5.3
+VERSION="$(sed -n 's/^Version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' \
+    "$REPO/packaging/rpm/excalibur-control-center.spec" | head -n1)"
+[ -n "$VERSION" ] || { echo "cannot read Version from the RPM spec" >&2; exit 1; }
+echo "building RPM for version $VERSION"
 TOPDIR="$(mktemp -d)"
 mkdir -p "$TOPDIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 tar -c --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \

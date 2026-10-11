@@ -1,5 +1,58 @@
 # Changelog
 
+## v0.5.5
+
+Packaging and distribution release. No new application capabilities; still strictly
+read-only telemetry.
+
+### Added
+
+- **Debian 13 (`trixie`) and Ubuntu 24.04 LTS (`.deb`)** packages: a GUI package
+  (`excalibur-control-center`) and a separate DKMS source package
+  (`excalibur-control-center-dkms`), each built against its distribution's own Qt
+  version (Debian 13: Qt 6.8; Ubuntu 24.04: Qt 6.4) — they are **not**
+  interchangeable. Both are built, installed, launched and removed by the release
+  CI in isolated containers, and published as release assets.
+- **Unit tests** (`gui/tests/`, `-DEXCALIBUR_BUILD_TESTS=ON`) covering temperature
+  conversion/formatting and settings parsing/validation, run in CI.
+
+### Fixed
+
+- **Debian/Ubuntu DKMS hooks:** `postinst`/`prerm` no longer hard-code the module
+  version (previously `0.5.3`, which made them silently no-op for any other
+  release). The version is derived from the installed `/usr/src/excalibur-wmi-*`
+  directory.
+- **Debian packaging:** switched to `3.0 (quilt)` with a per-distribution Debian
+  revision (`~deb13` / `~ubuntu24.04`) so the two `.deb` sets have distinct,
+  deterministic filenames; the GUI package no longer hard-depends on `dkms`
+  (it is a `Recommends`, and the GUI works without the driver); no auto-generated
+  `-dbgsym` packages.
+- **RPM spec/script:** the source-tarball version is now derived from the spec
+  (previously `build-rpm.sh` hard-coded `0.5.3` and disagreed with the spec).
+- **Dev settings hooks:** combined `--set-*` / `--reset-settings` flags in one
+  invocation now all apply (previously only the first was honoured).
+
+### Changed
+
+- **Release CI** now also builds+tests the Debian 13 and Ubuntu 24.04 `.deb`
+  packages; the `release` job requires the AppImage **and** both `.deb` jobs, and
+  publishes all of them, their source archive and a combined `SHA256SUMS`.
+
+### Known limitations
+
+- **Fedora:** an RPM recipe exists but is **not published/supported** — its
+  lifecycle was only exercised in a container, never in a verified Fedora VM.
+- **AppImage Wayland:** verified under an isolated headless compositor (now
+  PASS with the bundled shell/graphics integration); a real KDE/Wayland desktop
+  run of the *AppImage* was not performed (the native packages were tested on a
+  real KDE/Wayland session).
+- **Real hardware / kernel API:** live CASPER telemetry is verified on the
+  maintainer's real EXCALIBUR G870 / 7.2.x kernel; CI/containers have no WMI/EC
+  hardware. The driver does **not** build against **6.18.x-lts**.
+- **Debian/Ubuntu GUI on their real desktops:** install/launch/remove are verified
+  in isolated containers; the full GUI/telemetry path is verified on the real
+  Arch host, not inside a Debian/Ubuntu VM.
+
 ## v0.5.4
 
 Packaging and compatibility patch. No new application capabilities; still strictly

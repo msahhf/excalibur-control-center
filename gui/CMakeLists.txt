@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(excalibur-control-center
-    VERSION 0.5.4
+    VERSION 0.5.5
     DESCRIPTION "EXCALIBUR G870 Control Center (Qt6 Widgets)"
     LANGUAGES CXX)
 
@@ -19,6 +19,10 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 # OFF by default so a normal build ships no dev hooks. Developers and automated
 # screenshots enable them with -DEXCALIBUR_DEV_HOOKS=ON.
 option(EXCALIBUR_DEV_HOOKS "Enable dev-only CLI hooks" OFF)
+
+# Unit tests for the pure logic (temperature conversion, settings parsing).
+# OFF by default so a normal release build compiles only the application.
+option(EXCALIBUR_BUILD_TESTS "Build the unit tests" OFF)
 
 add_executable(excalibur-control-center
     src/main.cpp
@@ -95,6 +99,18 @@ target_compile_definitions(excalibur-control-center PRIVATE EXCALIBUR_BUILD_TYPE
 
 if(EXCALIBUR_DEV_HOOKS)
     target_compile_definitions(excalibur-control-center PRIVATE EXCALIBUR_DEV_HOOKS)
+endif()
+
+if(EXCALIBUR_BUILD_TESTS)
+    enable_testing()
+    add_executable(excalibur-tests
+        tests/tests.cpp
+        src/util/units.h
+        src/app/usersettings.cpp
+        src/app/usersettings.h)
+    target_include_directories(excalibur-tests PRIVATE src)
+    target_link_libraries(excalibur-tests PRIVATE Qt6::Core)
+    add_test(NAME units-and-settings COMMAND excalibur-tests)
 endif()
 
 # --- Desktop integration (packaging-ready, standard freedesktop layout) -------

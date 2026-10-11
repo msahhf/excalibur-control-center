@@ -13,6 +13,12 @@ override_dh_auto_build:
 override_dh_auto_test:
 	@echo "no runtime tests in the Debian build"
 
+# Keep the shipped packages to exactly the GUI and the DKMS source package: no
+# auto-generated -dbgsym packages (the release publishes a single, small,
+# deterministic set of artifacts per distribution).
+override_dh_strip:
+	dh_strip --no-automatic-dbgsym
+
 override_dh_auto_install:
 	DESTDIR=$(CURDIR)/debian/tmp cmake --install build
 	VERSION=$$(dpkg-parsechangelog -S Version | cut -d- -f1); \

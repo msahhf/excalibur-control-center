@@ -9,7 +9,7 @@ Rules-Requires-Root: no
 
 Package: excalibur-control-center
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, dkms
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: excalibur-control-center-dkms
 Description: Read-only hardware telemetry for CASPER EXCALIBUR laptops
  Native Qt6 desktop application that shows CPU/GPU temperature and fan RPM
