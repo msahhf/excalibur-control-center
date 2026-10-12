@@ -1,0 +1,13 @@
+# Build output
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Local test artifacts
+test-output/
+shots/
+
+# Editor / OS
+*.log
+.DS_Store
