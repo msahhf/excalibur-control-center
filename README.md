@@ -185,6 +185,10 @@ API is not present in the 6.18 LTS kernel, so the module does not build there
 - **Fedora.** An RPM recipe exists but is **not** published/supported: its
   install/launch lifecycle has only been exercised in a container, never in a
   verified Fedora VM.
+- **AppImage.** Verified as a GUI-only single file on a real KDE/Wayland desktop
+  (launches and renders; Qt uses software rendering there because EGL is not
+  available in that session) as well as under offscreen/X11 and an isolated
+  headless Wayland compositor. It does **not** install the DKMS driver.
 - **Secure Boot.** The packages neither generate keys nor sign modules; module
   signing is the user's responsibility.
 
