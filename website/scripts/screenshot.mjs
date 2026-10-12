@@ -288,7 +288,7 @@ try {
     eq(selName, "Debian", "downloads: ArrowRight selects next platform");
 
     // ---- localisation ----
-    const checkLocale = async (label, lang, navText, diagTag) => {
+    const checkLocale = async (label, lang, navText, diagTag, navLandmark, metaLabel) => {
       await page.getByRole("button", { name: label, exact: true }).click();
       await page.waitForTimeout(200);
       eq(await page.evaluate(() => document.documentElement.lang), lang, `${lang}: <html lang>`);
@@ -296,6 +296,16 @@ try {
         () => document.querySelector(".nav__links .nav__link")?.textContent?.trim(),
       );
       eq(nav, navText, `${lang}: first nav label`);
+      eq(
+        await page.getAttribute(".nav__links", "aria-label"),
+        navLandmark,
+        `${lang}: nav landmark aria-label localised`,
+      );
+      eq(
+        await page.getAttribute(".hero__meta", "aria-label"),
+        metaLabel,
+        `${lang}: hero meta aria-label localised`,
+      );
       const credit = await page.locator(".credit").innerText();
       ok(`${lang}: credit = "${credit.trim()}"`);
       if (credit.trim() === "Made by Muhammedşah Fidan") ok(`${lang}: credit text exact`);
@@ -306,8 +316,8 @@ try {
         else fail(`${lang}: diagram not localised`);
       }
     };
-    await checkLocale("Türkçe", "tr", "Telemetri", "SALT OKUNUR SINIR");
-    await checkLocale("Deutsch", "de", "Telemetrie", "NUR-LESEN-GRENZE");
+    await checkLocale("Türkçe", "tr", "Telemetri", "SALT OKUNUR SINIR", "Ana gezinme", "Kısaca");
+    await checkLocale("Deutsch", "de", "Telemetrie", "NUR-LESEN-GRENZE", "Hauptnavigation", "Auf einen Blick");
 
     // title/description follow the locale
     const deTitle = await page.title();

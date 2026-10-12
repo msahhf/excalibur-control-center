@@ -13,7 +13,10 @@ export function useScrolled(threshold = 24) {
 }
 
 export function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
+  // Initialise synchronously so the first render already matches the viewport.
+  // This avoids a first-paint layout shift (the layout never renders in the
+  // wrong mode and then flips). This is a client-only SPA, so `window` exists.
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
   useEffect(() => {
     const mq = window.matchMedia(query);
     const update = () => setMatches(mq.matches);

@@ -24,6 +24,7 @@ export const en = {
     closeMenu: "Close menu",
     home: "EXCALIBUR Control Center — home",
     repoLink: "GitHub repository",
+    primary: "Primary navigation",
   },
 
   hero: {
@@ -34,6 +35,7 @@ export const en = {
       "A native Qt6 app that reads the temperature, fan and system telemetry your CASPER EXCALIBUR laptop already exposes on Linux — CPU and GPU temperatures, fan RPM, hardware and kernel details, and an exportable diagnostics report.",
     ctaExplore: "Explore the telemetry",
     ctaDownload: "Download",
+    metaLabel: "At a glance",
     facts: ["CPU / GPU temperature", "Fan RPM", "60-second history", "Diagnostics export", "No root required"],
     shotTitle: "Dashboard",
     shotAlt:

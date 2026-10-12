@@ -22,6 +22,7 @@ export const tr: Dict = {
     closeMenu: "Menüyü kapat",
     home: "EXCALIBUR Control Center — ana sayfa",
     repoLink: "GitHub deposu",
+    primary: "Ana gezinme",
   },
 
   hero: {
@@ -32,6 +33,7 @@ export const tr: Dict = {
       "CASPER EXCALIBUR dizüstünüzün Linux'ta zaten sunduğu sıcaklık, fan ve sistem telemetrisini okuyan Qt6 tabanlı bir uygulama: CPU ve GPU sıcaklığı, fan devri, donanım ve çekirdek ayrıntıları ve dışa aktarılabilir tanılama raporu.",
     ctaExplore: "Telemetriyi keşfet",
     ctaDownload: "İndir",
+    metaLabel: "Kısaca",
     facts: ["CPU / GPU sıcaklığı", "Fan devri", "60 saniyelik geçmiş", "Tanılama dışa aktarımı", "Root gerekmez"],
     shotTitle: "Gösterge Paneli",
     shotAlt: "Uygulamanın gösterge paneli: CPU ve GPU sıcaklıkları, 60 saniyelik geçmiş ve fan devri",

@@ -53,7 +53,7 @@ export function Nav() {
           </span>
         </a>
 
-        <nav className="nav__links" aria-label="Primary">
+        <nav className="nav__links" aria-label={t.nav.primary}>
           {NAV_IDS.map((id) => (
             <a
               key={id}

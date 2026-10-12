@@ -24,7 +24,7 @@ export function Hero() {
                 <IconDownload /> {t.hero.ctaDownload} v{RELEASE_VERSION}
               </a>
             </div>
-            <ul className="hero__meta" aria-label="At a glance">
+            <ul className="hero__meta" aria-label={t.hero.metaLabel}>
               {t.hero.facts.map((f) => (
                 <li key={f}>{f}</li>
               ))}
