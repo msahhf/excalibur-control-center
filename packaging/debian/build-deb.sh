@@ -8,7 +8,7 @@
 # 24.04 artifacts get distinct, deterministic filenames and never overwrite each
 # other in a release:
 #
-#   DEB_VERSION="0.5.5-1~deb13"  OUT=/out  sh packaging/debian/build-deb.sh
+#   DEB_VERSION="0.5.6-1~deb13"  OUT=/out  sh packaging/debian/build-deb.sh
 #
 # With no DEB_VERSION the version from debian/changelog is used.
 set -eu

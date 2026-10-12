@@ -1,6 +1,6 @@
 pkgbase = excalibur-control-center
 	pkgdesc = EXCALIBUR Control Center: read-only telemetry GUI and excalibur-wmi hwmon driver (DKMS)
-	pkgver = 0.5.5
+	pkgver = 0.5.6
 	pkgrel = 1
 	arch = x86_64
 	license = GPL-2.0-only
@@ -11,7 +11,7 @@ pkgbase = excalibur-control-center
 	depends = dkms
 	options = !lto
 	options = !debug
-	source = https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v0.5.5.tar.gz
+	source = https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v0.5.6.tar.gz
 	sha256sums = TO_BE_SET_AFTER_TAG
 
 pkgname = excalibur-control-center

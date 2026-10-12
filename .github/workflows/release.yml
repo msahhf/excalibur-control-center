@@ -210,6 +210,21 @@ jobs:
           name: excalibur-control-center-deb-ubuntu2404
           path: deb-ubuntu2404
 
+      - name: Normalise .deb asset names (GitHub rewrites "~" on upload)
+        run: |
+          # GitHub replaces "~" in release asset names, which would make the
+          # SHA256SUMS filenames disagree with the uploaded assets. Apply the
+          # same normalisation here so the checksums, the uploaded assets and the
+          # release notes refer to identical names.
+          shopt -s nullglob
+          for d in deb-debian13 deb-ubuntu2404; do
+            for f in "$d"/*.deb; do
+              nf="${f//\~/.}"
+              [ "$f" = "$nf" ] || mv "$f" "$nf"
+            done
+          done
+          ls -l deb-debian13 deb-ubuntu2404
+
       - name: "Derive version and check tag (single source: CMake)"
         run: |
           VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)

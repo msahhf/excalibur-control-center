@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.6
+
+Release-automation fix. Identical package contents to v0.5.5.
+
+### Fixed
+
+- **Release checksum verifiability:** the release host rewrites `~` in asset
+  filenames (so `…_0.5.5-1~deb13_amd64.deb` was published as
+  `…_0.5.5-1.deb13_amd64.deb`), which made the published `SHA256SUMS` list names
+  that did not match the actual assets. The release job now applies the same
+  normalisation **before** computing the checksums, so the asset names and
+  `SHA256SUMS` agree and `sha256sum -c SHA256SUMS` verifies. (Debian package
+  filenames therefore use a `.` where the internal Debian version keeps `~`.)
+
 ## v0.5.5
 
 Packaging and distribution release. No new application capabilities; still strictly

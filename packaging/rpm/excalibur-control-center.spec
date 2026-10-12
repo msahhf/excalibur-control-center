@@ -1,5 +1,5 @@
 Name:           excalibur-control-center
-Version:        0.5.5
+Version:        0.5.6
 Release:        1%{?dist}
 Summary:        Read-only hardware telemetry for CASPER EXCALIBUR laptops
 License:        GPL-2.0-only
@@ -67,6 +67,9 @@ fi
 /usr/src/excalibur-wmi-%{version}
 
 %changelog
+* Sun Oct 11 2026 Muhammedsah Fidan <muhammedsahfidan@gmail.com> - 0.5.6-1
+- Track the 0.5.6 release (GUI + DKMS subpackage).
+
 * Sun Oct 11 2026 Muhammedsah Fidan <muhammedsahfidan@gmail.com> - 0.5.5-1
 - Track the 0.5.5 release (GUI + DKMS subpackage).
 
