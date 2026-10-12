@@ -12,6 +12,6 @@ pkgbase = excalibur-control-center
 	options = !lto
 	options = !debug
 	source = https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v0.5.6.tar.gz
-	sha256sums = TO_BE_SET_AFTER_TAG
+	sha256sums = d9f302c05313e94f2e80875c664209951af1903a607b9bdefa63defd87e9e92b
 
 pkgname = excalibur-control-center

@@ -49,7 +49,7 @@ makedepends=('cmake' 'ninja' 'gcc')
 # package is a single, consistent artifact everywhere. No install hooks.
 options=('!lto' '!debug')
 source=("https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('TO_BE_SET_AFTER_TAG')
+sha256sums=('d9f302c05313e94f2e80875c664209951af1903a607b9bdefa63defd87e9e92b')
 
 prepare() {
   # GUI version must match pkgver (single source: CMake project VERSION).
