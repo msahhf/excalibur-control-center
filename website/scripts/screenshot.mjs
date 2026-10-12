@@ -407,6 +407,12 @@ try {
     await waitForImages(page);
     await auditOverflow(page, "mobile (de)");
     await page.screenshot({ path: `${outDir}/mobile-de-full.png`, fullPage: true });
+    await page.evaluate(() => document.querySelector("#telemetry")?.scrollIntoView({ block: "start" }));
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: `${outDir}/mobile-de-story.png` });
+    await page.evaluate(() => document.querySelector("#download")?.scrollIntoView({ block: "start" }));
+    await page.waitForTimeout(350);
+    await page.screenshot({ path: `${outDir}/mobile-de-downloads.png` });
     await ctx.close();
   }
 

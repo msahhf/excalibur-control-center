@@ -38,6 +38,9 @@
   --line-3: rgba(255, 255, 255, 0.3);
   --shadow: 0 20px 50px -32px rgba(0, 0, 0, 0.9);
   --shadow-lift: 0 28px 60px -34px rgba(0, 0, 0, 0.95);
+  --shadow-stage: 0 40px 90px -50px rgba(0, 0, 0, 1), 0 2px 0 0 rgba(255, 255, 255, 0.03) inset;
+  --glow-accent: rgba(91, 149, 255, 0.22);
+  --glow-signal: rgba(62, 207, 224, 0.16);
 
   /* --- Type -------------------------------------------------------------- */
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
@@ -45,9 +48,11 @@
   --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", "Cascadia Code",
     Menlo, Consolas, "Liberation Mono", monospace;
 
-  --fs-hero: clamp(2.6rem, 1.5rem + 5vw, 5.4rem);
-  --fs-h2: clamp(1.85rem, 1.2rem + 2.2vw, 3rem);
-  --fs-h3: clamp(1.1rem, 1rem + 0.55vw, 1.4rem);
+  --fs-display: clamp(3rem, 1.1rem + 6.4vw, 6.5rem);
+  --fs-hero: clamp(2.7rem, 1.3rem + 5.2vw, 5.6rem);
+  --fs-h2: clamp(1.95rem, 1.15rem + 2.6vw, 3.4rem);
+  --fs-h3: clamp(1.14rem, 1rem + 0.6vw, 1.5rem);
+  --fs-scene: clamp(1.5rem, 1.05rem + 1.7vw, 2.5rem);
   --fs-lead: clamp(1.04rem, 0.98rem + 0.35vw, 1.24rem);
   --fs-body: clamp(0.98rem, 0.95rem + 0.12vw, 1.05rem);
   --fs-small: 0.85rem;
@@ -63,9 +68,11 @@
   --sp-7: 5.5rem;
   --sp-8: 8rem;
   --shell: 1200px;
+  --shell-wide: 1360px;
   --r-xs: 4px;
   --r-sm: 7px;
   --r: 10px;
+  --r-lg: 16px;
 
   /* --- Motion ------------------------------------------------------------ */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);

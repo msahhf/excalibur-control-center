@@ -187,21 +187,39 @@
 
 .hero {
   position: relative;
-  padding-top: clamp(6.5rem, 11vw, 9rem);
-  padding-bottom: clamp(3rem, 6vw, 5rem);
-  overflow: hidden;
+  padding-top: clamp(7rem, 13vw, 10.5rem);
+  padding-bottom: 0;
+  overflow: clip;
 }
-.hero__grid {
+.hero__aura {
+  position: absolute;
+  inset: -12% -20% auto -20%;
+  height: 92%;
+  pointer-events: none;
+  background:
+    radial-gradient(48% 62% at 76% 6%, var(--glow-accent), transparent 68%),
+    radial-gradient(42% 54% at 20% -4%, var(--glow-signal), transparent 72%);
+}
+.hero__head {
   display: grid;
-  gap: clamp(2.4rem, 5vw, 4rem);
-  align-items: center;
+  gap: clamp(1.6rem, 3.5vw, 3rem);
+  align-items: end;
+}
+@media (min-width: 900px) {
+  .hero__head {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
 }
 .hero__kicker {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  font-size: 0.9rem;
-  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: clamp(1rem, 2vw, 1.5rem);
 }
 .hero__kicker::before {
   content: "";
@@ -211,28 +229,35 @@
   flex: none;
 }
 .hero__title {
-  font-size: var(--fs-hero);
+  font-size: var(--fs-display);
   font-weight: 660;
-  margin-block: 1rem 1.25rem;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
 }
 .hero__title span {
   display: block;
   color: var(--accent-ink);
 }
+.hero__aside {
+  display: grid;
+  gap: clamp(1.3rem, 3vw, 1.9rem);
+  padding-bottom: 0.35rem;
+}
 .hero__lead {
-  max-width: 44ch;
+  max-width: 42ch;
 }
 .hero__cta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 1.9rem;
 }
 .hero__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1.1rem;
-  margin-top: 2rem;
+  gap: 0.6rem 1.5rem;
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
   font-family: var(--font-mono);
   font-size: var(--fs-mono);
   color: var(--ink-3);
@@ -241,7 +266,7 @@
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 .hero__meta li::before {
   content: "";
@@ -251,10 +276,82 @@
   background: var(--signal);
 }
 
-@media (min-width: 1000px) {
-  .hero__grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+/* --- Product stage: the screenshot presented as the hero artifact -------- */
+.hero__stage {
+  position: relative;
+  margin-top: clamp(2.5rem, 6vw, 4.5rem);
+}
+.hero__stage-inner {
+  position: relative;
+  max-width: var(--shell-wide);
+  margin-inline: auto;
+  padding-inline: clamp(1.1rem, 0.4rem + 3vw, 2.5rem);
+}
+.hero__stage-floor {
+  position: absolute;
+  left: 50%;
+  bottom: -16%;
+  width: 76%;
+  height: 62%;
+  transform: translateX(-50%);
+  background: radial-gradient(50% 100% at 50% 100%, var(--glow-accent), transparent 72%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+.hero__stage-frame {
+  position: absolute;
+  inset: 0;
+  border-radius: calc(var(--r-lg) + 1px);
+  pointer-events: none;
+  box-shadow: 0 0 0 1px var(--line-2), 0 0 60px -20px var(--glow-accent);
+}
+.hero__shot {
+  position: relative;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-stage);
+}
+.hero__shot .frame {
+  border-radius: var(--r-lg);
+}
+@media (min-width: 1100px) and (prefers-reduced-motion: no-preference) {
+  .hero__shot {
+    transform: perspective(2200px) rotateX(3.2deg);
+    transform-origin: 50% 100%;
   }
+}
+
+.hero__cue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  width: max-content;
+  margin: clamp(2rem, 4vw, 3rem) auto clamp(2rem, 5vw, 3.5rem);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.hero__cue:hover {
+  color: var(--ink);
+}
+.hero__cue i {
+  position: relative;
+  width: 1px;
+  height: 2.2rem;
+  background: linear-gradient(var(--line-3), transparent);
+}
+.hero__cue i::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateX(-50%) rotate(45deg);
 }
 
 /* ---------- Final CTA ---------------------------------------------------- */

@@ -15,43 +15,58 @@ const ASSET_BASE = `${REPO}/releases/download/v${RELEASE_VERSION}`;
 
 export type PackageId = "arch" | "debian" | "ubuntu" | "appimage";
 
-export type PackageFile = { name: string; url: string };
+export type PackageFile = { name: string; url: string; size?: number };
+
+const SUMS: PackageFile = {
+  name: "SHA256SUMS",
+  url: `${ASSET_BASE}/SHA256SUMS`,
+  size: 869,
+};
 
 // Real files published in the v0.5.6 release (verified against the GitHub
-// release, never guessed).
+// release API, never guessed); sizes are the published asset byte counts.
 export const packageFiles: Record<PackageId, PackageFile[]> = {
   arch: [
     {
       name: `excalibur-control-center-${RELEASE_VERSION}-1-x86_64.pkg.tar.zst`,
       url: `${ASSET_BASE}/excalibur-control-center-${RELEASE_VERSION}-1-x86_64.pkg.tar.zst`,
+      size: 174149,
     },
-    { name: "SHA256SUMS", url: `${ASSET_BASE}/SHA256SUMS` },
+    SUMS,
   ],
   debian: [
     {
       name: `excalibur-control-center_${RELEASE_VERSION}-1.deb13_amd64.deb`,
       url: `${ASSET_BASE}/excalibur-control-center_${RELEASE_VERSION}-1.deb13_amd64.deb`,
+      size: 130768,
     },
     {
       name: `excalibur-control-center-dkms_${RELEASE_VERSION}-1.deb13_all.deb`,
       url: `${ASSET_BASE}/excalibur-control-center-dkms_${RELEASE_VERSION}-1.deb13_all.deb`,
+      size: 12596,
     },
+    SUMS,
   ],
   ubuntu: [
     {
       name: `excalibur-control-center_${RELEASE_VERSION}-1.ubuntu24.04_amd64.deb`,
       url: `${ASSET_BASE}/excalibur-control-center_${RELEASE_VERSION}-1.ubuntu24.04_amd64.deb`,
+      size: 138170,
     },
     {
       name: `excalibur-control-center-dkms_${RELEASE_VERSION}-1.ubuntu24.04_all.deb`,
       url: `${ASSET_BASE}/excalibur-control-center-dkms_${RELEASE_VERSION}-1.ubuntu24.04_all.deb`,
+      size: 12876,
     },
+    SUMS,
   ],
   appimage: [
     {
       name: "EXCALIBUR_Control_Center-x86_64.AppImage",
       url: `${ASSET_BASE}/EXCALIBUR_Control_Center-x86_64.AppImage`,
+      size: 26655224,
     },
+    SUMS,
   ],
 };
 

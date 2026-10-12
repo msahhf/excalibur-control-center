@@ -7,10 +7,17 @@ export function ReadOnly() {
   const d = t.readonly.diagram;
   const headId = "readonly-title";
 
-  const segments = [
-    { x1: 180, x2: 250, len: 70 },
-    { x1: 440, x2: 510, len: 70 },
-    { x1: 680, x2: 750, len: 70 },
+  const X = [76, 332, 588, 844];
+  const W = 200;
+  const H = 74;
+  const Y = 88;
+  const CY = Y + H / 2;
+
+  const nodes = [
+    { x: X[0], accent: false, label: d.sensors, sub: d.sensorsSub },
+    { x: X[1], accent: false, label: d.driver, sub: d.driverSub },
+    { x: X[2], accent: true, label: d.hwmon, sub: d.hwmonSub },
+    { x: X[3], accent: true, label: d.app, sub: d.appSub },
   ];
 
   return (
@@ -34,78 +41,76 @@ export function ReadOnly() {
           ))}
         </ul>
 
-        <figure className="ro-diagram" style={{ margin: "clamp(2rem, 4vw, 3rem) 0 0" }}>
+        <figure className="ro-diagram">
+          {/* Blueprint surface: faint blueprint grid + corner registration marks */}
+          <span className="ro-diagram__grid" aria-hidden="true" />
+          <span className="ro-diagram__corner ro-diagram__corner--tl" aria-hidden="true" />
+          <span className="ro-diagram__corner ro-diagram__corner--tr" aria-hidden="true" />
+          <span className="ro-diagram__corner ro-diagram__corner--bl" aria-hidden="true" />
+          <span className="ro-diagram__corner ro-diagram__corner--br" aria-hidden="true" />
+
           <svg
             className="pipeline"
-            viewBox="0 0 1000 230"
+            viewBox="0 0 1120 272"
             role="img"
             aria-labelledby="ro-diagram-cap"
             preserveAspectRatio="xMidYMid meet"
           >
             <desc id="ro-diagram-cap">{d.caption}</desc>
 
-            {/* One-way read wires. */}
-            {segments.map((seg, i) => (
-              <g key={i}>
-                <line className="p-wire" x1={seg.x1} y1="110" x2={seg.x2} y2="110" />
-                <polygon
-                  className="p-arrow"
-                  points={`${seg.x2},110 ${seg.x2 - 9},105 ${seg.x2 - 9},115`}
-                />
-                <g className="p-flow" style={{ "--len": `${seg.len}px` } as CSSProperties}>
-                  <circle className="p-pulse" cx={seg.x1 + 6} cy="110" r="3.4" />
+            {/* One-way read wires with travelling telemetry pulses. */}
+            {nodes.slice(0, -1).map((n, i) => {
+              const x1 = n.x + W;
+              const x2 = nodes[i + 1].x;
+              return (
+                <g key={i}>
+                  <line className="p-wire" x1={x1} y1={CY} x2={x2} y2={CY} />
+                  <polygon
+                    className="p-arrow"
+                    points={`${x2 - 2},${CY} ${x2 - 12},${CY - 5} ${x2 - 12},${CY + 5}`}
+                  />
+                  <g className="p-flow" style={{ "--len": `${x2 - x1}px` } as CSSProperties}>
+                    <circle className="p-pulse" cx={x1 + 5} cy={CY} r="3.2" />
+                  </g>
                 </g>
+              );
+            })}
+
+            {/* Stages. */}
+            {nodes.map((n, i) => (
+              <g key={i} className={n.accent ? "p-stage p-stage--in" : "p-stage"}>
+                <rect className="p-node" x={n.x} y={Y} width={W} height={H} rx="8" />
+                <rect
+                  className={n.accent ? "p-edge p-edge--accent" : "p-edge"}
+                  x={n.x}
+                  y={Y + 14}
+                  width="3"
+                  height={H - 28}
+                  rx="1.5"
+                />
+                <text className="p-index" x={n.x + 16} y={Y + 22}>
+                  {String(i + 1).padStart(2, "0")}
+                </text>
+                <text className="p-label" x={n.x + 16} y={Y + 44}>
+                  {n.label}
+                </text>
+                <text className="p-sub" x={n.x + 16} y={Y + 62}>
+                  {n.sub}
+                </text>
               </g>
             ))}
 
-            {/* Stages. */}
-            <g>
-              <rect className="p-node" x="20" y="80" width="160" height="60" rx="6" />
-              <text className="p-label" x="36" y="107">
-                {d.sensors}
-              </text>
-              <text className="p-sub" x="36" y="124">
-                {d.sensorsSub}
-              </text>
-            </g>
-            <g>
-              <rect className="p-node p-node--end" x="250" y="80" width="190" height="60" rx="6" />
-              <text className="p-label" x="266" y="107">
-                {d.driver}
-              </text>
-              <text className="p-sub" x="266" y="124">
-                {d.driverSub}
-              </text>
-            </g>
-            <g>
-              <rect className="p-node" x="510" y="80" width="170" height="60" rx="6" />
-              <text className="p-label" x="526" y="107">
-                {d.hwmon}
-              </text>
-              <text className="p-sub" x="526" y="124">
-                {d.hwmonSub}
-              </text>
-            </g>
-            <g>
-              <rect className="p-node p-node--end" x="750" y="80" width="170" height="60" rx="6" />
-              <text className="p-label" x="766" y="107">
-                {d.app}
-              </text>
-              <text className="p-sub" x="766" y="124">
-                {d.appSub}
-              </text>
-            </g>
-
-            {/* The read-only boundary sits around hwmon + application. */}
-            <rect className="p-boundary" x="494" y="58" width="444" height="104" rx="10" />
-            <text className="p-boundary-label" x="494" y="46">
+            {/* The read-only boundary brackets hwmon + application. */}
+            <rect className="p-boundary" x={X[2] - 14} y={Y - 18} width={W * 2 + 28 + (X[3] - X[2] - W)} height={H + 36} rx="12" />
+            <text className="p-boundary-label" x={X[2] - 14} y={Y - 28}>
               {d.boundary}
             </text>
 
-            <text className="p-sub" x="20" y="186" fill="var(--ink-3)">
+            {/* Direction caption. */}
+            <text className="p-caption" x="76" y="234">
               {d.caption}
             </text>
-            <text className="p-sub" x="20" y="206" fill="var(--signal)">
+            <text className="p-direction" x="76" y="258">
               → {d.direction}
             </text>
           </svg>

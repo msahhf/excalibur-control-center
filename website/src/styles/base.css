@@ -235,6 +235,12 @@ section[id],
   height: 1.05em;
 }
 
+.btn--lg {
+  min-height: 3.1rem;
+  padding: 0.85rem 1.45rem;
+  font-size: 1rem;
+}
+
 /* ---------- Small shared widgets ----------------------------------------- */
 
 .tag {

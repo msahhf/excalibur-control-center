@@ -33,6 +33,7 @@ export const de: Dict = {
       "Eine native Qt6-App, die die Temperatur-, Lüfter- und Systemtelemetrie liest, die Ihr CASPER EXCALIBUR Laptop unter Linux bereits bereitstellt — CPU- und GPU-Temperatur, Lüfterdrehzahl, Hardware- und Kernel-Details sowie ein exportierbarer Diagnosebericht.",
     ctaExplore: "Telemetrie ansehen",
     ctaDownload: "Herunterladen",
+    scroll: "Zur Telemetrie",
     metaLabel: "Auf einen Blick",
     facts: [
       "CPU-/GPU-Temperatur",
@@ -170,6 +171,7 @@ export const de: Dict = {
     download: "Herunterladen",
     checksums: "Prüfsummen",
     files: "Dateien",
+    fileCount: "{count} Dateien",
     releasePage: "Release-Seite",
     sourceArchive: "Quellarchiv",
     all: "Alle Downloads",

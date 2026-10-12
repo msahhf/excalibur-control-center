@@ -14,6 +14,12 @@ import {
   type PackageId,
 } from "../data/site";
 
+function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
+}
+
 export function Downloads() {
   const { t } = useI18n();
   const [activeId, setActiveId] = useState<PackageId>("arch");
@@ -37,6 +43,7 @@ export function Downloads() {
   const pkg = t.downloads.packages[activeId];
   const meta = packageMeta[activeId];
   const files = packageFiles[activeId];
+  const primary = files[0];
 
   return (
     <section className="section" id="download" aria-labelledby="download-title">
@@ -84,38 +91,56 @@ export function Downloads() {
           aria-labelledby={`${baseId}-tab-${activeId}`}
           className="pkg"
         >
-          <div className="pkg__head">
+          <div className="pkg__id">
             <h3 className="pkg__title">{pkg.title}</h3>
-            <span className="pkg__meta" translate="no">
-              {meta.format} · {meta.arch}
-            </span>
+
+            <div className="pkg__chips">
+              <span className="chip" translate="no">
+                {meta.format}
+              </span>
+              <span className="chip" translate="no">
+                {meta.arch}
+              </span>
+              <span className="chip">{interpolate(t.downloads.fileCount, { count: files.length })}</span>
+            </div>
+
+            <p className="pkg__desc">{pkg.desc}</p>
+
+            <a className="btn btn--primary btn--lg pkg__primary" href={primary.url} download>
+              <IconDownload /> {t.downloads.download}
+            </a>
+            <p className="pkg__primary-meta tnum" translate="no">
+              v{RELEASE_VERSION} · {meta.format} · {meta.arch}
+            </p>
+
+            <div className="pkg__links">
+              <a href={RELEASE_PAGE} target="_blank" rel="noreferrer noopener">
+                {t.downloads.all} · v{RELEASE_VERSION}
+              </a>
+              <a href={SOURCE_ARCHIVE}>{t.downloads.sourceArchive}</a>
+              <a href={REPO} target="_blank" rel="noreferrer noopener">
+                {t.nav.repoLink} <IconArrow style={{ verticalAlign: "-2px", width: "0.85em" }} />
+              </a>
+            </div>
           </div>
-          <p className="pkg__desc">{pkg.desc}</p>
 
           <div className="pkg__files">
-            <span className="visually-hidden">{t.downloads.files}</span>
+            <span className="pkg__files-label">{t.downloads.files}</span>
             {files.map((f) => (
               <div className="pkg__file" key={f.name}>
-                <code translate="no">{f.name}</code>
-                <a href={f.url} download>
-                  {f.name === "SHA256SUMS" ? t.downloads.checksums : t.downloads.download} ↓
+                <span className="pkg__file-name">
+                  <code translate="no">{f.name}</code>
+                  {typeof f.size === "number" && (
+                    <span className="pkg__file-size tnum">{formatSize(f.size)}</span>
+                  )}
+                </span>
+                <a className="pkg__file-link" href={f.url} download>
+                  {f.name === "SHA256SUMS" ? t.downloads.checksums : t.downloads.download}
+                  <IconDownload />
                 </a>
               </div>
             ))}
-          </div>
-
-          {pkg.note && <p className="pkg__note">ⓘ {pkg.note}</p>}
-
-          <div className="pkg__actions">
-            <a className="btn btn--primary" href={RELEASE_PAGE} target="_blank" rel="noreferrer noopener">
-              <IconDownload /> {t.downloads.all} · v{RELEASE_VERSION}
-            </a>
-            <span className="meta">
-              <a href={SOURCE_ARCHIVE}>{t.downloads.sourceArchive}</a> ·{" "}
-              <a href={REPO} target="_blank" rel="noreferrer noopener">
-                {t.nav.repoLink} <IconArrow style={{ verticalAlign: "-2px", width: "0.9em" }} />
-              </a>
-            </span>
+            {pkg.note && <p className="pkg__note">ⓘ {pkg.note}</p>}
           </div>
         </div>
       </div>

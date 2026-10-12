@@ -5,10 +5,10 @@ import { useI18n } from "../i18n";
 import { useMediaQuery, usePrefersReducedMotion } from "../hooks/useEnvironment";
 import { storyImages, storyOrder } from "../data/site";
 
-// One source of truth: `progress` (0..1) drives the horizontal transform, and a
-// single `activeIndex` (derived from the same progress) drives the scene label,
-// the navigation state and focus management — so text and image can never drift
-// apart. Panels carry their own copy AND screenshot, so they move as one unit.
+// One source of truth: `progress` (0..1) drives the horizontal transform and the
+// scrub-linked meter, and a single `activeIndex` (derived from the same progress)
+// drives the scene label, the navigation state and focus management — so text and
+// image can never drift apart. Panels carry their own copy AND screenshot.
 export function Story() {
   const { t } = useI18n();
   const reduced = usePrefersReducedMotion();
@@ -17,16 +17,18 @@ export function Story() {
 
   const trackRef = useRef<HTMLDivElement | null>(null);
   const railRef = useRef<HTMLDivElement | null>(null);
+  const meterRef = useRef<HTMLSpanElement | null>(null);
   const sceneRefs = useRef<Array<HTMLElement | null>>([]);
   const frame = useRef(0);
   const [active, setActive] = useState(0);
 
   const count = storyOrder.length;
 
-  // Scroll → progress → transform + activeIndex, batched in one rAF.
+  // Scroll → progress → transform + meter + activeIndex, batched in one rAF.
   useEffect(() => {
     if (!enhanced) {
       if (railRef.current) railRef.current.style.transform = "";
+      if (meterRef.current) meterRef.current.style.transform = "";
       sceneRefs.current.forEach((el) => el && (el.inert = false));
       return;
     }
@@ -43,6 +45,7 @@ export function Story() {
       const gap = parseFloat(getComputedStyle(rail).columnGap) || 0;
       const shifted = -p * (count - 1) * (rail.clientWidth + gap);
       rail.style.transform = `translate3d(${shifted.toFixed(2)}px, 0, 0)`;
+      if (meterRef.current) meterRef.current.style.transform = `scaleX(${p.toFixed(4)})`;
       const idx = Math.min(count - 1, Math.max(0, Math.round(p * (count - 1))));
       setActive((prev) => (prev === idx ? prev : idx));
     };
@@ -86,6 +89,7 @@ export function Story() {
   );
 
   const headId = "telemetry-title";
+  const pad = (n: number) => String(n).padStart(2, "0");
 
   return (
     <section className="section" id="telemetry" aria-labelledby={headId}>
@@ -128,9 +132,11 @@ export function Story() {
                       }}
                     >
                       <div className="scene__copy">
+                        <span className="scene__ghost tnum" aria-hidden="true">
+                          {pad(i + 1)}
+                        </span>
                         <span className="scene__no tnum">
-                          {t.story.sceneLabel} {String(i + 1).padStart(2, "0")} {t.story.of}{" "}
-                          {String(count).padStart(2, "0")}
+                          {t.story.sceneLabel} {pad(i + 1)} {t.story.of} {pad(count)}
                         </span>
                         <h3 className="scene__title">{sc.title}</h3>
                         <p className="scene__body">{sc.body}</p>
@@ -146,6 +152,16 @@ export function Story() {
                     </article>
                   );
                 })}
+              </div>
+
+              {/* Scrub-linked meter: shares the same progress as the transform. */}
+              <div className="story__meter" aria-hidden="true">
+                <span className="story__meter-count tnum">
+                  {pad(active + 1)} <i>/</i> {pad(count)}
+                </span>
+                <span className="story__meter-track">
+                  <span className="story__meter-fill" ref={meterRef} />
+                </span>
               </div>
             </div>
           </div>
@@ -163,7 +179,7 @@ export function Story() {
                 onClick={() => goTo(i)}
               >
                 <i aria-hidden="true" />
-                <span className="tnum">{String(i + 1).padStart(2, "0")}</span>
+                <span className="tnum">{pad(i + 1)}</span>
               </button>
             ))}
           </nav>
