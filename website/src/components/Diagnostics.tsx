@@ -1,54 +1,38 @@
-import { Reveal } from "./Reveal";
+import { SheetHead } from "./SheetHead";
 import { ScreenshotFrame } from "./ScreenshotFrame";
-import { IconCheck, IconDoc, IconPulse, IconShield } from "./Icons";
-
-const points = [
-  { icon: <IconPulse />, text: "System and kernel identity — OS, kernel, architecture, desktop and session type." },
-  { icon: <IconShield />, text: "Hardware telemetry that is actually reachable — temperature and fan channels, or an honest “unavailable”." },
-  { icon: <IconDoc />, text: "A rolling history of the most recent samples, windowed to the last 60 seconds." },
-  { icon: <IconCheck />, text: "One JSON export you can attach to a support thread — no environment variables, no credentials." },
-];
+import { useI18n } from "../i18n";
 
 export function Diagnostics() {
+  const { t } = useI18n();
+  const headId = "diagnostics-title";
+
   return (
-    <section className="section" id="diagnostics" aria-labelledby="diag-title">
+    <section className="section" id="diagnostics" aria-labelledby={headId}>
       <div className="shell">
-        <Reveal className="head">
-          <span className="eyebrow">Exportable diagnostics</span>
-          <h2 className="head__title" id="diag-title">
-            When something looks off, you have the receipts.
+        <SheetHead name={t.diag.shotTitle} index="04 / 06" />
+        <div className="head">
+          <h2 className="head__title" id={headId}>
+            {t.diag.heading}
           </h2>
-          <p className="lead">
-            The Diagnostics screen gathers everything the app knows into one view — and exports it as portable
-            JSON so a bug report carries evidence instead of guesswork.
-          </p>
-        </Reveal>
+          <p className="lead">{t.diag.lead}</p>
+        </div>
 
         <div className="split split--flip">
-          <Reveal>
-            <ScreenshotFrame
-              src="./images/diagnostics-dark.png"
-              alt="Diagnostics page: application, system and telemetry sections plus an Export Diagnostics button"
-              title="Diagnostics"
-            />
-          </Reveal>
-
-          <Reveal delay={120}>
+          <div>
             <ul className="points">
-              {points.map((p, i) => (
-                <li key={i}>
-                  {p.icon}
-                  <span>{p.text}</span>
+              {t.diag.points.map((p) => (
+                <li key={p}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  <span>{p}</span>
                 </li>
               ))}
             </ul>
 
-            <div style={{ marginTop: "1.8rem" }}>
-              <div className="json__note">
-                <span className="dot" style={{ background: "var(--cyan)", color: "var(--cyan)" }} />
-                Representative schema — real field names from the app; values shown are placeholders.
-              </div>
-              <pre className="json" aria-label="Representative diagnostics JSON schema">
+            <div style={{ marginTop: "1.7rem" }}>
+              <p className="json__note">{t.diag.schemaNote}</p>
+              <pre className="json" aria-label={t.diag.schemaNote}>
                 <code>
                   {"{\n"}
                   {"  "}
@@ -124,7 +108,13 @@ export function Diagnostics() {
                 </code>
               </pre>
             </div>
-          </Reveal>
+          </div>
+
+          <ScreenshotFrame
+            src="./images/diagnostics-dark.png"
+            alt={t.diag.shotAlt}
+            title={t.diag.shotTitle}
+          />
         </div>
       </div>
     </section>

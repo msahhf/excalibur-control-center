@@ -1,42 +1,44 @@
-import { Reveal } from "./Reveal";
-import { compat } from "../data/site";
+import { SheetHead } from "./SheetHead";
+import { useI18n } from "../i18n";
+import { COMPAT_ROWS, type CompatRowId } from "../data/site";
 
-const toneClass = {
-  ok: "tag tag--ok",
-  warn: "tag tag--warn",
-  muted: "tag tag--muted",
-} as const;
+const TONE: Record<CompatRowId, "ok" | "warn" | "muted"> = {
+  hardware: "ok",
+  primaryDistro: "ok",
+  publishedPackages: "ok",
+  appimage: "muted",
+  kernel72: "ok",
+  kernel618: "warn",
+  fedora: "muted",
+};
 
 export function Compatibility() {
+  const { t } = useI18n();
   return (
     <section className="section" id="compatibility" aria-labelledby="compat-title">
       <div className="shell">
-        <Reveal className="head">
-          <span className="eyebrow">Compatibility</span>
+        <SheetHead name={t.nav.compatibility} index="06 / 06" />
+        <div className="head">
           <h2 className="head__title" id="compat-title">
-            Verified scope, stated plainly.
+            {t.compat.heading}
           </h2>
-          <p className="lead">
-            What has actually been tested is marked as verified; everything else is labelled honestly. No
-            platform is presented as supported before it has been.
-          </p>
-        </Reveal>
+          <p className="lead">{t.compat.lead}</p>
+        </div>
 
-        <Reveal>
-          <ul className="compat" style={{ listStyle: "none", margin: 0, padding: 0 }}>
-            {compat.map((c) => (
-              <li className="compat__row" key={c.label}>
-                <span>{c.label}</span>
-                <span className={toneClass[c.tone]}>{c.tag}</span>
+        <ul className="compat">
+          {COMPAT_ROWS.map((id) => {
+            const row = t.compat.rows[id];
+            return (
+              <li className="compat__row" key={id}>
+                <span>{row.label}</span>
+                <span className={`tag tag--${TONE[id]}`}>{row.tag}</span>
               </li>
-            ))}
-          </ul>
-          <p className="dl__note" style={{ marginTop: "1.4rem", maxWidth: "60ch" }}>
-            The read-only driver targets the kernel WMI API available in the 7.2.x series. It does not build on
-            6.18.x LTS, and a Fedora RPM is not published. AppImage ships the GUI only — install a native driver
-            package for live telemetry.
-          </p>
-        </Reveal>
+            );
+          })}
+        </ul>
+        <p className="pkg__note" style={{ marginTop: "1.3rem", maxWidth: "70ch" }}>
+          {t.compat.note}
+        </p>
       </div>
     </section>
   );

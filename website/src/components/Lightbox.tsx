@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useI18n } from "../i18n";
 
 type Shot = { src: string; title: string };
 type LightboxApi = { open: (shot: Shot) => void };
@@ -20,6 +21,7 @@ export function useLightbox(): LightboxApi {
 }
 
 export function LightboxProvider({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const [shot, setShot] = useState<Shot | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const lastFocus = useRef<HTMLElement | null>(null);
@@ -57,17 +59,17 @@ export function LightboxProvider({ children }: { children: ReactNode }) {
           className="lb"
           role="dialog"
           aria-modal="true"
-          aria-label={`${shot.title} — enlarged screenshot`}
+          aria-label={`${shot.title} — ${t.a11y.lightbox}`}
           onClick={close}
         >
           <div className="lb__inner" onClick={(e) => e.stopPropagation()}>
             <div className="lb__bar">
               <span>{shot.title}</span>
               <button ref={closeRef} className="lb__close" type="button" onClick={close}>
-                Close ✕
+                {t.a11y.close} ✕
               </button>
             </div>
-            <img className="lb__img" src={shot.src} alt={`${shot.title} — full size`} />
+            <img className="lb__img" src={shot.src} alt={`${shot.title} — ${t.a11y.lightbox}`} />
           </div>
         </div>
       )}

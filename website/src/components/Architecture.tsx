@@ -1,68 +1,37 @@
-import { Reveal } from "./Reveal";
-import { IconChip, IconDoc, IconFan, IconPulse } from "./Icons";
+import { SheetHead } from "./SheetHead";
+import { useI18n } from "../i18n";
 
-const stages = [
-  {
-    n: "01",
-    icon: <IconChip />,
-    title: "EXCALIBUR WMI / kernel driver",
-    body: "A small read-only kernel module, excalibur-wmi, speaks the laptop's WMI interface and registers a standard hwmon device. It requests telemetry; it never writes hardware state.",
-    code: "excalibur_wmi · WMI GET 0x200",
-  },
-  {
-    n: "02",
-    icon: <IconPulse />,
-    title: "Read-only hwmon / sysfs",
-    body: "The kernel exposes the readings as ordinary sysfs files under a device named excalibur_g870 — the single, unprivileged interface the whole app reads from.",
-    code: "temp1_input · temp2_input · fan1_input · fan2_input",
-  },
-  {
-    n: "03",
-    icon: <IconFan />,
-    title: "Qt6 native desktop app",
-    body: "One HwmonClient discovers the device by name and reads it on a timer. Every page is fed from a single telemetry state — no page touches sysfs on its own.",
-    code: "HwmonClient → TelemetryModel → pages",
-  },
-  {
-    n: "04",
-    icon: <IconDoc />,
-    title: "Visual monitoring & diagnostics",
-    body: "The dashboard, cooling and device views render the live snapshot, while Diagnostics turns the same state into a portable JSON report for support.",
-    code: "Dashboard · Cooling · Device · Diagnostics",
-  },
-];
+const STAGE_IDS = ["driver", "hwmon", "app", "output"] as const;
 
 export function Architecture() {
-  return (
-    <section className="section" id="architecture" aria-labelledby="arch-title">
-      <div className="shell">
-        <Reveal className="head">
-          <span className="eyebrow">How it works</span>
-          <h2 className="head__title" id="arch-title">
-            A straight line from silicon to screen.
-          </h2>
-          <p className="lead">
-            Four honest stages. The same architecture described in the project's source and README — nothing is
-            embellished for this page.
-          </p>
-        </Reveal>
+  const { t } = useI18n();
+  const headId = "architecture-title";
 
-        <ol className="pillars" style={{ gridTemplateColumns: "1fr", listStyle: "none", margin: 0, padding: 0 }}>
-          {stages.map((s, i) => (
-            <Reveal as="li" key={s.n} delay={i * 90} className="pillar">
-              <div style={{ display: "flex", alignItems: "center", gap: "0.9rem", marginBottom: "0.9rem" }}>
-                <span className="pillar__ic" aria-hidden="true">
-                  {s.icon}
-                </span>
-                <span className="step__no">STAGE {s.n}</span>
-              </div>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-              <p className="mono" style={{ marginTop: "0.9rem", fontSize: "0.78rem", color: "var(--ink-3)" }}>
-                {s.code}
-              </p>
-            </Reveal>
-          ))}
+  return (
+    <section className="section" id="architecture" aria-labelledby={headId}>
+      <div className="shell">
+        <SheetHead name={t.nav.architecture} index="03 / 06" />
+        <div className="head">
+          <h2 className="head__title" id={headId}>
+            {t.arch.heading}
+          </h2>
+          <p className="lead">{t.arch.lead}</p>
+        </div>
+
+        <ol className="stages">
+          {STAGE_IDS.map((id, i) => {
+            const s = t.arch.stages[id];
+            return (
+              <li className="stage" key={id}>
+                <span className="stage__no">{String(i + 1).padStart(2, "0")}</span>
+                <h3 className="stage__title">{s.title}</h3>
+                <p className="stage__body">{s.body}</p>
+                <code className="stage__code" translate="no">
+                  {s.code}
+                </code>
+              </li>
+            );
+          })}
         </ol>
       </div>
     </section>

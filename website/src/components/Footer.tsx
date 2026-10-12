@@ -1,81 +1,93 @@
 import { BrandMark } from "./Brand";
-import { ISSUES, LICENSE_URL, README, RELEASES, RELEASE_PAGE, RELEASE_VERSION, REPO } from "../data/site";
+import { useI18n, interpolate } from "../i18n";
+import {
+  AUTHOR,
+  ISSUES,
+  LICENSE_URL,
+  README,
+  RELEASES,
+  RELEASE_PAGE,
+  RELEASE_VERSION,
+  REPO,
+} from "../data/site";
 
 export function Footer() {
+  const { t } = useI18n();
+  const year = new Date().getFullYear();
+
   return (
     <footer className="footer">
       <div className="shell">
         <div className="footer__grid">
           <div className="footer__col">
-            <a href="#top" className="brand" aria-label="EXCALIBUR Control Center — top">
+            <a href="#top" className="brand" aria-label={t.nav.home}>
               <BrandMark className="brand__mark" />
-              <span className="brand__text">
-                <span className="brand__name">EXCALIBUR</span>
-                <span className="brand__sub">CONTROL CENTER</span>
+              <span className="brand__word" translate="no">
+                EXCALIBUR<small>CONTROL CENTER</small>
               </span>
             </a>
-            <p style={{ marginTop: "1rem", color: "var(--ink-2)", maxWidth: "30ch", fontSize: "0.92rem" }}>
-              A read-only telemetry control center for CASPER EXCALIBUR laptops on Linux.
+            <p style={{ marginTop: "0.9rem", color: "var(--ink-2)", maxWidth: "32ch", fontSize: "0.92rem" }}>
+              {t.footer.tagline}
             </p>
           </div>
 
           <div className="footer__col">
-            <h4>Project</h4>
+            <h4>{t.footer.project}</h4>
             <ul>
               <li>
                 <a href={REPO} target="_blank" rel="noreferrer noopener">
-                  GitHub repository
+                  {t.footer.repo}
                 </a>
               </li>
               <li>
                 <a href={RELEASES} target="_blank" rel="noreferrer noopener">
-                  Releases
+                  {t.footer.releases}
                 </a>
               </li>
               <li>
                 <a href={README} target="_blank" rel="noreferrer noopener">
-                  README
+                  {t.footer.readme}
                 </a>
               </li>
               <li>
                 <a href={ISSUES} target="_blank" rel="noreferrer noopener">
-                  Report an issue
+                  {t.footer.issues}
                 </a>
               </li>
             </ul>
           </div>
 
           <div className="footer__col">
-            <h4>Download</h4>
+            <h4>{t.footer.downloadCol}</h4>
             <ul>
               <li>
                 <a href={RELEASE_PAGE} target="_blank" rel="noreferrer noopener">
-                  v{RELEASE_VERSION} release
+                  v{RELEASE_VERSION}
                 </a>
               </li>
               <li>
-                <a href="#downloads">Packages &amp; AppImage</a>
+                <a href="#download">{t.footer.packages}</a>
               </li>
               <li>
-                <a href="#compatibility">Compatibility</a>
+                <a href="#compatibility">{t.footer.compatibility}</a>
               </li>
               <li>
-                <a href="#architecture">Architecture</a>
+                <a href="#architecture">{t.footer.architecture}</a>
               </li>
             </ul>
           </div>
 
           <div className="footer__col">
-            <h4>Legal</h4>
+            <h4>{t.footer.legalCol}</h4>
             <ul>
               <li>
                 <a href={LICENSE_URL} target="_blank" rel="noreferrer noopener">
-                  License (GPL-2.0-only)
+                  {t.footer.license}
                 </a>
               </li>
               <li>
                 <a href={ISSUES} target="_blank" rel="noreferrer noopener">
-                  Diagnostics &amp; support
+                  {t.footer.diagnostics}
                 </a>
               </li>
             </ul>
@@ -83,10 +95,20 @@ export function Footer() {
         </div>
 
         <div className="footer__bottom">
-          <span>© {new Date().getFullYear()} EXCALIBUR Control Center · GPL-2.0-only</span>
+          <span>{interpolate(t.footer.copyright, { year })}</span>
           <span className="footer__legal">
-            <span>Not affiliated with or endorsed by CASPER.</span>
-            <span>Static showcase — no tracking, no cookies.</span>
+            <span>{t.footer.notAffiliated}</span>
+            <span>{t.footer.noTracking}</span>
+          </span>
+        </div>
+
+        {/* Attribution — always the same words in every language. */}
+        <div className="credit">
+          <span>
+            <span translate="no">{t.footer.credit}</span>{" "}
+            <a href={AUTHOR} target="_blank" rel="noreferrer noopener" translate="no">
+              Muhammedşah Fidan
+            </a>
           </span>
         </div>
       </div>

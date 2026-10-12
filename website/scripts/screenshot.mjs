@@ -1,13 +1,13 @@
-// Real-browser verification for the static site build using the system Chromium
-// (no browser download; playwright-core points at /usr/bin/chromium).
+// Real-browser verification for the static build, using the system Chromium via
+// playwright-core (no browser download). Serves dist/ over a throwaway server
+// (module scripts cannot load from file://) and checks:
+//   responsive overflow (360/390/768/1366/1920), images, console errors,
+//   synchronised horizontal scrollytelling (forward + backward), sticky
+//   behaviour, mobile vertical fallback, reduced motion, the read-only pipeline
+//   diagram, the downloads segmented selector (real URLs + keyboard), the
+//   EN/TR/DE localisation (lang, title, copy, persistence) and the footer credit.
 //
 //   npm run build && npm run shots
-//
-// Serves dist/ over a throwaway local HTTP server (module scripts cannot load
-// from file://), then checks: console errors, horizontal overflow, image
-// loading, external link hygiene, the screenshot lightbox, the download tabs,
-// the mobile menu and reduced-motion — at desktop and phone viewports — and
-// writes reference screenshots to test-output/.
 
 import { chromium } from "playwright-core";
 import { createServer } from "node:http";
@@ -27,7 +27,6 @@ const MIME = {
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".json": "application/json",
-  ".ico": "image/x-icon",
 };
 
 function startServer() {
@@ -52,8 +51,17 @@ const fail = (m) => {
   console.error("FAIL:", m);
 };
 const ok = (m) => console.log("ok  :", m);
+const eq = (got, want, label) => (got === want ? ok(`${label} = ${want}`) : fail(`${label}: got ${got}, want ${want}`));
 
-async function disableSmoothScroll(page) {
+const SCENES = ["dashboard", "cooling", "device", "diagnostics"];
+const SCENE_IMG = {
+  dashboard: "dashboard-dark.png",
+  cooling: "cooling-dark.png",
+  device: "device-dark.png",
+  diagnostics: "diagnostics-dark.png",
+};
+
+async function disableSmooth(page) {
   await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = "auto";
   });
@@ -72,10 +80,7 @@ async function waitForImages(page, timeout = 15000) {
     .catch(() => {});
 }
 
-async function auditPage(page, label) {
-  // Measure real content overflow: an element that sticks out horizontally and
-  // is not clipped by a scroll/hidden ancestor. (Comparing scrollWidth to
-  // clientWidth counts the classic vertical scrollbar as false overflow.)
+async function auditOverflow(page, label) {
   const overflow = await page.evaluate(() => {
     const cw = document.documentElement.clientWidth;
     const clipped = (el) => {
@@ -95,20 +100,51 @@ async function auditPage(page, label) {
   });
   if (overflow > 1) fail(`${label}: content overflows horizontally by ${overflow}px`);
   else ok(`${label}: no horizontal overflow`);
+}
 
-  // Only images that actually occupy space are expected to load; hidden copies
-  // (e.g. the desktop-only step images on mobile) are intentionally deferred.
-  const imgs = await page.evaluate(() => {
-    const all = [...document.images];
-    const boxed = all.filter((i) => i.getClientRects().length > 0);
-    return {
-      total: all.length,
-      boxed: boxed.length,
-      bad: boxed.filter((i) => !(i.complete && i.naturalWidth > 0)).map((i) => i.getAttribute("src")),
-    };
+async function scrollAll(page) {
+  await page.evaluate(async () => {
+    for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight * 0.6) {
+      window.scrollTo(0, y);
+      await new Promise((r) => setTimeout(r, 110));
+    }
+    window.scrollTo(0, 0);
   });
-  if (imgs.bad.length) fail(`${label}: visible images not loaded → ${imgs.bad.join(", ")}`);
-  else ok(`${label}: all ${imgs.boxed} visible images loaded`);
+  await page.waitForTimeout(400);
+}
+
+const centeredScene = (page) =>
+  page.evaluate(() => {
+    const mid = window.innerWidth / 2;
+    const scenes = [...document.querySelectorAll(".scene")];
+    let best = -1;
+    let bd = Infinity;
+    scenes.forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      const d = Math.abs(r.left + r.width / 2 - mid);
+      if (d < bd) {
+        bd = d;
+        best = i;
+      }
+    });
+    return best;
+  });
+
+const navActive = (page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll(".story__dot")].findIndex((b) => b.getAttribute("aria-current") === "true"),
+  );
+
+async function scrollToScene(page, i) {
+  const y = await page.evaluate((idx) => {
+    const track = document.querySelector(".story__track");
+    const stickyH = window.innerHeight - 68;
+    const total = track.offsetHeight - stickyH;
+    const absTop = window.scrollY + track.getBoundingClientRect().top;
+    return absTop + (idx / 3) * total;
+  }, i);
+  await page.evaluate((yy) => window.scrollTo(0, yy), y);
+  await page.waitForTimeout(450);
 }
 
 const server = await startServer();
@@ -122,153 +158,275 @@ const browser = await chromium.launch({
 });
 
 try {
-  // ---------- Desktop ----------
+  // ===================== Desktop =====================
   {
-    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "en-US" });
     const page = await ctx.newPage();
     const errors = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
     page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
     await page.goto(url, { waitUntil: "load" });
-    await disableSmoothScroll(page);
-    await page.waitForTimeout(600);
+    await disableSmooth(page);
+    await page.waitForTimeout(500);
 
-    const title = await page.title();
-    if (/EXCALIBUR Control Center/.test(title)) ok(`desktop: title "${title}"`);
-    else fail(`desktop: unexpected title "${title}"`);
+    // metadata + hero
+    if (/EXCALIBUR/.test(await page.title())) ok("desktop: title present");
+    else fail("desktop: title missing");
+    const heroSrc = await page.getAttribute(".hero__shot img", "src");
+    if (heroSrc?.includes("dashboard-dark.png")) ok("desktop: hero uses the real dashboard screenshot");
+    else fail(`desktop: hero src = ${heroSrc}`);
 
-    const heroSrc = await page.getAttribute(".hero__stage img", "src");
-    if (heroSrc && heroSrc.includes("dashboard-dark.png")) ok("desktop: hero uses the real dashboard screenshot");
-    else fail(`desktop: hero screenshot src = ${heroSrc}`);
-
-    await page.locator(".hero__stage .shot").click();
+    // lightbox
+    await page.locator(".hero__shot .shot").click();
     await page.waitForSelector(".lb", { state: "visible", timeout: 3000 });
-    await page.waitForTimeout(200);
     await page.screenshot({ path: `${outDir}/lightbox.png` });
     await page.keyboard.press("Escape");
     await page.waitForSelector(".lb", { state: "detached", timeout: 3000 });
     ok("desktop: lightbox opens and closes with Escape");
 
-    await page.evaluate(async () => {
-      for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight * 0.6) {
-        window.scrollTo(0, y);
-        await new Promise((r) => setTimeout(r, 130));
-      }
-      window.scrollTo(0, 0);
-    });
-    await page.waitForTimeout(600);
+    await scrollAll(page);
     await waitForImages(page);
-    await auditPage(page, "desktop");
-    // Force scroll-reveal state so the full-page reference shot is deterministic.
-    await page.evaluate(() => document.querySelectorAll(".reveal").forEach((e) => e.classList.add("is-in")));
-    await page.waitForTimeout(200);
-    await page.screenshot({ path: `${outDir}/desktop-full.png`, fullPage: true });
-    await page.screenshot({ path: `${outDir}/desktop-hero.png` });
-    for (const id of ["telemetry", "readonly", "architecture", "diagnostics", "downloads", "compatibility"]) {
-      await page.locator(`#${id}`).scrollIntoViewIfNeeded();
-      await page.waitForTimeout(350);
-      await page.screenshot({ path: `${outDir}/section-${id}.png` });
+    await auditOverflow(page, "desktop");
+
+    const enhanced = await page.getAttribute(".story", "data-enhanced");
+    eq(enhanced, "true", "desktop: horizontal story enhanced");
+
+    // Reference shots for each scene (full-page capture cannot show a sticky rail).
+    for (let i = 0; i < 4; i++) {
+      await scrollToScene(page, i);
+      await page.screenshot({ path: `${outDir}/story-${i}.png` });
     }
 
-    await page.locator(".steps .step").nth(2).scrollIntoViewIfNeeded();
-    await page.waitForTimeout(600);
-    const activeIdx = await page.evaluate(() =>
-      [...document.querySelectorAll(".steps .step")].findIndex((s) => s.classList.contains("is-active")),
-    );
-    if (activeIdx >= 0) ok(`desktop: scrollytelling active step = ${activeIdx}`);
-    else fail("desktop: no scrollytelling step became active");
+    // Scrollytelling sync — forward then backward
+    for (const order of [[0, 1, 2, 3], [3, 2, 1, 0]]) {
+      for (const i of order) {
+        await scrollToScene(page, i);
+        const centered = await centeredScene(page);
+        const nav = await navActive(page);
+        const img = await page.evaluate((idx) => {
+          const el = document.querySelectorAll(".scene")[idx];
+          return el?.querySelector(".scene__media img")?.getAttribute("src");
+        }, centered);
+        const expected = SCENE_IMG[SCENES[centered]];
+        if (centered !== i) fail(`desktop: forward/back at scene ${i} → centered ${centered}`);
+        else if (nav !== i) fail(`desktop: at scene ${i} nav active ${nav} (text/image desync)`);
+        else if (!img?.includes(expected)) fail(`desktop: at scene ${i} image ${img} != ${expected}`);
+        else ok(`desktop: scene ${i} — text, image and nav in sync`);
+      }
+    }
 
-    await page.locator("#downloads").scrollIntoViewIfNeeded();
-    await page.getByRole("tab", { name: "AppImage" }).click();
-    await page.waitForTimeout(150);
-    const panel = page.locator('[role="tabpanel"]:not([hidden])');
-    const panelText = await panel.innerText();
-    if (/Portable AppImage/.test(panelText)) ok("desktop: download tabs switch to AppImage");
-    else fail("desktop: AppImage tabpanel did not open");
-    if (/does NOT install/.test(panelText)) ok("desktop: AppImage panel states it does not install DKMS");
-    else fail("desktop: AppImage DKMS note missing");
+    // Sticky must be pinned (no jump) in the middle of the story
+    await scrollToScene(page, 1);
+    const stickyTop = await page.evaluate(() => document.querySelector(".story__sticky").getBoundingClientRect().top);
+    if (stickyTop > 64 && stickyTop < 72) ok(`desktop: sticky pinned at ${Math.round(stickyTop)}px (no jump)`);
+    else fail(`desktop: sticky top ${Math.round(stickyTop)}px not pinned`);
+
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${outDir}/desktop-hero.png` });
+    for (const id of ["readonly", "architecture", "diagnostics", "compatibility"]) {
+      await page.evaluate((sel) => document.querySelector(sel)?.scrollIntoView({ block: "start" }), `#${id}`);
+      await page.waitForTimeout(320);
+      await page.screenshot({ path: `${outDir}/section-${id}.png` });
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `${outDir}/desktop-full.png`, fullPage: true });
+
+    // ---- read-only ----
+    const hasPipeline = await page.locator(".pipeline").count();
+    if (hasPipeline === 1) ok("read-only: positive pipeline diagram present");
+    else fail("read-only: pipeline diagram missing");
+    const redX = await page.evaluate(() =>
+      [...document.querySelectorAll(".pipeline *")].some((el) => {
+        const s = getComputedStyle(el);
+        return s.stroke === "rgb(251, 113, 133)" || s.fill === "rgb(251, 113, 133)";
+      }),
+    );
+    if (!redX) ok("read-only: old red-X control path removed");
+    else fail("read-only: a red-X style element is still present");
+
+    // ---- downloads ----
+    await page.evaluate(() => document.querySelector("#download")?.scrollIntoView({ block: "start" }));
+    await waitForImages(page);
     await page.screenshot({ path: `${outDir}/desktop-downloads.png` });
+    const picker = page.getByRole("tablist", { name: /platform|Plattform|Platform/i });
+    if (await picker.count()) ok("downloads: platform selector has tablist semantics");
+    else fail("downloads: missing tablist");
+
+    const pkgCheck = async (id, expect) => {
+      await page.getByRole("tab", { name: id, exact: true }).click();
+      await page.waitForTimeout(120);
+      const hrefs = await page.evaluate(() =>
+        [...document.querySelectorAll('[role="tabpanel"] a[href^="http"]')].map((a) => a.getAttribute("href")),
+      );
+      const hit = hrefs.some((h) => h.includes(expect));
+      if (hit) ok(`downloads: ${id} links to ${expect}`);
+      else fail(`downloads: ${id} missing link containing ${expect}`);
+    };
+    await pkgCheck("Arch", "excalibur-control-center-0.5.6-1-x86_64.pkg.tar.zst");
+    await pkgCheck("Debian", ".deb13_amd64.deb");
+    await pkgCheck("Ubuntu", ".ubuntu24.04_amd64.deb");
+    await pkgCheck("AppImage", "EXCALIBUR_Control_Center-x86_64.AppImage");
+
+    const panelText = await page.locator('[role="tabpanel"]').innerText();
+    if (/does not install/i.test(panelText)) ok("downloads: AppImage driver warning present");
+    else fail("downloads: AppImage driver warning missing");
+    await page.getByRole("tab", { name: "Debian", exact: true }).click();
+    await page.waitForTimeout(120);
+    const debianText = await page.locator('[role="tabpanel"]').innerText();
+    if (/not interchangeable/i.test(debianText)) ok("downloads: Debian vs Ubuntu distinction present");
+    else fail("downloads: Debian note missing");
+
+    // keyboard selection
+    await page.getByRole("tab", { name: "Arch", exact: true }).click();
+    await page.waitForTimeout(100);
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(150);
+    const selName = await page.evaluate(() =>
+      document.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim(),
+    );
+    eq(selName, "Debian", "downloads: ArrowRight selects next platform");
+
+    // ---- localisation ----
+    const checkLocale = async (label, lang, navText, diagTag) => {
+      await page.getByRole("button", { name: label, exact: true }).click();
+      await page.waitForTimeout(200);
+      eq(await page.evaluate(() => document.documentElement.lang), lang, `${lang}: <html lang>`);
+      const nav = await page.evaluate(
+        () => document.querySelector(".nav__links .nav__link")?.textContent?.trim(),
+      );
+      eq(nav, navText, `${lang}: first nav label`);
+      const credit = await page.locator(".credit").innerText();
+      ok(`${lang}: credit = "${credit.trim()}"`);
+      if (credit.trim() === "Made by Muhammedşah Fidan") ok(`${lang}: credit text exact`);
+      else fail(`${lang}: credit text is "${credit.trim()}"`);
+      if (diagTag) {
+        const diagram = await page.locator(".pipeline").evaluate((el) => el.textContent ?? "");
+        if (diagram.includes(diagTag)) ok(`${lang}: diagram localised (${diagTag})`);
+        else fail(`${lang}: diagram not localised`);
+      }
+    };
+    await checkLocale("Türkçe", "tr", "Telemetri", "SALT OKUNUR SINIR");
+    await checkLocale("Deutsch", "de", "Telemetrie", "NUR-LESEN-GRENZE");
+
+    // title/description follow the locale
+    const deTitle = await page.title();
+    if (/EXCALIBUR/.test(deTitle)) ok(`de: title = "${deTitle.slice(0, 40)}…"`);
+    else fail("de: title not updated");
+    const deDesc = await page.getAttribute('meta[name="description"]', "content");
+    if (deDesc && /Nur-Lesen/i.test(deDesc)) ok("de: meta description localised");
+    else fail("de: meta description not localised");
+
+    // persistence across reload
+    await page.reload({ waitUntil: "load" });
+    await page.waitForTimeout(400);
+    eq(await page.evaluate(() => document.documentElement.lang), "de", "de: locale persists after reload");
+    await page.getByRole("button", { name: "English", exact: true }).click();
+    await page.waitForTimeout(200);
+
+    // footer credit link
+    const creditHref = await page.getAttribute(".credit a", "href");
+    eq(creditHref, "https://github.com/msahhf", "footer: credit link target");
+    const creditIsLast = await page.evaluate(() => {
+      const credit = document.querySelector(".credit");
+      return !!credit && credit.parentElement?.lastElementChild === credit;
+    });
+    if (creditIsLast) ok("footer: credit is the last content line");
+    else fail("footer: credit is not last");
+    await page.locator(".credit a").focus();
+    const focused = await page.evaluate(() => document.activeElement?.textContent?.trim());
+    eq(focused, "Muhammedşah Fidan", "footer: credit link is keyboard focusable");
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${outDir}/footer.png` });
 
     if (errors.length) fail(`desktop: console errors → ${errors.join(" | ")}`);
     else ok("desktop: no console errors");
     await ctx.close();
   }
 
-  // ---------- Mobile ----------
-  {
-    const ctx = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-      deviceScaleFactor: 2,
-      isMobile: true,
-      hasTouch: true,
-    });
+  // ===================== Responsive =====================
+  for (const w of [360, 390, 768, 1366, 1920]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 900 }, locale: "en-US" });
     const page = await ctx.newPage();
     const errors = [];
-    page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-    page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
+    page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(url, { waitUntil: "load" });
-    await disableSmoothScroll(page);
-    await page.waitForTimeout(600);
-
-    await page.locator(".nav__burger").click();
-    await page.waitForTimeout(400);
-    if (await page.locator("#mobile-menu a").first().isVisible()) ok("mobile: menu opens");
-    else fail("mobile: menu did not open");
-    await page.locator("#mobile-menu a").first().click();
-    await page.waitForTimeout(400);
-    const panelH = await page.evaluate(
-      () => document.querySelector(".nav__panel")?.getBoundingClientRect().height ?? 0,
-    );
-    if (panelH < 8) ok("mobile: menu closes after selecting a link");
-    else fail(`mobile: menu still open (height ${panelH})`);
-
-    if (await page.locator(".steps .step__media img").first().isVisible()) ok("mobile: steps use inline product images");
-    else fail("mobile: inline step image not visible");
-    const stickyHidden = await page.evaluate(() => {
-      const el = document.querySelector(".scrolly__stage");
-      return !el || getComputedStyle(el).display === "none";
-    });
-    if (stickyHidden) ok("mobile: desktop sticky stage is disabled");
-    else fail("mobile: sticky stage still active");
-
-    await page.evaluate(async () => {
-      for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight * 0.6) {
-        window.scrollTo(0, y);
-        await new Promise((r) => setTimeout(r, 130));
-      }
-      window.scrollTo(0, 0);
-    });
-    await page.waitForTimeout(400);
+    await disableSmooth(page);
+    await scrollAll(page);
     await waitForImages(page);
-    await auditPage(page, "mobile");
-    await page.evaluate(() => document.querySelectorAll(".reveal").forEach((e) => e.classList.add("is-in")));
-    await page.waitForTimeout(200);
-    await page.screenshot({ path: `${outDir}/mobile-full.png`, fullPage: true });
-    await page.screenshot({ path: `${outDir}/mobile-hero.png` });
-    await page.locator("#downloads").scrollIntoViewIfNeeded();
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: `${outDir}/mobile-downloads.png` });
-
-    if (errors.length) fail(`mobile: console errors → ${errors.join(" | ")}`);
-    else ok("mobile: no console errors");
+    await auditOverflow(page, `${w}px`);
+    if (errors.length) fail(`${w}px: page errors → ${errors.join(" | ")}`);
+    if (w === 390) await page.screenshot({ path: `${outDir}/responsive-390.png` });
+    if (w === 1920) await page.screenshot({ path: `${outDir}/responsive-1920.png` });
     await ctx.close();
   }
 
-  // ---------- Reduced motion ----------
+  // ===================== Mobile story fallback =====================
   {
-    const ctx = await browser.newContext({
-      viewport: { width: 1280, height: 800 },
-      reducedMotion: "reduce",
-    });
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, locale: "en-US" });
     const page = await ctx.newPage();
     await page.goto(url, { waitUntil: "load" });
-    await disableSmoothScroll(page);
+    await disableSmooth(page);
     await page.waitForTimeout(400);
+
+    eq(await page.getAttribute(".story", "data-enhanced"), "false", "mobile: story not enhanced (vertical)");
+    const stickyPos = await page.evaluate(() => getComputedStyle(document.querySelector(".story__sticky")).position);
+    eq(stickyPos, "static", "mobile: no sticky height consumed");
+    const inlineImgs = await page.locator(".scene .scene__media img").count();
+    eq(inlineImgs, 4, "mobile: four inline scene images");
+
+    await page.locator(".nav__burger").click();
+    await page.waitForTimeout(500);
+    if (await page.locator("#mobile-menu a").first().isVisible()) ok("mobile: menu opens");
+    else fail("mobile: menu did not open");
+    const deBtn = page.locator("#mobile-menu .lang__btn", { hasText: "DE" });
+    if (await deBtn.count()) ok("mobile: language switcher in menu");
+    else fail("mobile: language switcher not in menu");
+    await deBtn.click();
+    await page.waitForTimeout(250);
+    eq(await page.evaluate(() => document.documentElement.lang), "de", "mobile: language switched to German");
+    await page.locator("#mobile-menu a").first().click();
+    await page.waitForTimeout(500);
+    const panelH = await page.evaluate(() => document.querySelector(".nav__panel").getBoundingClientRect().height);
+    if (panelH < 8) ok("mobile: menu collapses fully (no leaked padding)");
+    else fail(`mobile: menu still ${Math.round(panelH)}px tall`);
+
+    // German must not overflow on a phone
+    await scrollAll(page);
+    await waitForImages(page);
+    await auditOverflow(page, "mobile (de)");
+    await page.screenshot({ path: `${outDir}/mobile-de-full.png`, fullPage: true });
+    await ctx.close();
+  }
+
+  // ===================== Reduced motion =====================
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce", locale: "en-US" });
+    const page = await ctx.newPage();
+    await page.goto(url, { waitUntil: "load" });
+    await page.waitForTimeout(400);
+    eq(await page.getAttribute(".story", "data-enhanced"), "false", "reduced-motion: story not enhanced");
+    const titles = await page.locator(".scene__title").count();
+    eq(titles, 4, "reduced-motion: all scene copy present");
     const visible = await page.evaluate(() =>
-      [...document.querySelectorAll(".reveal")].every((el) => parseFloat(getComputedStyle(el).opacity) > 0.9),
+      [...document.querySelectorAll(".scene")].every((el) => el.getBoundingClientRect().height > 40),
     );
-    if (visible) ok("reduced-motion: all revealed content is visible without scroll");
-    else fail("reduced-motion: some content stayed hidden");
+    if (visible) ok("reduced-motion: scenes rendered in vertical flow");
+    else fail("reduced-motion: scenes collapsed");
+    await ctx.close();
+  }
+
+  // ===================== Browser language detection =====================
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: "tr-TR" });
+    const page = await ctx.newPage();
+    await page.goto(url, { waitUntil: "load" });
+    await page.waitForTimeout(300);
+    eq(await page.evaluate(() => document.documentElement.lang), "tr", "detection: tr-TR browser → Turkish by default");
+    const title = await page.title();
+    if (/salt okunur/i.test(title)) ok("detection: Turkish title applied");
+    else fail(`detection: title not Turkish ("${title}")`);
     await ctx.close();
   }
 } finally {

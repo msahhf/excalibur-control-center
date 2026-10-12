@@ -1,118 +1,115 @@
-import { Reveal } from "./Reveal";
-import { IconLock, IconNoWrite, IconShield } from "./Icons";
+import { SheetHead } from "./SheetHead";
+import { useI18n } from "../i18n";
+import type { CSSProperties } from "react";
 
 export function ReadOnly() {
+  const { t } = useI18n();
+  const d = t.readonly.diagram;
+  const headId = "readonly-title";
+
+  const segments = [
+    { x1: 180, x2: 250, len: 70 },
+    { x1: 440, x2: 510, len: 70 },
+    { x1: 680, x2: 750, len: 70 },
+  ];
+
   return (
-    <section className="section" id="readonly" aria-labelledby="readonly-title">
+    <section className="section" id="readonly" aria-labelledby={headId}>
       <div className="shell">
-        <div className="split">
-          <Reveal>
-            <span className="eyebrow">Read-only by design</span>
-            <h2 className="head__title" id="readonly-title">
-              Visibility without taking control.
-            </h2>
-            <div className="prose" style={{ marginTop: "1.1rem" }}>
-              <p>
-                EXCALIBUR Control Center <strong>reads</strong> hardware telemetry and nothing else. It does not
-                set fan speeds, power limits, performance modes or RGB — that capability simply does not exist
-                in the app.
-              </p>
-              <p>
-                The GUI never talks to WMI or the embedded controller directly. A single read boundary reads the
-                kernel's read-only hwmon files, and every screen is fed from that one state.
-              </p>
-            </div>
-            <ul className="points" style={{ marginTop: "1.6rem" }}>
-              <li>
-                <IconLock />
-                <span>Runs entirely as an unprivileged user; the GUI never needs root.</span>
-              </li>
-              <li>
-                <IconShield />
-                <span>Temperature, fan RPM, hardware identity and diagnostics — all disclosed.</span>
-              </li>
-              <li>
-                <IconNoWrite />
-                <span>No write path to fans, power or thermal limits is implemented or promised.</span>
-              </li>
-            </ul>
-          </Reveal>
+        <SheetHead name={t.nav.readonly} index="02 / 06" />
 
-          <Reveal delay={120}>
-            <figure style={{ margin: 0 }} aria-label="Read-only data flow diagram">
-              <svg className="diagram" viewBox="0 0 460 300" role="img" aria-labelledby="ro-desc">
-                <desc id="ro-desc">
-                  Telemetry flows one way: hardware sensors to the WMI kernel driver, to read-only hwmon/sysfs,
-                  into the Qt6 app. A separate control path is crossed out as not implemented.
-                </desc>
-
-                {/* read path */}
-                <line className="d-line d-line--hot d-flow" x1="120" y1="70" x2="180" y2="70" />
-                <line className="d-line d-line--hot d-flow" x1="300" y1="70" x2="360" y2="70" />
-                <line className="d-line d-line--hot d-flow" x1="230" y1="110" x2="230" y2="170" />
-
-                <g>
-                  <rect className="d-node" x="20" y="44" width="100" height="52" rx="10" />
-                  <text className="d-label" x="34" y="66" fontSize="11">
-                    Sensors
-                  </text>
-                  <text className="d-sub" x="34" y="82" fontSize="9">
-                    EC / thermal
-                  </text>
-                </g>
-
-                <g>
-                  <rect className="d-node d-node--accent" x="180" y="44" width="120" height="52" rx="10" />
-                  <text className="d-label" x="194" y="66" fontSize="11">
-                    excalibur-wmi
-                  </text>
-                  <text className="d-sub" x="194" y="82" fontSize="9">
-                    WMI GET · kernel
-                  </text>
-                </g>
-
-                <g>
-                  <rect className="d-node" x="360" y="44" width="80" height="52" rx="10" />
-                  <text className="d-label" x="374" y="66" fontSize="11">
-                    hwmon
-                  </text>
-                  <text className="d-sub" x="374" y="82" fontSize="9">
-                    /sys
-                  </text>
-                </g>
-
-                <g>
-                  <rect className="d-node d-node--accent" x="150" y="170" width="160" height="56" rx="10" />
-                  <text className="d-label" x="166" y="194" fontSize="11">
-                    Qt6 desktop app
-                  </text>
-                  <text className="d-sub" x="166" y="210" fontSize="9">
-                    single read boundary
-                  </text>
-                </g>
-
-                {/* read-only badge */}
-                <g>
-                  <rect className="d-badge" x="330" y="180" width="110" height="34" rx="17" />
-                  <text x="346" y="201" fontSize="11" fill="#34d399">
-                    ✓ read-only
-                  </text>
-                </g>
-
-                {/* crossed control path */}
-                <g opacity="0.8">
-                  <line className="d-line" x1="230" y1="206" x2="230" y2="244" strokeDasharray="4 5" />
-                  <rect className="d-node" x="150" y="244" width="160" height="30" rx="8" />
-                  <text className="d-sub" x="166" y="263" fontSize="10" fill="#fb7185">
-                    fan · power · RGB control
-                  </text>
-                  <line x1="318" y1="240" x2="348" y2="276" stroke="#fb7185" strokeWidth="2" />
-                  <line x1="348" y1="240" x2="318" y2="276" stroke="#fb7185" strokeWidth="2" />
-                </g>
-              </svg>
-            </figure>
-          </Reveal>
+        <div className="head">
+          <h2 className="head__title" id={headId}>
+            {t.readonly.heading}
+          </h2>
+          <p className="lead">{t.readonly.lead}</p>
         </div>
+
+        <ul className="ro-msgs ro-msgs--row">
+          {t.readonly.messages.map((m) => (
+            <li key={m.title}>
+              <h3>{m.title}</h3>
+              <p>{m.body}</p>
+            </li>
+          ))}
+        </ul>
+
+        <figure className="ro-diagram" style={{ margin: "clamp(2rem, 4vw, 3rem) 0 0" }}>
+          <svg
+            className="pipeline"
+            viewBox="0 0 1000 230"
+            role="img"
+            aria-labelledby="ro-diagram-cap"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <desc id="ro-diagram-cap">{d.caption}</desc>
+
+            {/* One-way read wires. */}
+            {segments.map((seg, i) => (
+              <g key={i}>
+                <line className="p-wire" x1={seg.x1} y1="110" x2={seg.x2} y2="110" />
+                <polygon
+                  className="p-arrow"
+                  points={`${seg.x2},110 ${seg.x2 - 9},105 ${seg.x2 - 9},115`}
+                />
+                <g className="p-flow" style={{ "--len": `${seg.len}px` } as CSSProperties}>
+                  <circle className="p-pulse" cx={seg.x1 + 6} cy="110" r="3.4" />
+                </g>
+              </g>
+            ))}
+
+            {/* Stages. */}
+            <g>
+              <rect className="p-node" x="20" y="80" width="160" height="60" rx="6" />
+              <text className="p-label" x="36" y="107">
+                {d.sensors}
+              </text>
+              <text className="p-sub" x="36" y="124">
+                {d.sensorsSub}
+              </text>
+            </g>
+            <g>
+              <rect className="p-node p-node--end" x="250" y="80" width="190" height="60" rx="6" />
+              <text className="p-label" x="266" y="107">
+                {d.driver}
+              </text>
+              <text className="p-sub" x="266" y="124">
+                {d.driverSub}
+              </text>
+            </g>
+            <g>
+              <rect className="p-node" x="510" y="80" width="170" height="60" rx="6" />
+              <text className="p-label" x="526" y="107">
+                {d.hwmon}
+              </text>
+              <text className="p-sub" x="526" y="124">
+                {d.hwmonSub}
+              </text>
+            </g>
+            <g>
+              <rect className="p-node p-node--end" x="750" y="80" width="170" height="60" rx="6" />
+              <text className="p-label" x="766" y="107">
+                {d.app}
+              </text>
+              <text className="p-sub" x="766" y="124">
+                {d.appSub}
+              </text>
+            </g>
+
+            {/* The read-only boundary sits around hwmon + application. */}
+            <rect className="p-boundary" x="494" y="58" width="444" height="104" rx="10" />
+            <text className="p-boundary-label" x="494" y="46">
+              {d.boundary}
+            </text>
+
+            <text className="p-sub" x="20" y="186" fill="var(--ink-3)">
+              {d.caption}
+            </text>
+            <text className="p-sub" x="20" y="206" fill="var(--signal)">
+              → {d.direction}
+            </text>
+          </svg>
+        </figure>
       </div>
     </section>
   );

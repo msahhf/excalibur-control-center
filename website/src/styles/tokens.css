@@ -1,64 +1,59 @@
 /* ============================================================================
    EXCALIBUR Control Center — design tokens
-   A single source of truth for colour, type, space, depth and motion.
+   Direction: "precision instrument". One accent, restrained depth, a datasheet
+   rhythm. Signal colour (cyan) is reserved for telemetry, never decoration.
    ========================================================================= */
 
 :root {
-  /* --- Surfaces: near-black graphite drifting into night blue --------------- */
-  --bg: #05070c;
-  --bg-1: #070a11;
-  --bg-2: #0a0e17;
-  --bg-blue: #0a1020;
-  --panel: rgba(13, 19, 31, 0.72);
-  --panel-solid: #0d1320;
-  --panel-raised: #111827;
+  /* --- Surfaces: neutral graphite, not blue-washed ----------------------- */
+  --bg: #0a0b0d;
+  --bg-1: #0d0f13;
+  --surface: #12151b;
+  --surface-2: #171b22;
+  --panel: rgba(18, 21, 27, 0.72);
 
-  /* --- Ink ---------------------------------------------------------------- */
-  --ink: #eaf0f8;
-  --ink-2: #a7b4c7;
-  --ink-3: #6c7a90;
-  --ink-4: #48556b;
+  /* --- Ink --------------------------------------------------------------- */
+  --ink: #f3f5f8;
+  --ink-2: #aab2bf;
+  --ink-3: #757e8c;
+  --ink-4: #4b525d;
 
-  /* --- Accents: electric blue → cold cyan --------------------------------- */
-  --blue: #4c8dff;
-  --blue-deep: #2f66e0;
-  --cyan: #22d3ee;
-  --cyan-soft: #86e9f7;
-  --accent: #5aa0ff;
-  --accent-grad: linear-gradient(130deg, #5b9bff 0%, #34c7ee 100%);
+  /* --- Accent: a single electric blue ------------------------------------ */
+  --accent: #5b95ff;
+  --accent-strong: #2f6fe0;
+  --accent-ink: #bcd6ff;
 
-  /* --- Status (mirrors the app's thermal bands) --------------------------- */
-  --ok: #34d399;
-  --warn: #f4bf50;
-  --danger: #fb7185;
+  /* --- Signal: telemetry data only --------------------------------------- */
+  --signal: #3ecfe0;
+  --signal-dim: rgba(62, 207, 224, 0.5);
 
-  /* --- Lines & depth ------------------------------------------------------ */
-  --line: rgba(143, 172, 220, 0.12);
-  --line-2: rgba(143, 172, 220, 0.22);
-  --line-3: rgba(143, 172, 220, 0.34);
-  --shadow-1: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
-  --shadow-2: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
-  --glow-blue: 0 0 0 1px rgba(90, 160, 255, 0.32), 0 30px 80px -34px rgba(59, 111, 240, 0.6);
-  --glow-cyan: 0 0 40px -8px rgba(34, 211, 238, 0.45);
+  /* --- Status (matches the app's thermal bands) -------------------------- */
+  --ok: #43cf95;
+  --warn: #e0b352;
+  --danger: #ef6f6f;
 
-  /* --- Type --------------------------------------------------------------- */
+  /* --- Lines & depth ----------------------------------------------------- */
+  --line: rgba(255, 255, 255, 0.09);
+  --line-2: rgba(255, 255, 255, 0.16);
+  --line-3: rgba(255, 255, 255, 0.3);
+  --shadow: 0 20px 50px -32px rgba(0, 0, 0, 0.9);
+  --shadow-lift: 0 28px 60px -34px rgba(0, 0, 0, 0.95);
+
+  /* --- Type -------------------------------------------------------------- */
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  --font-display: "SF Pro Display", ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", "Cascadia Code",
     Menlo, Consolas, "Liberation Mono", monospace;
 
-  /* Fluid display sizes — confident on desktop, never clipped on phones. */
-  --fs-hero: clamp(2.5rem, 1.4rem + 5.2vw, 5.75rem);
-  --fs-h2: clamp(1.9rem, 1.15rem + 2.6vw, 3.4rem);
-  --fs-h3: clamp(1.15rem, 1rem + 0.7vw, 1.5rem);
-  --fs-lead: clamp(1.05rem, 0.98rem + 0.4vw, 1.3rem);
-  --fs-body: clamp(0.98rem, 0.95rem + 0.15vw, 1.06rem);
-  --fs-small: 0.86rem;
-  --fs-mono: 0.82rem;
+  --fs-hero: clamp(2.6rem, 1.5rem + 5vw, 5.4rem);
+  --fs-h2: clamp(1.85rem, 1.2rem + 2.2vw, 3rem);
+  --fs-h3: clamp(1.1rem, 1rem + 0.55vw, 1.4rem);
+  --fs-lead: clamp(1.04rem, 0.98rem + 0.35vw, 1.24rem);
+  --fs-body: clamp(0.98rem, 0.95rem + 0.12vw, 1.05rem);
+  --fs-small: 0.85rem;
+  --fs-mono: 0.78rem;
 
-  /* --- Space & shape ------------------------------------------------------ */
+  /* --- Space & shape (smaller, non-uniform radii: instrument, not bubble) - */
   --sp-1: 0.5rem;
   --sp-2: 0.75rem;
   --sp-3: 1rem;
@@ -67,16 +62,15 @@
   --sp-6: 3.5rem;
   --sp-7: 5.5rem;
   --sp-8: 8rem;
-  --shell: 1240px;
-  --r-sm: 10px;
-  --r: 16px;
-  --r-lg: 24px;
-  --r-xl: 32px;
+  --shell: 1200px;
+  --r-xs: 4px;
+  --r-sm: 7px;
+  --r: 10px;
 
-  /* --- Motion ------------------------------------------------------------- */
+  /* --- Motion ------------------------------------------------------------ */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
-  --dur: 0.6s;
+  --dur: 0.5s;
 
   color-scheme: dark;
 }
