@@ -1,5 +1,7 @@
 #include "hwmonclient.h"
 
+#include "util/sensorrange.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -63,23 +65,36 @@ ExcTelemetry HwmonClient::read() const
 
     long v = 0;
 
-    // Temperature: millidegree Celsius -> Celsius.
+    // Temperature: millidegree Celsius -> Celsius. A parsed value is only
+    // accepted when it is physically plausible; out-of-range stays UNAVAILABLE
+    // (the field is left invalid), never clamped.
     if (readLong(p + QStringLiteral("temp1_input"), &v)) {
-        t.cpuTempC = static_cast<double>(v) / 1000.0;
-        t.cpuTempValid = true;
+        const double c = static_cast<double>(v) / 1000.0;
+        if (SensorRange::temperatureCelsiusValid(c)) {
+            t.cpuTempC = c;
+            t.cpuTempValid = true;
+        }
     }
     if (readLong(p + QStringLiteral("temp2_input"), &v)) {
-        t.gpuTempC = static_cast<double>(v) / 1000.0;
-        t.gpuTempValid = true;
+        const double c = static_cast<double>(v) / 1000.0;
+        if (SensorRange::temperatureCelsiusValid(c)) {
+            t.gpuTempC = c;
+            t.gpuTempValid = true;
+        }
     }
-    // Fan: RPM (integer passthrough).
+    // Fan: RPM (integer passthrough). Same rule: implausible readings are
+    // reported as unavailable rather than shown as real.
     if (readLong(p + QStringLiteral("fan1_input"), &v)) {
-        t.cpuFanRpm = v;
-        t.cpuFanValid = true;
+        if (SensorRange::fanRpmValid(v)) {
+            t.cpuFanRpm = v;
+            t.cpuFanValid = true;
+        }
     }
     if (readLong(p + QStringLiteral("fan2_input"), &v)) {
-        t.gpuFanRpm = v;
-        t.gpuFanValid = true;
+        if (SensorRange::fanRpmValid(v)) {
+            t.gpuFanRpm = v;
+            t.gpuFanValid = true;
+        }
     }
 
     // Labels (fall back to sensible defaults if absent).

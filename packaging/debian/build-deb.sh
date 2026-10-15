@@ -2,9 +2,9 @@
 # Assemble a dpkg-buildpackage source tree from the repository and build the
 # .deb binaries. Intended to run inside a Debian/Ubuntu build container.
 #
-# Layout: the upstream sources (gui/, driver/, analysis/phase3/, LICENSE) are the
-# orig tarball; packaging/debian is the debian/ directory (3.0 quilt). A
-# per-distribution Debian revision can be supplied so the Debian 13 and Ubuntu
+# Layout: the upstream sources (gui/, driver/, analysis/phase3/excalibur-wmi.c,
+# LICENSE) are the orig tarball; packaging/debian is the debian/ directory (3.0
+# quilt). A per-distribution Debian revision can be supplied so the Debian 13 and Ubuntu
 # 24.04 artifacts get distinct, deterministic filenames and never overwrite each
 # other in a release:
 #
@@ -27,8 +27,8 @@ mkdir -p "$SRC"
 cp -a "$REPO/gui" "$SRC/gui"
 rm -rf "$SRC/gui/build"
 cp -a "$REPO/driver" "$SRC/driver"
-mkdir -p "$SRC/analysis"
-cp -a "$REPO/analysis/phase3" "$SRC/analysis/phase3"
+mkdir -p "$SRC/analysis/phase3"
+cp -a "$REPO/analysis/phase3/excalibur-wmi.c" "$SRC/analysis/phase3/excalibur-wmi.c"
 cp -a "$REPO/LICENSE" "$SRC/LICENSE"
 cp -a "$REPO/packaging/debian" "$SRC/debian"
 

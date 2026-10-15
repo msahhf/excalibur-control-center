@@ -43,7 +43,7 @@ checksum:
 
 ```
 source=("https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('a781c8d0a708e4f2fb9c7c458a95062e2da5913dc558f1e5694b027b493c44ec')
+sha256sums=('d9f302c05313e94f2e80875c664209951af1903a607b9bdefa63defd87e9e92b')
 ```
 
 ```bash

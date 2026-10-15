@@ -45,6 +45,7 @@ void TelemetryModel::start(int intervalMs)
         m_timer = new QTimer(this);
         connect(m_timer, &QTimer::timeout, this, &TelemetryModel::poll);
     }
+    m_pendingIntervalMs = 0;
     m_timer->start(intervalMs);
     poll(); // populate immediately so the first frame is real
 }
@@ -56,14 +57,35 @@ void TelemetryModel::pollNow()
 
 void TelemetryModel::setInterval(int intervalMs)
 {
-    if (m_timer)
-        m_timer->start(intervalMs);
-    else
+    if (!m_timer) {
         start(intervalMs);
+        return;
+    }
+    if (m_timer->interval() == intervalMs && m_pendingIntervalMs == 0)
+        return;
+    if (!m_timer->isActive()) {
+        m_pendingIntervalMs = 0;
+        m_timer->start(intervalMs);
+        return;
+    }
+    // The timer is running. QTimer::setInterval() stops and restarts the timer,
+    // which resets the countdown; doing that on every change starves sampling
+    // when the interval changes often. Remember the request and apply it at the
+    // next natural timeout instead, so the running countdown is never reset and
+    // no immediate read is forced.
+    m_pendingIntervalMs = intervalMs;
 }
 
 void TelemetryModel::poll()
 {
+    // Apply an interval requested by setInterval() while the timer was running.
+    // We are inside a timeout here, so restarting costs nothing: this tick's
+    // countdown was just consumed. This keeps the interval change free of the
+    // countdown reset that QTimer::setInterval() would otherwise cause.
+    if (m_timer && m_pendingIntervalMs > 0) {
+        m_timer->setInterval(m_pendingIntervalMs);
+        m_pendingIntervalMs = 0;
+    }
     // Re-discover every tick so the UI reacts to the driver being loaded/removed
     // and to a hwmon index change, without a restart.
     m_client.discover();

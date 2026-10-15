@@ -196,7 +196,8 @@ API is not present in the 6.18 LTS kernel, so the module does not build there
 
 Telemetry values are displayed from the underlying hwmon readings without smoothing,
 averaging or arbitrary clamping. What the hardware reports is what the application
-shows.
+shows. Physically implausible readings (outside sane bounds) are reported as
+unavailable rather than displayed as real.
 
 ## Diagnostics
 
