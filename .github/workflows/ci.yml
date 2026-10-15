@@ -44,13 +44,98 @@ jobs:
 
       - name: Runtime smoke (offscreen, driver absent)
         run: |
-          timeout 3 env QT_QPA_PLATFORM=offscreen ./build/excalibur-control-center >/dev/null 2>&1 || true
+          # Capture stdout+stderr to a file so Qt fatal errors are visible, and
+          # accept exit 0 (clean quit) or 124 (still running after the timeout, the
+          # normal case for the interactive GUI). Any other exit code is a real
+          # failure and must fail the job rather than being masked with `|| true`.
+          set +e
+          timeout 3 env QT_QPA_PLATFORM=offscreen ./build/excalibur-control-center > /tmp/smoke.log 2>&1
+          rc=$?
+          set -e
+          echo "--- runtime smoke output (exit=$rc) ---"
+          cat /tmp/smoke.log
+          echo "--- end runtime smoke output ---"
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 124 ]; then
+            echo "::error::runtime smoke failed (exit=$rc)"
+            exit 1
+          fi
+          if grep -Eq 'qt\.qpa|Segmentation fault|Fatal error' /tmp/smoke.log; then
+            echo "::error::runtime smoke reported a fatal Qt/runtime error"
+            exit 1
+          fi
 
       - name: Unit tests (temperature conversion + settings parsing)
         run: |
           cmake -S gui -B build-tests -G Ninja -DCMAKE_BUILD_TYPE=Release -DEXCALIBUR_BUILD_TESTS=ON
-          cmake --build build-tests
+          cmake --build build-tests 2>&1 | tee build-tests.log
+          if grep -q 'warning:' build-tests.log; then
+            echo "::error::compiler warnings found in unit-test build (must be clean)"
+            exit 1
+          fi
           ctest --test-dir build-tests --output-on-failure
+
+      - name: Dev-only headless hooks (--once / --export-diagnostics / stress)
+        run: |
+          # The app ships dev-only CLI hooks behind -DEXCALIBUR_DEV_HOOKS=ON. Build
+          # them into their own tree and exercise the read-only runtime paths
+          # headlessly under the offscreen platform, so hook/hwmon regressions are
+          # caught in CI instead of only by hand.
+          cmake -S gui -B build-devhooks -G Ninja -DCMAKE_BUILD_TYPE=Release -DEXCALIBUR_DEV_HOOKS=ON
+          cmake --build build-devhooks
+
+          BIN=./build-devhooks/excalibur-control-center
+
+          # Deterministic synthetic hwmon device: the app discovers by name
+          # (excalibur_g870) and reads tempN_input/fanN_input, so a hand-made tree
+          # exercises the CONNECTED state with no hardware and no root.
+          HWMONROOT=$(mktemp -d)
+          mkdir -p "$HWMONROOT/hwmon0"
+          printf 'excalibur_g870\n' > "$HWMONROOT/hwmon0/name"
+          printf '52000\n' > "$HWMONROOT/hwmon0/temp1_input"
+          printf '61000\n' > "$HWMONROOT/hwmon0/temp2_input"
+          printf '1500\n' > "$HWMONROOT/hwmon0/fan1_input"
+          printf '1800\n' > "$HWMONROOT/hwmon0/fan2_input"
+
+          # Keep settings writes out of the real HOME and give Qt a runtime dir.
+          export XDG_CONFIG_HOME="$(mktemp -d)"
+          export XDG_RUNTIME_DIR="$(mktemp -d)"
+
+          # Every hook must exit 0; a non-zero hook fails the step.
+          run_hook() { # label args...
+            local label="$1"; shift
+            echo "=== hook: $label ==="
+            if ! QT_QPA_PLATFORM=offscreen EXCALIBUR_HWMON_ROOT="$HWMONROOT" \
+                 timeout 60 "$BIN" "$@"; then
+              echo "::error::dev hook '$label' failed"
+              exit 1
+            fi
+          }
+
+          run_hook "--once (connected fixture)" --once
+
+          run_hook "--export-diagnostics" --export-diagnostics /tmp/devhooks-diagnostics.json
+          test -s /tmp/devhooks-diagnostics.json \
+            || { echo "::error::diagnostics export missing/empty"; exit 1; }
+          echo "diagnostics export: $(wc -c < /tmp/devhooks-diagnostics.json) bytes"
+
+          # Singleton guard: repeated hide/show + navigation must not create
+          # duplicate telemetry owners.
+          echo "=== hook: --tray-stress --cycles 3 ==="
+          QT_QPA_PLATFORM=offscreen EXCALIBUR_HWMON_ROOT="$HWMONROOT" \
+            timeout 60 "$BIN" --tray-stress --cycles 3 2>&1 | tee /tmp/tray-stress.log
+          grep -q 'models=1' /tmp/tray-stress.log \
+            || { echo "::error::tray-stress reported duplicate telemetry owners"; exit 1; }
+
+          run_hook "--stress --seconds 2" --stress --seconds 2
+          run_hook "--exercise-runtime" --exercise-runtime
+
+          # Settings persistence hooks: mutate then round-trip via --dump-settings.
+          run_hook "--reset-settings --set-*" \
+            --reset-settings --set-theme dark --set-unit fahrenheit --set-refresh 2000
+          SETTINGS_OUT=$(QT_QPA_PLATFORM=offscreen "$BIN" --dump-settings)
+          echo "$SETTINGS_OUT"
+          echo "$SETTINGS_OUT" | grep -q 'unit=fahrenheit' \
+            || { echo "::error::settings persistence hook did not round-trip"; exit 1; }
 
       - name: makepkg from the public release source (non-root)
         run: |
@@ -176,7 +261,7 @@ jobs:
           # AppStream: no errors required; warnings (no upstream domain/homepage) tolerated.
           appstreamcli validate --no-net /tmp/pkg/usr/share/metainfo/excalibur-control-center.metainfo.xml || true
 
-      - name: DKMS source build (best effort)
+      - name: DKMS source build (honest skip when the kernel API is absent)
         run: |
           pacman -S --noconfirm --needed linux linux-headers || true
           KVER=$(ls /usr/lib/modules 2>/dev/null | head -1 || true)
@@ -187,9 +272,14 @@ jobs:
             echo "SKIP: installed kernel ($KVER) lacks the wmidev_* API (driver requires 7.2.x)"
             exit 0
           fi
+          # Build via the SHIPPED driver/Makefile, exactly like DKMS does: it
+          # derives the kernel build dir from KERNELRELEASE and auto-detects the
+          # target toolchain (LLVM=1 for clang-built kernels). A raw kbuild
+          # invocation bypasses that and fails on clang kernels; when the API is
+          # present a real compile failure here must fail the job (no `|| true`).
           DKMSSRC=$(mktemp -d)
           cp driver/Makefile driver/dkms.conf analysis/phase3/excalibur-wmi.c "$DKMSSRC/"
-          make -C "/usr/lib/modules/$KVER/build" M="$DKMSSRC" KERNELRELEASE="$KVER" modules
+          make -C "$DKMSSRC" KERNELRELEASE="$KVER"
           modinfo "$DKMSSRC/excalibur-wmi.ko" | grep -E '^(name|vermagic)'
 
       - name: Upload package artifact
