@@ -13,7 +13,7 @@ set(CMAKE_AUTORCC ON)
 
 include(GNUInstallDirs)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Gui)
 
 # Dev-only CLI hooks (--once, --screenshot, --shot-delay, --page, --size).
 # OFF by default so a normal build ships no dev hooks. Developers and automated
@@ -43,6 +43,7 @@ add_executable(excalibur-control-center
     src/app/usersettings.cpp
     src/app/usersettings.h
     src/util/units.h
+    src/util/sensorrange.h
     src/app/version.h
     src/app/identity.h
     src/components/animatednumber.cpp
@@ -106,10 +107,15 @@ if(EXCALIBUR_BUILD_TESTS)
     add_executable(excalibur-tests
         tests/tests.cpp
         src/util/units.h
+        src/util/sensorrange.h
+        src/app/appstate.cpp
+        src/app/appstate.h
         src/app/usersettings.cpp
-        src/app/usersettings.h)
+        src/app/usersettings.h
+        src/theme/theme.cpp
+        src/theme/theme.h)
     target_include_directories(excalibur-tests PRIVATE src)
-    target_link_libraries(excalibur-tests PRIVATE Qt6::Core)
+    target_link_libraries(excalibur-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets)
     add_test(NAME units-and-settings COMMAND excalibur-tests)
 endif()
 
