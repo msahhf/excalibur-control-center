@@ -16,6 +16,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QCloseEvent>
 #include <QGraphicsOpacityEffect>
 #include <QGuiApplication>
 #include <QHBoxLayout>
@@ -289,6 +290,21 @@ void MainWindow::showEvent(QShowEvent *event)
     // once the user navigates with the keyboard (see NavButton::focusInEvent).
 }
 
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    // The title bar X hides to the tray; exiting is the tray menu's job.
+    // The Quit action calls qApp->quit(), which leaves the event loop directly
+    // and never reaches this handler, so the two paths cannot cancel each other.
+    if (!m_tray) {
+        // No system tray: hiding would strand the window (the single-instance
+        // lock would then reject a restart), so close for real instead.
+        QMainWindow::closeEvent(event);
+        return;
+    }
+    event->ignore();
+    hideWindow(); // stores the window state, hides, refreshes diagnostics
+}
+
 void MainWindow::playIntro()
 {
     if (!qEnvironmentVariableIsEmpty("EXCALIBUR_NO_ANIM"))
@@ -333,6 +349,16 @@ void MainWindow::hideWindow()
     m_stateBeforeHide = windowState();
     hide(); // instant: no fade, no effect, no offset
     refreshDiagnostics();
+
+    // One-time balloon on the very first hide (title bar X or tray toggle) so
+    // the user knows the app is still running instead of having exited.
+    if (m_tray && !m_trayHintShown) {
+        m_trayHintShown = true;
+        m_tray->showMessage(AppIdentity::displayName(),
+                            QStringLiteral("Running in the system tray. Use the tray "
+                                           "icon to reopen or quit."),
+                            QSystemTrayIcon::Information, 5000);
+    }
 }
 
 void MainWindow::toggleVisibility()

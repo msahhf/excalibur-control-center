@@ -3,6 +3,11 @@
 #include "app/version.h"
 #include "theme/theme.h"
 
+#if QT_CONFIG(accessibility)
+#include <QAccessible>
+#include <QAccessibleWidget>
+#endif
+
 #include <QEnterEvent>
 #include <QFocusEvent>
 #include <QKeyEvent>
@@ -46,12 +51,27 @@ public:
         setFocusPolicy(Qt::StrongFocus);
         setFont(Theme::font(11, QFont::Medium));
         setToolTip(label);
+        // The widget is painted by hand, so Qt cannot derive a name or a role
+        // from a child label: assistive tech only sees what we tell it here
+        // (role + checked state come from NavButtonAccessible below).
+        setAccessibleName(label);
+        setAccessibleDescription(QStringLiteral(
+            "Navigation entry. Press Enter or Space to open the page, "
+            "use the arrow keys to move between entries."));
         m_hoverAnim = new QPropertyAnimation(this, "hoverProgress", this);
         m_hoverAnim->setDuration(120);
         m_hoverAnim->setEasingCurve(QEasingCurve::OutCubic);
     }
 
     int navIndex() const { return m_index; }
+    bool isActive() const { return m_active; }
+    // Activation entry point for assistive technology (the "press" action),
+    // mirroring a mouse click / Enter key.
+    void press()
+    {
+        setFocus(Qt::OtherFocusReason);
+        emit clicked(m_index);
+    }
     qreal hoverProgress() const { return m_hover; }
     void setHoverProgress(qreal v)
     {
@@ -64,6 +84,18 @@ public:
             return;
         m_active = active;
         update();
+#if QT_CONFIG(accessibility)
+        // Tell screen readers that this entry's "checked" (current page)
+        // state flipped. changedStates() reports WHICH state changed, not the
+        // full state, so only that one bit is set; the guard avoids the
+        // notification cost when no AT is listening (recommended by Qt docs).
+        if (QAccessible::isActive()) {
+            QAccessible::State changed;
+            changed.checked = 1;
+            QAccessibleStateChangeEvent event(this, changed);
+            QAccessible::updateAccessibility(&event);
+        }
+#endif
     }
 
 signals:
@@ -263,6 +295,66 @@ private:
     QPropertyAnimation *m_hoverAnim = nullptr;
 };
 
+#if QT_CONFIG(accessibility)
+// NavButton is a hand-painted QWidget, not a QPushButton: without an explicit
+// interface Qt exposes it as a generic "client" object - no button role, no
+// action to trigger it, no indication of which entry is the current page. This
+// small interface lives in this file (no new source file, no new dependency)
+// and adds exactly those three things. setAccessibleName()/Description() are
+// already set in the NavButton constructor and are read by QAccessibleWidget.
+class NavButtonAccessible : public QAccessibleWidget
+{
+public:
+    explicit NavButtonAccessible(NavButton *button)
+        : QAccessibleWidget(button, QAccessible::Button)
+    {
+    }
+
+    QAccessible::State state() const override
+    {
+        QAccessible::State s = QAccessibleWidget::state();
+        // "Checked" = this entry is the page currently shown; checkable so
+        // ATs treat it as a toggle-like (tab-like) button rather than a
+        // plain, stateless button.
+        s.checkable = 1;
+        s.checked = static_cast<NavButton *>(object())->isActive() ? 1 : 0;
+        return s;
+    }
+
+    QStringList actionNames() const override
+    {
+        return QStringList() << QAccessibleActionInterface::pressAction();
+    }
+
+    void doAction(const QString &actionName) override
+    {
+        if (actionName != QAccessibleActionInterface::pressAction())
+            return;
+        static_cast<NavButton *>(object())->press();
+    }
+};
+
+QAccessibleInterface *navButtonFactory(const QString &interfaceName, QObject *object)
+{
+    Q_UNUSED(interfaceName);
+    // Only NavButton; every other object falls through to the Qt default.
+    if (auto *button = qobject_cast<NavButton *>(object))
+        return new NavButtonAccessible(button);
+    return nullptr;
+}
+
+// The sidebar is rebuilt on every theme switch, so install the factory once
+// for the process instead of stacking duplicates.
+void installNavButtonFactory()
+{
+    static const bool installed = [] {
+        QAccessible::installFactory(&navButtonFactory);
+        return true;
+    }();
+    Q_UNUSED(installed);
+}
+#endif // QT_CONFIG(accessibility)
+
 } // namespace
 
 namespace {
@@ -289,6 +381,10 @@ Sidebar::Sidebar(QWidget *parent)
 {
     setObjectName(QStringLiteral("Sidebar"));
     setFixedWidth(244);
+
+#if QT_CONFIG(accessibility)
+    installNavButtonFactory();
+#endif
 
     m_indicatorAnim = new QVariantAnimation(this);
     m_indicatorAnim->setDuration(200);
