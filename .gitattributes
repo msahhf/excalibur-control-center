@@ -10,3 +10,8 @@
 # is stable and verifiable.
 packaging/ export-ignore
 .github/ export-ignore
+
+# Never let the prebuilt kernel module enter a source archive: the .ko is a
+# local build artifact, not a source input, and must not be redistributed. The
+# PKGBUILD / Debian packaging build the driver from analysis/phase3/excalibur-wmi.c.
+analysis/phase3/excalibur-wmi.ko export-ignore

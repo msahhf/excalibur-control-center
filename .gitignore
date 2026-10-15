@@ -9,6 +9,7 @@ analysis/binaries/
 analysis/tools/
 analysis/installer/
 analysis/phase3/*.o
+analysis/phase3/*.ko
 analysis/phase3/.*.cmd
 analysis/phase3/*.mod
 analysis/phase3/*.mod.c
