@@ -80,5 +80,6 @@ private:
     TelemetrySnapshot m_snapshot;
     QVector<HistorySample> m_history;
     QTimer *m_timer = nullptr;
+    int m_pendingIntervalMs = 0; // interval requested while the timer is running
     bool m_hasEmitted = false;
 };
