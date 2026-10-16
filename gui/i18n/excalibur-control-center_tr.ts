@@ -51,6 +51,31 @@
         <source>Unavailable</source>
         <translation>Kullanılamıyor</translation>
     </message>
+    <message>
+        <location filename="../src/app/diagnostics.cpp" line="64"/>
+        <source>Light</source>
+        <translation>Açık</translation>
+    </message>
+    <message>
+        <location filename="../src/app/diagnostics.cpp" line="66"/>
+        <source>Dark</source>
+        <translation>Koyu</translation>
+    </message>
+    <message>
+        <location filename="../src/app/diagnostics.cpp" line="69"/>
+        <source>System</source>
+        <translation>Sistem</translation>
+    </message>
+    <message>
+        <location filename="../src/app/diagnostics.cpp" line="75"/>
+        <source>Fahrenheit</source>
+        <translation>Fahrenheit</translation>
+    </message>
+    <message>
+        <location filename="../src/app/diagnostics.cpp" line="76"/>
+        <source>Celsius</source>
+        <translation>Santigrat</translation>
+    </message>
 </context>
 <context>
     <name>AppState</name>
@@ -313,6 +338,13 @@
         <location filename="../src/pages/devicepage.cpp" line="182"/>
         <source>Unavailable</source>
         <translation>Kullanılamıyor</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/devicepage.cpp" line="222"/>
+        <source>EXCALIBUR Control Center — Diagnostics
+</source>
+        <translation>EXCALIBUR Control Center — Tanılama
+</translation>
     </message>
     <message>
         <location filename="../src/pages/devicepage.cpp" line="223"/>
@@ -847,7 +879,7 @@
     <message>
         <location filename="../src/mainwindow.cpp" line="383"/>
         <source>Open EXCALIBUR Control Center</source>
-        <translation>EXCALIBUR Control Center'i aç</translation>
+        <translation>EXCALIBUR Control Center&apos;i aç</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="386"/>
@@ -964,6 +996,14 @@
         <location filename="../src/components/sparkline.cpp" line="270"/>
         <source>%1  ·  %2</source>
         <translation>%1  ·  %2</translation>
+    </message>
+</context>
+<context>
+    <name>SystemInfo</name>
+    <message>
+        <location filename="../src/app/systeminfo.cpp" line="21"/>
+        <source>Not available</source>
+        <translation>Kullanılamıyor</translation>
     </message>
 </context>
 <context>

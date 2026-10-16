@@ -1,5 +1,6 @@
 #include "systeminfo.h"
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QSysInfo>
 
@@ -13,19 +14,24 @@ QString readFirstLine(const QString &path)
     return QString::fromUtf8(f.readAll()).trimmed();
 }
 
-constexpr const char *kNotAvailable = "Not available";
+// Shown to the user on the Device page (Model / BIOS rows), so it goes through
+// the translator. Context "SystemInfo" (struct name, free function -> no tr()).
+QString notAvailable()
+{
+    return QCoreApplication::translate("SystemInfo", "Not available");
+}
 
 } // namespace
 
 QString SystemInfo::model() const
 {
-    return productName.isEmpty() ? QString::fromLatin1(kNotAvailable) : productName;
+    return productName.isEmpty() ? notAvailable() : productName;
 }
 
 QString SystemInfo::bios() const
 {
     if (biosVersion.isEmpty() && biosDate.isEmpty())
-        return QString::fromLatin1(kNotAvailable);
+        return notAvailable();
     if (biosDate.isEmpty())
         return biosVersion;
     if (biosVersion.isEmpty())

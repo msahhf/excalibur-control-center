@@ -53,9 +53,27 @@ QString stateString(AppState::Status status)
     return QCoreApplication::translate("AppDiagnostics", "Unavailable");
 }
 
+// Display labels only. UserSettings::themeToString() / tempUnitToString()
+// keep returning the raw lowercase English tokens ("light"/"dark"/"system"/
+// "celsius"/"fahrenheit") — those are persisted in QSettings and asserted in
+// tests.cpp. This layer localizes what the Diagnostics page renders.
 QString themeString(UserSettings::AppTheme theme)
 {
-    return UserSettings::themeToString(theme);
+    switch (theme) {
+    case UserSettings::AppTheme::Light:
+        return QCoreApplication::translate("AppDiagnostics", "Light");
+    case UserSettings::AppTheme::Dark:
+        return QCoreApplication::translate("AppDiagnostics", "Dark");
+    case UserSettings::AppTheme::System: break;
+    }
+    return QCoreApplication::translate("AppDiagnostics", "System");
+}
+
+QString tempUnitString(Units::TemperatureUnit unit)
+{
+    return Units::isFahrenheit(unit)
+        ? QCoreApplication::translate("AppDiagnostics", "Fahrenheit")
+        : QCoreApplication::translate("AppDiagnostics", "Celsius");
 }
 
 // Rounds to 1 decimal so the JSON stays human-readable without losing the value.
@@ -116,7 +134,7 @@ DiagnosticsSnapshot buildDiagnostics(const TelemetrySnapshot &t,
     d.singleInstance = context.singleInstance;
 
     d.theme = themeString(UserSettings::instance().theme());
-    d.temperatureUnit = UserSettings::tempUnitToString(UserSettings::instance().tempUnit());
+    d.temperatureUnit = tempUnitString(UserSettings::instance().tempUnit());
 
     d.sensorsAvailable = t.deviceFound && !t.hwmonPath.isEmpty();
     d.hwmonPath = t.hwmonPath;

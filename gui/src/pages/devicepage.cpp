@@ -219,7 +219,7 @@ QString DevicePage::diagnosticsText() const
                                      .arg(m_info.kernelType, m_info.kernelVersion, m_info.architecture);
 
     QString t;
-    t += QStringLiteral("EXCALIBUR Control Center \u2014 Diagnostics\n");
+    t += tr("EXCALIBUR Control Center \u2014 Diagnostics\n");
     t += tr("Generated: %1\n\n").arg(QDateTime::currentDateTime().toString(Qt::ISODate));
     t += tr("Model: %1\n").arg(m_info.model());
     t += tr("Manufacturer: %1\n").arg(notAvailable(m_info.manufacturer));
