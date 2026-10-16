@@ -180,11 +180,15 @@ export const en = {
     },
     driverArchNote: "The Arch package already includes the driver.",
     driverPrereq: "The driver needs kernel 7.2+, dkms and kernel headers.",
+    driverWithDriver: "With the driver installed, the AppImage works as a portable front-end.",
+    fileLabels: {
+      sourceBundle: "GUI + driver source, build required",
+    },
     packages: {
       arch: {
         title: "Arch Linux / CachyOS",
         desc: "One native package with the Qt6 GUI and the integrated excalibur-wmi read-only driver as DKMS.",
-        note: "The excalibur-wmi driver is included in this package.",
+        note: "pacman installs this only where the system Qt is at least as new as the build's.",
       },
       debian: {
         title: "Debian 13 (trixie)",

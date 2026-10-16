@@ -177,12 +177,16 @@ export const tr: Dict = {
     },
     driverArchNote: "Arch paketi sürücüyü zaten içerir.",
     driverPrereq: "Sürücü için çekirdek 7.2+, dkms ve çekirdek başlıkları gerekir.",
+    driverWithDriver: "Sürücü kuruluysa AppImage taşınabilir arayüz olarak çalışır.",
+    fileLabels: {
+      sourceBundle: "Arayüz + sürücü kaynağı, derleme gerekir",
+    },
     packages: {
       arch: {
         title: "Arch Linux / CachyOS",
         desc:
           "Qt6 arayüzünü ve DKMS olarak entegre excalibur-wmi salt okunur sürücüsünü içeren tek yerel paket.",
-        note: "excalibur-wmi sürücüsü bu pakete dahildir.",
+        note: "pacman bunu yalnızca sistemin Qt'si derlemedeki Qt'den eski değilse kurar.",
       },
       debian: {
         title: "Debian 13 (trixie)",

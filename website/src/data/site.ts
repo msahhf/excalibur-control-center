@@ -15,7 +15,14 @@ const ASSET_BASE = `${REPO}/releases/download/v${RELEASE_VERSION}`;
 
 export type PackageId = "arch" | "debian" | "ubuntu" | "appimage";
 
-export type PackageFile = { name: string; url: string; size?: number; sha256?: string; distro?: string };
+export type PackageFile = {
+  name: string;
+  url: string;
+  size?: number;
+  sha256?: string;
+  distro?: string;
+  label?: "sourceBundle";
+};
 
 export type FileGroupKey = "main" | "ui" | "driver";
 export type FileGroup = { key: FileGroupKey; files: PackageFile[] };
@@ -71,21 +78,23 @@ const APPIMAGE: PackageFile = {
   sha256: "8186b8a74d85e1df02fb35948bc7943b40358ff473bb0e9b95f30fa3091190d8",
 };
 
+const TARGZ: PackageFile = {
+  name: `excalibur-control-center-${RELEASE_VERSION}.tar.gz`,
+  url: `${ASSET_BASE}/excalibur-control-center-${RELEASE_VERSION}.tar.gz`,
+  size: 394003,
+  sha256: "f0acf8b7908cdf643684a57deeb024fe25340a94f22a822b1d165630fdcca877",
+  label: "sourceBundle",
+};
+
 // The published files, grouped per platform. AppImage ships the GUI alone, so
-// its driver (the two DKMS .debs) is a separate group alongside the UI.
+// its driver source bundle is a separate group alongside the UI.
 export const packageFileGroups: Record<PackageId, FileGroup[]> = {
   arch: [{ key: "main", files: [PKG_ZST, SUMS] }],
   debian: [{ key: "main", files: [DEB13_GUI, DEB13_DKMS, SUMS] }],
   ubuntu: [{ key: "main", files: [UBU_GUI, UBU_DKMS, SUMS] }],
   appimage: [
     { key: "ui", files: [APPIMAGE, SUMS] },
-    {
-      key: "driver",
-      files: [
-        { ...DEB13_DKMS, distro: "Debian 13" },
-        { ...UBU_DKMS, distro: "Ubuntu 24.04" },
-      ],
-    },
+    { key: "driver", files: [TARGZ] },
   ],
 };
 

@@ -184,12 +184,16 @@ export const de: Dict = {
     },
     driverArchNote: "Das Arch-Paket enthält den Treiber bereits.",
     driverPrereq: "Der Treiber braucht Kernel 7.2+, dkms und Kernel-Header.",
+    driverWithDriver: "Mit installiertem Treiber dient das AppImage als portable Oberfläche.",
+    fileLabels: {
+      sourceBundle: "GUI + Treiberquelle, Build erforderlich",
+    },
     packages: {
       arch: {
         title: "Arch Linux / CachyOS",
         desc:
           "Ein natives Paket mit der Qt6-GUI und dem integrierten excalibur-wmi-Nur-Lesen-Treiber als DKMS.",
-        note: "Der excalibur-wmi-Treiber ist in diesem Paket enthalten.",
+        note: "pacman installiert dies nur, wenn das System-Qt mindestens so neu ist wie der Build.",
       },
       debian: {
         title: "Debian 13 (trixie)",

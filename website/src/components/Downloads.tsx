@@ -165,6 +165,9 @@ export function Downloads() {
                           {f.distro}
                         </span>
                       )}
+                      {f.label && (
+                        <span className="pkg__file-distro">{t.downloads.fileLabels[f.label]}</span>
+                      )}
                       {typeof f.size === "number" && (
                         <span className="pkg__file-size tnum">{formatSize(f.size)}</span>
                       )}
@@ -180,6 +183,7 @@ export function Downloads() {
                   <>
                     <p className="pkg__note">{t.downloads.driverArchNote}</p>
                     <p className="pkg__note">{t.downloads.driverPrereq}</p>
+                    <p className="pkg__note">{t.downloads.driverWithDriver}</p>
                   </>
                 )}
               </div>
