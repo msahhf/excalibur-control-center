@@ -236,9 +236,9 @@ void HardwareModule::setTemperatureRange(bool valid, double minValue, double max
     const QString lo = QString::number(Units::fromCelsius(minValue, m_tempUnit), 'f', dec);
     const QString hi = QString::number(Units::fromCelsius(maxValue, m_tempUnit), 'f', dec);
     if (lo == hi)
-        m_range->setText(QStringLiteral("60s %1 %2").arg(lo, sym));
+        m_range->setText(tr("60s %1 %2").arg(lo, sym));
     else
-        m_range->setText(QStringLiteral("60s %1\u2013%2 %3").arg(lo, hi, sym));
+        m_range->setText(tr("60s %1\u2013%2 %3").arg(lo, hi, sym));
 }
 
 void HardwareModule::setFan(int rpm, bool valid)

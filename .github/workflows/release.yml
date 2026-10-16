@@ -72,7 +72,7 @@ jobs:
           apt-get update -qq
           apt-get install -y -qq --no-install-recommends \
             git ca-certificates build-essential dpkg-dev debhelper fakeroot \
-            cmake ninja-build qt6-base-dev
+            cmake ninja-build qt6-base-dev qt6-tools-dev qt6-l10n-tools
 
       - uses: actions/checkout@v4
 
@@ -135,7 +135,7 @@ jobs:
           apt-get update -qq
           apt-get install -y -qq --no-install-recommends \
             git ca-certificates build-essential dpkg-dev debhelper fakeroot \
-            cmake ninja-build qt6-base-dev
+            cmake ninja-build qt6-base-dev qt6-tools-dev qt6-l10n-tools
 
       - uses: actions/checkout@v4
 
@@ -187,7 +187,7 @@ jobs:
       - name: Install build dependencies
         run: |
           pacman -Syu --noconfirm --needed \
-            cmake ninja gcc qt6-base dkms desktop-file-utils appstream \
+            cmake ninja gcc qt6-base qt6-tools dkms desktop-file-utils appstream \
             pacman-contrib git tar gzip zstd libarchive curl
 
       - uses: actions/checkout@v4

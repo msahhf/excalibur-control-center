@@ -109,6 +109,31 @@ int main()
     CHECK_STR(UserSettings::tempUnitToString(TemperatureUnit::Celsius), "celsius");
     CHECK_STR(UserSettings::tempUnitToString(TemperatureUnit::Fahrenheit), "fahrenheit");
 
+    // --- language parsing, serialization and round-trip ----------------------
+    using Language = UserSettings::Language;
+    CHECK_STR(UserSettings::languageToString(Language::System), "system");
+    CHECK_STR(UserSettings::languageToString(Language::English), "en");
+    CHECK_STR(UserSettings::languageToString(Language::Turkish), "tr");
+
+    CHECK(UserSettings::languageFromString(QStringLiteral("system")) == Language::System);
+    CHECK(UserSettings::languageFromString(QStringLiteral("en")) == Language::English);
+    CHECK(UserSettings::languageFromString(QStringLiteral("tr")) == Language::Turkish);
+
+    // Round trip: fromString(toString(x)) == x for every enum value.
+    CHECK(UserSettings::languageFromString(UserSettings::languageToString(Language::System))
+          == Language::System);
+    CHECK(UserSettings::languageFromString(UserSettings::languageToString(Language::English))
+          == Language::English);
+    CHECK(UserSettings::languageFromString(UserSettings::languageToString(Language::Turkish))
+          == Language::Turkish);
+
+    // Unknown / empty input falls back to System (matching theme parsing).
+    CHECK(UserSettings::languageFromString(QStringLiteral("bogus")) == Language::System);
+    CHECK(UserSettings::languageFromString(QString()) == Language::System);
+    // Case-insensitive (trimmed + toLower) as documented by A4.
+    CHECK(UserSettings::languageFromString(QStringLiteral("TR")) == Language::Turkish);
+    CHECK(UserSettings::languageFromString(QStringLiteral("EN")) == Language::English);
+
     // --- refresh interval validation ------------------------------------------
     CHECK(UserSettings::refreshOptions() == QVector<int>({1000, 2000, 5000, 10000}));
     CHECK(UserSettings::isRefreshValid(1000));

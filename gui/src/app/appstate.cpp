@@ -2,6 +2,8 @@
 
 #include "theme/theme.h"
 
+#include <QCoreApplication>
+
 namespace AppState {
 
 Thresholds cpuThresholds() { return Thresholds{50.0, 74.0, 89.0}; }
@@ -48,11 +50,12 @@ Band worst(Band a, Band b)
 
 QString bandLabel(Band band)
 {
+    // Free function inside a namespace: tr() does not compile (plan 4.1).
     switch (band) {
-    case Band::Cool: return QStringLiteral("Cool");
-    case Band::Normal: return QStringLiteral("Normal");
-    case Band::Warm: return QStringLiteral("Warm");
-    case Band::High: return QStringLiteral("High");
+    case Band::Cool: return QCoreApplication::translate("AppState", "Cool");
+    case Band::Normal: return QCoreApplication::translate("AppState", "Normal");
+    case Band::Warm: return QCoreApplication::translate("AppState", "Warm");
+    case Band::High: return QCoreApplication::translate("AppState", "High");
     }
     return QString();
 }
@@ -82,10 +85,14 @@ CoolingState coolingState(bool fanDataValid, bool fanMoving, Band band)
 QString coolingStateLabel(CoolingState state)
 {
     switch (state) {
-    case CoolingState::Unavailable: return QStringLiteral("Cooling unavailable");
-    case CoolingState::Idle: return QStringLiteral("Cooling idle");
-    case CoolingState::Active: return QStringLiteral("Cooling active");
-    case CoolingState::Elevated: return QStringLiteral("Cooling elevated");
+    case CoolingState::Unavailable:
+        return QCoreApplication::translate("AppState", "Cooling unavailable");
+    case CoolingState::Idle:
+        return QCoreApplication::translate("AppState", "Cooling idle");
+    case CoolingState::Active:
+        return QCoreApplication::translate("AppState", "Cooling active");
+    case CoolingState::Elevated:
+        return QCoreApplication::translate("AppState", "Cooling elevated");
     }
     return QString();
 }

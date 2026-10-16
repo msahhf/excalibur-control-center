@@ -2,6 +2,7 @@
 
 #include "theme/theme.h"
 
+#include <QCoreApplication>
 #include <QLinearGradient>
 #include <QMouseEvent>
 #include <QPainter>
@@ -66,9 +67,10 @@ QSize Sparkline::minimumSizeHint() const { return QSize(80, 28); }
 
 QString formatSampleAge(qint64 ageMs)
 {
+    // File-scope helper, not a QObject member: tr() does not compile (4.1).
     if (ageMs < 1000)
-        return QStringLiteral("now");
-    return QStringLiteral("%1s ago").arg(ageMs / 1000);
+        return QCoreApplication::translate("Sparkline", "now");
+    return QCoreApplication::translate("Sparkline", "%1s ago").arg(ageMs / 1000);
 }
 
 qint64 sampleAgeMs(const QVector<SparkPoint> &points, int index)
@@ -265,7 +267,7 @@ void Sparkline::mouseMoveEvent(QMouseEvent *e)
         const SparkPoint &pt = m_points.at(best);
         const QString value = QString::number(pt.value, 'f', m_decimals) + m_suffix;
         QToolTip::showText(e->globalPosition().toPoint(),
-                           QStringLiteral("%1  \u00B7  %2")
+                           tr("%1  \u00B7  %2")
                                .arg(value, formatSampleAge(sampleAgeMs(m_points, best))),
                            this);
     } else {

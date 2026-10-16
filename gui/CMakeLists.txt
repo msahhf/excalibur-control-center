@@ -13,7 +13,9 @@ set(CMAKE_AUTORCC ON)
 
 include(GNUInstallDirs)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Gui)
+# LinguistTools provides lupdate/lrelease and the qt_add_translations function
+# (new build dependency, tracked by the plan's A1 step).
+find_package(Qt6 REQUIRED COMPONENTS Widgets Gui LinguistTools)
 
 # Dev-only CLI hooks (--once, --screenshot, --shot-delay, --page, --size).
 # OFF by default so a normal build ships no dev hooks. Developers and automated
@@ -89,6 +91,20 @@ add_executable(excalibur-control-center
 target_include_directories(excalibur-control-center PRIVATE src)
 
 target_link_libraries(excalibur-control-center PRIVATE Qt6::Widgets)
+
+# --- Translations (i18n) -----------------------------------------------------
+# .ts sources are committed (gui/i18n/); lrelease compiles them to .qm and
+# qt_add_translations embeds the .qm into the binary under :/i18n (the default
+# RESOURCE_PREFIX), so no packaging path or install rule has to change.
+#   cmake --build <build> --target update_translations   # refresh .ts from source
+#   cmake --build <build> --target release_translations   # compile .qm only
+# Only the Turkish catalog is produced; English is the source language (A5).
+# The committed .ts declares language="tr_TR"; lupdate preserves that attribute
+# across refreshes (do not pass -target-language, it makes lupdate warn).
+qt_add_translations(excalibur-control-center
+    TS_FILES i18n/excalibur-control-center_tr.ts
+    SOURCE_TARGETS excalibur-control-center
+)
 
 target_compile_options(excalibur-control-center PRIVATE -Wall -Wextra)
 

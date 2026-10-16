@@ -14,7 +14,7 @@ AboutPage::AboutPage(QWidget *parent)
 {
     auto *root = PageUtils::makeCenteredColumn(this, 720);
 
-    root->addWidget(PageUtils::pageTitle(QStringLiteral("About")));
+    root->addWidget(PageUtils::pageTitle(tr("About")));
     root->addSpacing(Theme::Space::S);
 
     // The real application icon, so branding matches the launcher/window/tray.
@@ -28,17 +28,17 @@ AboutPage::AboutPage(QWidget *parent)
     auto *name = PageUtils::makeLabel(AppIdentity::displayName().toUpper(),
                                       Theme::font(19, QFont::Bold, 104), Theme::textPrimary());
     auto *description = PageUtils::makeLabel(
-        QStringLiteral("Native Linux control center for CASPER EXCALIBUR hardware."),
+        tr("Native Linux control center for CASPER EXCALIBUR hardware."),
         Theme::font(12, QFont::Normal), Theme::textSecondary());
     description->setWordWrap(true);
     root->addWidget(name);
     root->addWidget(description);
     root->addSpacing(Theme::Space::L);
 
-    auto *version = PageUtils::makeLabel(QStringLiteral("Version %1").arg(
+    auto *version = PageUtils::makeLabel(tr("Version %1").arg(
                                              QString::fromLatin1(AppVersion::string())),
                                          Theme::font(11, QFont::Medium), Theme::textSecondary());
-    auto *edition = PageUtils::makeLabel(QStringLiteral("Read-only telemetry edition"),
+    auto *edition = PageUtils::makeLabel(tr("Read-only telemetry edition"),
                                          Theme::font(11, QFont::Normal), Theme::textMuted());
     root->addWidget(version);
     root->addWidget(edition);

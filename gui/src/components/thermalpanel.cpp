@@ -15,8 +15,8 @@ ThermalPanel::ThermalPanel(QWidget *parent)
     row->setContentsMargins(0, 0, 0, 0);
     row->setSpacing(0);
 
-    m_cpu = new HardwareModule(QStringLiteral("CPU"), this);
-    m_gpu = new HardwareModule(QStringLiteral("GPU"), this);
+    m_cpu = new HardwareModule(tr("CPU"), this);
+    m_gpu = new HardwareModule(tr("GPU"), this);
     row->addWidget(m_cpu, 1);
     row->addWidget(m_gpu, 1);
 

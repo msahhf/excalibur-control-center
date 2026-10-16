@@ -110,10 +110,10 @@ void TelemetryModel::poll()
         s.driverName = QStringLiteral("excalibur_wmi");
 
     // Backend labels, sanitised once here (fallback keeps the product language).
-    s.cpuLabel = AppState::displaySensorLabel(t.cpuTempLabel, QStringLiteral("CPU"));
-    s.gpuLabel = AppState::displaySensorLabel(t.gpuTempLabel, QStringLiteral("GPU"));
-    s.cpuFanLabel = AppState::displaySensorLabel(t.cpuFanLabel, QStringLiteral("CPU Fan"));
-    s.gpuFanLabel = AppState::displaySensorLabel(t.gpuFanLabel, QStringLiteral("GPU Fan"));
+    s.cpuLabel = AppState::displaySensorLabel(t.cpuTempLabel, tr("CPU"));
+    s.gpuLabel = AppState::displaySensorLabel(t.gpuTempLabel, tr("GPU"));
+    s.cpuFanLabel = AppState::displaySensorLabel(t.cpuFanLabel, tr("CPU Fan"));
+    s.gpuFanLabel = AppState::displaySensorLabel(t.gpuFanLabel, tr("GPU Fan"));
 
     HistorySample h;
     h.timestampMs = monotonicMs();

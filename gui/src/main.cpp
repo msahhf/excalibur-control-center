@@ -4,6 +4,7 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QIcon>
+#include <QLocale>
 #include <QLockFile>
 #include <QPalette>
 #include <QPixmap>
@@ -11,6 +12,7 @@
 #include <QSystemTrayIcon>
 #include <QThread>
 #include <QTimer>
+#include <QTranslator>
 #include <QtGlobal>
 
 #include <cstdio>
@@ -414,6 +416,32 @@ int main(int argc, char **argv)
     else if (hasFlag(args, QStringLiteral("--dark")))
         UserSettings::instance().setTheme(UserSettings::AppTheme::Dark, false);
 
+    // --- i18n (A1 + A4) -----------------------------------------------------
+    // Load the embedded application translator before any window is created, so
+    // every tr() call in the UI resolves against it from the very first widget.
+    // The .qm files are compiled into the Qt resource at :/i18n (see
+    // gui/CMakeLists.txt), so there is no filesystem path to install.
+    // The persisted "language" preference (UserSettings) decides, with the A1
+    // auto-detection as the "system" fallback:
+    //   Turkish  -> load the tr catalog (always with a Turkish QLocale, so an
+    //               explicit choice also works on an English system);
+    //   English  -> install nothing, the source strings already are the UI;
+    //   System   -> Turkish only when the OS locale is Turkish.
+    // qtbase's own catalogs (QMessageBox/QFileDialog) are A8 scope.
+    const UserSettings::Language prefLang = UserSettings::instance().language();
+    const bool wantTurkish =
+        prefLang == UserSettings::Language::Turkish
+        || (prefLang == UserSettings::Language::System
+            && QLocale::system().language() == QLocale::Turkish);
+    const QLocale locale =
+        prefLang == UserSettings::Language::Turkish ? QLocale(QLocale::Turkish) : QLocale::system();
+    QTranslator appTranslator;
+    if (wantTurkish
+        && appTranslator.load(locale, QStringLiteral("excalibur-control-center"),
+                              QStringLiteral("_"), QStringLiteral(":/i18n"))) {
+        app.installTranslator(&appTranslator);
+    }
+
 #ifdef EXCALIBUR_DEV_HOOKS
     if (hasFlag(args, QStringLiteral("--tray-stress")))
         return runTrayStress(args);
@@ -457,6 +485,10 @@ int main(int argc, char **argv)
         UserSettings::instance().setRefreshMs(v.toInt());
         settingsMutated = true;
     }
+    if (const QString v = flagValue(args, QStringLiteral("--set-language")); !v.isEmpty()) {
+        UserSettings::instance().setLanguage(UserSettings::languageFromString(v));
+        settingsMutated = true;
+    }
     if (settingsMutated)
         return 0;
     if (hasFlag(args, QStringLiteral("--dump-settings"))) {
@@ -464,6 +496,7 @@ int main(int argc, char **argv)
         std::printf("theme=%s\n", UserSettings::themeToString(us.theme()).toUtf8().constData());
         std::printf("unit=%s\n", UserSettings::tempUnitToString(us.tempUnit()).toUtf8().constData());
         std::printf("refresh_ms=%d\n", us.refreshMs());
+        std::printf("language=%s\n", UserSettings::languageToString(us.language()).toUtf8().constData());
         return 0;
     }
 #endif

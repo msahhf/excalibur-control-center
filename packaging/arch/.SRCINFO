@@ -7,6 +7,7 @@ pkgbase = excalibur-control-center
 	makedepends = cmake
 	makedepends = ninja
 	makedepends = gcc
+	makedepends = qt6-tools
 	depends = qt6-base
 	depends = dkms
 	options = !lto

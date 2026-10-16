@@ -14,6 +14,7 @@ class SettingsPage;
 class AboutPage;
 class TelemetryModel;
 class QSystemTrayIcon;
+class QCloseEvent;
 
 // EXCALIBUR Control Center application shell: a persistent navigation rail and
 // a content area that swaps product pages instantly. Owns the single telemetry
@@ -37,6 +38,9 @@ public:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void showEvent(QShowEvent *event) override;
+    // Window-manager close (the title bar X): hide to the tray instead of
+    // quitting. Exiting is the tray menu's job (qApp->quit()).
+    void closeEvent(QCloseEvent *event) override;
 
 private:
     // Builds/replaces the whole central surface (sidebar + pages) against the
@@ -79,4 +83,6 @@ private:
 
     QSystemTrayIcon *m_tray = nullptr;
     Qt::WindowStates m_stateBeforeHide = Qt::WindowNoState;
+    // One-shot "running in the tray" balloon on the very first hide.
+    bool m_trayHintShown = false;
 };

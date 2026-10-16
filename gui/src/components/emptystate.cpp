@@ -40,6 +40,10 @@ protected:
 EmptyState::EmptyState(QWidget *parent)
     : QWidget(parent)
 {
+    // Default message, translated here rather than in a member initializer.
+    m_title = tr("Telemetry Unavailable");
+    m_body = tr("Load the EXCALIBUR hardware driver to enable hardware telemetry.");
+
     auto *v = new QVBoxLayout(this);
     v->setContentsMargins(0, 0, 0, 0);
     v->setSpacing(0);

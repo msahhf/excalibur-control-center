@@ -16,6 +16,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QCloseEvent>
 #include <QGraphicsOpacityEffect>
 #include <QGuiApplication>
 #include <QHBoxLayout>
@@ -132,12 +133,12 @@ void MainWindow::installCentral()
 
     setCentralWidget(central); // takes ownership; deletes any previous central
 
-    m_sidebar->addItem(QStringLiteral("Dashboard"), Sidebar::Icon::Dashboard);
-    m_sidebar->addItem(QStringLiteral("Cooling"), Sidebar::Icon::Cooling);
-    m_sidebar->addItem(QStringLiteral("Device"), Sidebar::Icon::Device);
-    m_sidebar->addItem(QStringLiteral("Diagnostics"), Sidebar::Icon::Diagnostics);
-    m_sidebar->addItem(QStringLiteral("Settings"), Sidebar::Icon::Settings);
-    m_sidebar->addBottomItem(QStringLiteral("About"), Sidebar::Icon::About);
+    m_sidebar->addItem(tr("Dashboard"), Sidebar::Icon::Dashboard);
+    m_sidebar->addItem(tr("Cooling"), Sidebar::Icon::Cooling);
+    m_sidebar->addItem(tr("Device"), Sidebar::Icon::Device);
+    m_sidebar->addItem(tr("Diagnostics"), Sidebar::Icon::Diagnostics);
+    m_sidebar->addItem(tr("Settings"), Sidebar::Icon::Settings);
+    m_sidebar->addBottomItem(tr("About"), Sidebar::Icon::About);
 
     connect(m_sidebar, &Sidebar::pageSelected, this, &MainWindow::gotoPage);
 
@@ -202,12 +203,12 @@ void MainWindow::pushAllTelemetry()
 QString MainWindow::pageName(int index) const
 {
     switch (index) {
-    case 0: return QStringLiteral("Dashboard");
-    case 1: return QStringLiteral("Cooling");
-    case 2: return QStringLiteral("Device");
-    case 3: return QStringLiteral("Diagnostics");
-    case 4: return QStringLiteral("Settings");
-    case 5: return QStringLiteral("About");
+    case 0: return tr("Dashboard");
+    case 1: return tr("Cooling");
+    case 2: return tr("Device");
+    case 3: return tr("Diagnostics");
+    case 4: return tr("Settings");
+    case 5: return tr("About");
     default: break;
     }
     return QString();
@@ -289,6 +290,21 @@ void MainWindow::showEvent(QShowEvent *event)
     // once the user navigates with the keyboard (see NavButton::focusInEvent).
 }
 
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    // The title bar X hides to the tray; exiting is the tray menu's job.
+    // The Quit action calls qApp->quit(), which leaves the event loop directly
+    // and never reaches this handler, so the two paths cannot cancel each other.
+    if (!m_tray) {
+        // No system tray: hiding would strand the window (the single-instance
+        // lock would then reject a restart), so close for real instead.
+        QMainWindow::closeEvent(event);
+        return;
+    }
+    event->ignore();
+    hideWindow(); // stores the window state, hides, refreshes diagnostics
+}
+
 void MainWindow::playIntro()
 {
     if (!qEnvironmentVariableIsEmpty("EXCALIBUR_NO_ANIM"))
@@ -333,6 +349,16 @@ void MainWindow::hideWindow()
     m_stateBeforeHide = windowState();
     hide(); // instant: no fade, no effect, no offset
     refreshDiagnostics();
+
+    // One-time balloon on the very first hide (title bar X or tray toggle) so
+    // the user knows the app is still running instead of having exited.
+    if (m_tray && !m_trayHintShown) {
+        m_trayHintShown = true;
+        m_tray->showMessage(AppIdentity::displayName(),
+                            tr("Running in the system tray. Use the tray "
+                               "icon to reopen or quit."),
+                            QSystemTrayIcon::Information, 5000);
+    }
 }
 
 void MainWindow::toggleVisibility()
@@ -354,14 +380,14 @@ void MainWindow::setupTray()
     m_tray->setToolTip(AppIdentity::displayName());
 
     auto *menu = new QMenu(this);
-    auto *openAction = menu->addAction(QStringLiteral("Open EXCALIBUR Control Center"));
+    auto *openAction = menu->addAction(tr("Open EXCALIBUR Control Center"));
     connect(openAction, &QAction::triggered, this, &MainWindow::showWindow);
 
-    auto *toggleAction = menu->addAction(QStringLiteral("Show/Hide"));
+    auto *toggleAction = menu->addAction(tr("Show/Hide"));
     connect(toggleAction, &QAction::triggered, this, &MainWindow::toggleVisibility);
 
     menu->addSeparator();
-    auto *quitAction = menu->addAction(QStringLiteral("Quit"));
+    auto *quitAction = menu->addAction(tr("Quit"));
     connect(quitAction, &QAction::triggered, qApp, &QApplication::quit);
 
     m_tray->setContextMenu(menu);

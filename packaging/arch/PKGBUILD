@@ -43,7 +43,7 @@ if [[ -n ${EXCALIBUR_RELEASE_QT_MIN:-} ]]; then
 else
   depends=('qt6-base' 'dkms')
 fi
-makedepends=('cmake' 'ninja' 'gcc')
+makedepends=('cmake' 'ninja' 'gcc' 'qt6-tools')
 # Disable LTO for a bit-reproducible GUI payload (system-wide LTO is
 # non-deterministic here) and disable the auto-generated -debug subpackage so the
 # package is a single, consistent artifact everywhere. No install hooks.

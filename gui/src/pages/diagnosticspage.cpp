@@ -7,6 +7,7 @@
 #include "theme/theme.h"
 #include "util/units.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFileDialog>
 #include <QFrame>
@@ -79,11 +80,12 @@ QString fmtUptime(qint64 seconds)
     const qint64 h = seconds / 3600;
     const qint64 m = (seconds % 3600) / 60;
     const qint64 s = seconds % 60;
+    // Free function, not a QObject member: tr() does not compile here (4.1).
     if (h > 0)
-        return QStringLiteral("%1h %2m").arg(h).arg(m);
+        return QCoreApplication::translate("DiagnosticsPage", "%1h %2m").arg(h).arg(m);
     if (m > 0)
-        return QStringLiteral("%1m %2s").arg(m).arg(s);
-    return QStringLiteral("%1s").arg(s);
+        return QCoreApplication::translate("DiagnosticsPage", "%1m %2s").arg(m).arg(s);
+    return QCoreApplication::translate("DiagnosticsPage", "%1s").arg(s);
 }
 
 QString fmtTemp(bool valid, double celsius)
@@ -121,15 +123,15 @@ DiagnosticsPage::DiagnosticsPage(QWidget *parent)
     auto *content = new QWidget;
     auto *root = PageUtils::makeCenteredColumn(content, 780);
 
-    root->addWidget(PageUtils::pageTitle(QStringLiteral("Diagnostics")));
+    root->addWidget(PageUtils::pageTitle(tr("Diagnostics")));
     root->addWidget(PageUtils::pageSubtitle(
-        QStringLiteral("The application's current knowledge, and an export for support.")));
+        tr("The application's current knowledge, and an export for support.")));
 
     auto *actions = new QWidget;
     auto *av = new QVBoxLayout(actions);
     av->setContentsMargins(0, 0, 0, 0);
     av->setSpacing(Theme::Space::XS);
-    m_export = new ActionButton(QStringLiteral("Export Diagnostics"));
+    m_export = new ActionButton(tr("Export Diagnostics"));
     connect(m_export, &ActionButton::clicked, this, &DiagnosticsPage::exportDiagnostics);
     av->addWidget(m_export, 0, Qt::AlignLeft);
     m_exportStatus = new QLabel;
@@ -147,55 +149,55 @@ DiagnosticsPage::DiagnosticsPage(QWidget *parent)
     QGridLayout *g = nullptr;
     int r = 0;
 
-    root->addWidget(makeGroup(QStringLiteral("APPLICATION"), g, this));
+    root->addWidget(makeGroup(tr("APPLICATION"), g, this));
     r = 0;
-    addRow(g, r, QStringLiteral("Product"), QStringLiteral("app.product"));
-    addRow(g, r, QStringLiteral("Version"), QStringLiteral("app.version"));
-    addRow(g, r, QStringLiteral("Build"), QStringLiteral("app.build"));
-    addRow(g, r, QStringLiteral("Qt version"), QStringLiteral("app.qt"));
-    addRow(g, r, QStringLiteral("Uptime"), QStringLiteral("app.uptime"));
+    addRow(g, r, tr("Product"), QStringLiteral("app.product"));
+    addRow(g, r, tr("Version"), QStringLiteral("app.version"));
+    addRow(g, r, tr("Build"), QStringLiteral("app.build"));
+    addRow(g, r, tr("Qt version"), QStringLiteral("app.qt"));
+    addRow(g, r, tr("Uptime"), QStringLiteral("app.uptime"));
 
-    root->addWidget(makeGroup(QStringLiteral("SYSTEM"), g, this));
+    root->addWidget(makeGroup(tr("SYSTEM"), g, this));
     r = 0;
-    addRow(g, r, QStringLiteral("OS"), QStringLiteral("sys.os"));
-    addRow(g, r, QStringLiteral("Kernel"), QStringLiteral("sys.kernel"));
-    addRow(g, r, QStringLiteral("Architecture"), QStringLiteral("sys.arch"));
-    addRow(g, r, QStringLiteral("Desktop"), QStringLiteral("sys.desktop"));
-    addRow(g, r, QStringLiteral("Session"), QStringLiteral("sys.session"));
+    addRow(g, r, tr("OS"), QStringLiteral("sys.os"));
+    addRow(g, r, tr("Kernel"), QStringLiteral("sys.kernel"));
+    addRow(g, r, tr("Architecture"), QStringLiteral("sys.arch"));
+    addRow(g, r, tr("Desktop"), QStringLiteral("sys.desktop"));
+    addRow(g, r, tr("Session"), QStringLiteral("sys.session"));
 
-    root->addWidget(makeGroup(QStringLiteral("TELEMETRY"), g, this));
+    root->addWidget(makeGroup(tr("TELEMETRY"), g, this));
     r = 0;
-    addRow(g, r, QStringLiteral("State"), QStringLiteral("tel.state"));
-    addRow(g, r, QStringLiteral("CPU temperature"), QStringLiteral("tel.cpu"));
-    addRow(g, r, QStringLiteral("GPU temperature"), QStringLiteral("tel.gpu"));
-    addRow(g, r, QStringLiteral("CPU fan"), QStringLiteral("tel.cpuFan"));
-    addRow(g, r, QStringLiteral("GPU fan"), QStringLiteral("tel.gpuFan"));
-    addRow(g, r, QStringLiteral("Refresh interval"), QStringLiteral("tel.refresh"));
-    addRow(g, r, QStringLiteral("Snapshot"), QStringLiteral("tel.timestamp"));
-    addRow(g, r, QStringLiteral("History"), QStringLiteral("tel.history"));
+    addRow(g, r, tr("State"), QStringLiteral("tel.state"));
+    addRow(g, r, tr("CPU temperature"), QStringLiteral("tel.cpu"));
+    addRow(g, r, tr("GPU temperature"), QStringLiteral("tel.gpu"));
+    addRow(g, r, tr("CPU fan"), QStringLiteral("tel.cpuFan"));
+    addRow(g, r, tr("GPU fan"), QStringLiteral("tel.gpuFan"));
+    addRow(g, r, tr("Refresh interval"), QStringLiteral("tel.refresh"));
+    addRow(g, r, tr("Snapshot"), QStringLiteral("tel.timestamp"));
+    addRow(g, r, tr("History"), QStringLiteral("tel.history"));
 
-    root->addWidget(makeGroup(QStringLiteral("RUNTIME"), g, this));
+    root->addWidget(makeGroup(tr("RUNTIME"), g, this));
     r = 0;
-    addRow(g, r, QStringLiteral("Current page"), QStringLiteral("run.page"));
-    addRow(g, r, QStringLiteral("System tray"), QStringLiteral("run.tray"));
-    addRow(g, r, QStringLiteral("Single instance"), QStringLiteral("run.single"));
-    addRow(g, r, QStringLiteral("Theme"), QStringLiteral("run.theme"));
-    addRow(g, r, QStringLiteral("Temperature unit"), QStringLiteral("run.unit"));
+    addRow(g, r, tr("Current page"), QStringLiteral("run.page"));
+    addRow(g, r, tr("System tray"), QStringLiteral("run.tray"));
+    addRow(g, r, tr("Single instance"), QStringLiteral("run.single"));
+    addRow(g, r, tr("Theme"), QStringLiteral("run.theme"));
+    addRow(g, r, tr("Temperature unit"), QStringLiteral("run.unit"));
 
-    root->addWidget(makeGroup(QStringLiteral("SENSORS"), g, this));
+    root->addWidget(makeGroup(tr("SENSORS"), g, this));
     r = 0;
-    addRow(g, r, QStringLiteral("hwmon device"), QStringLiteral("sen.device"));
-    addRow(g, r, QStringLiteral("Backend"), QStringLiteral("sen.backend"));
-    addRow(g, r, QStringLiteral("CPU"), QStringLiteral("sen.cpu"));
-    addRow(g, r, QStringLiteral("GPU"), QStringLiteral("sen.gpu"));
-    addRow(g, r, QStringLiteral("CPU fan"), QStringLiteral("sen.cpuFan"));
-    addRow(g, r, QStringLiteral("GPU fan"), QStringLiteral("sen.gpuFan"));
+    addRow(g, r, tr("hwmon device"), QStringLiteral("sen.device"));
+    addRow(g, r, tr("Backend"), QStringLiteral("sen.backend"));
+    addRow(g, r, tr("CPU"), QStringLiteral("sen.cpu"));
+    addRow(g, r, tr("GPU"), QStringLiteral("sen.gpu"));
+    addRow(g, r, tr("CPU fan"), QStringLiteral("sen.cpuFan"));
+    addRow(g, r, tr("GPU fan"), QStringLiteral("sen.gpuFan"));
 
-    root->addWidget(makeGroup(QStringLiteral("SETTINGS"), g, this));
+    root->addWidget(makeGroup(tr("SETTINGS"), g, this));
     r = 0;
-    addRow(g, r, QStringLiteral("Theme"), QStringLiteral("set.theme"));
-    addRow(g, r, QStringLiteral("Temperature unit"), QStringLiteral("set.unit"));
-    addRow(g, r, QStringLiteral("Refresh interval"), QStringLiteral("set.refresh"));
+    addRow(g, r, tr("Theme"), QStringLiteral("set.theme"));
+    addRow(g, r, tr("Temperature unit"), QStringLiteral("set.unit"));
+    addRow(g, r, tr("Refresh interval"), QStringLiteral("set.refresh"));
 
     root->addStretch(1);
 
@@ -238,25 +240,25 @@ void DiagnosticsPage::setSnapshot(const DiagnosticsSnapshot &snapshot)
     set(QStringLiteral("tel.gpu"), fmtTemp(d.gpuTempValid, d.gpuTempC));
     set(QStringLiteral("tel.cpuFan"), fmtRpm(d.cpuFanValid, d.cpuFanRpm));
     set(QStringLiteral("tel.gpuFan"), fmtRpm(d.gpuFanValid, d.gpuFanRpm));
-    set(QStringLiteral("tel.refresh"), QStringLiteral("%1 s").arg(d.refreshMs / 1000));
+    set(QStringLiteral("tel.refresh"), tr("%1 s").arg(d.refreshMs / 1000));
     set(QStringLiteral("tel.timestamp"), d.snapshotTimestamp);
     set(QStringLiteral("tel.history"),
-        QStringLiteral("%1 samples / %2 s").arg(d.history.size()).arg(d.historyWindowSeconds));
+        tr("%1 samples / %2 s").arg(d.history.size()).arg(d.historyWindowSeconds));
 
     set(QStringLiteral("run.page"), d.currentPage);
     set(QStringLiteral("run.tray"),
-        !d.trayAvailable ? QStringLiteral("Unavailable")
-                         : (d.trayVisible ? QStringLiteral("Available \u00B7 visible")
-                                          : QStringLiteral("Available \u00B7 hidden")));
+        !d.trayAvailable ? tr("Unavailable")
+                         : (d.trayVisible ? tr("Available \u00B7 visible")
+                                          : tr("Available \u00B7 hidden")));
     set(QStringLiteral("run.single"),
-        d.singleInstance ? QStringLiteral("Active (lock held)") : QStringLiteral("Unknown"));
+        d.singleInstance ? tr("Active (lock held)") : tr("Unknown"));
     set(QStringLiteral("run.theme"), d.theme);
     set(QStringLiteral("run.unit"), d.temperatureUnit);
 
-    set(QStringLiteral("sen.device"), d.sensorsAvailable ? d.hwmonPath : QStringLiteral("Unavailable"));
-    set(QStringLiteral("sen.backend"), d.sensorsAvailable ? d.deviceName : QStringLiteral("Unavailable"));
+    set(QStringLiteral("sen.device"), d.sensorsAvailable ? d.hwmonPath : tr("Unavailable"));
+    set(QStringLiteral("sen.backend"), d.sensorsAvailable ? d.deviceName : tr("Unavailable"));
     const auto chan = [](const QString &label, const QString &source) {
-        return label.isEmpty() ? source : QStringLiteral("%1 \u00B7 %2").arg(label, source);
+        return label.isEmpty() ? source : tr("%1 \u00B7 %2").arg(label, source);
     };
     set(QStringLiteral("sen.cpu"), d.sensorsAvailable ? chan(d.cpuLabel, QStringLiteral("temp1_input")) : kDash);
     set(QStringLiteral("sen.gpu"), d.sensorsAvailable ? chan(d.gpuLabel, QStringLiteral("temp2_input")) : kDash);
@@ -265,7 +267,7 @@ void DiagnosticsPage::setSnapshot(const DiagnosticsSnapshot &snapshot)
 
     set(QStringLiteral("set.theme"), d.theme);
     set(QStringLiteral("set.unit"), d.temperatureUnit);
-    set(QStringLiteral("set.refresh"), QStringLiteral("%1 s").arg(d.refreshMs / 1000));
+    set(QStringLiteral("set.refresh"), tr("%1 s").arg(d.refreshMs / 1000));
 }
 
 void DiagnosticsPage::exportDiagnostics()
@@ -276,16 +278,16 @@ void DiagnosticsPage::exportDiagnostics()
     const QString suggested = QDir(dir).filePath(diagnosticsFileName());
 
     const QString path = QFileDialog::getSaveFileName(
-        this, QStringLiteral("Export Diagnostics"), suggested,
-        QStringLiteral("JSON (*.json);;All files (*)"));
+        this, tr("Export Diagnostics"), suggested,
+        tr("JSON (*.json);;All files (*)"));
     if (path.isEmpty())
         return; // user cancelled
 
     QString error;
     if (saveDiagnostics(m_snapshot, path, &error)) {
-        m_exportStatus->setText(QStringLiteral("Saved to %1").arg(path));
+        m_exportStatus->setText(tr("Saved to %1").arg(path));
     } else {
-        QMessageBox::warning(this, QStringLiteral("Export failed"),
-                             QStringLiteral("Could not write the diagnostics file:\n%1").arg(error));
+        QMessageBox::warning(this, tr("Export failed"),
+                             tr("Could not write the diagnostics file:\n%1").arg(error));
     }
 }

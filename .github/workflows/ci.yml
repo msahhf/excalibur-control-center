@@ -20,7 +20,7 @@ jobs:
       - name: Install build dependencies
         run: |
           pacman -Syu --noconfirm --needed \
-            cmake ninja gcc qt6-base dkms \
+            cmake ninja gcc qt6-base qt6-tools dkms \
             desktop-file-utils appstream \
             git tar gzip zstd libarchive curl
 
