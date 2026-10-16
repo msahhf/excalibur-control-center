@@ -11,6 +11,55 @@ permissions:
   contents: read
 
 jobs:
+  # Lightweight, container-less gate that runs on every push/PR (no published
+  # tag required). `git archive` honours the same .gitattributes export-ignore
+  # rules that GitHub's tag auto-archive does, so it reproduces the published
+  # source archive locally and lets us fail fast if:
+  #   - a prebuilt kernel module (.ko) or the packaging/.github content leaks in;
+  #   - the driver sources DKMS needs went missing;
+  #   - the .gitattributes .ko export-ignore line was silently removed.
+  source-archive-guard:
+    name: Source archive guard (no prebuilt .ko)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build source archive and audit its contents
+        run: |
+          set -euo pipefail
+          # Same export-ignore semantics as GitHub's /archive/refs/tags/<tag>.tar.gz.
+          git archive --format=tar --prefix="excalibur-control-center-archive-guard/" HEAD > /tmp/guard.tar
+          # List to a file first: piping tar into grep under pipefail can SIGPIPE tar.
+          tar -tf /tmp/guard.tar > /tmp/guard-list.txt
+          echo "--- source archive listing ($(wc -l < /tmp/guard-list.txt) entries) ---"
+          cat /tmp/guard-list.txt
+          echo "--- end listing ---"
+
+          # NEGATIVE: forbidden content must be absent.
+          # NOTE: use (^|/)[^/]*\.ko$ — the tempting (^|/)\.ko$ only matches a
+          # basename of literally ".ko" and would miss analysis/phase3/excalibur-wmi.ko.
+          if grep -E '(^|/)[^/]*\.ko$' /tmp/guard-list.txt; then
+            echo "::error::source archive contains a prebuilt kernel module (.ko); add an export-ignore rule"
+            exit 1
+          fi
+          if grep -E '/packaging/arch/PKGBUILD$|/\.github/workflows/' /tmp/guard-list.txt; then
+            echo "::error::source archive contains packaging/.github content (self-referential checksum)"
+            exit 1
+          fi
+
+          # POSITIVE: the DKMS build inputs must be present.
+          for f in driver/dkms.conf driver/Makefile analysis/phase3/excalibur-wmi.c; do
+            grep -qF "excalibur-control-center-archive-guard/$f" /tmp/guard-list.txt \
+              || { echo "::error::source archive is missing DKMS build input: $f"; exit 1; }
+          done
+
+          # EXPORT-IGNORE GUARD: the rule keeping the prebuilt .ko out must still
+          # exist in .gitattributes (catches a silent removal of the line).
+          grep -qF 'analysis/phase3/excalibur-wmi.ko export-ignore' .gitattributes \
+            || { echo "::error::.gitattributes lost the 'analysis/phase3/excalibur-wmi.ko export-ignore' rule"; exit 1; }
+
+          echo "source archive guard OK"
+
   arch:
     name: Arch build · package · DKMS · validation
     runs-on: ubuntu-latest
@@ -220,7 +269,8 @@ jobs:
         run: |
           # Guard against the self-referential-checksum bug class: once the tag
           # for this version is published, the PKGBUILD's sha256sums must match
-          # the actual tag archive (which must not contain the packaging recipe).
+          # the actual tag archive (which must not contain the packaging recipe),
+          # and the archive must not carry the prebuilt kernel module.
           VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
           if ! git ls-remote --tags origin "refs/tags/v$VERSION" | grep -q "refs/tags/v$VERSION"; then
             echo "tag v$VERSION is not published yet; skipping source checksum drift check"
@@ -229,8 +279,9 @@ jobs:
           URL="https://github.com/${{ github.repository }}/archive/refs/tags/v$VERSION.tar.gz"
           curl -fsSL -o "/tmp/v$VERSION.tar.gz" "$URL"
           tar -tzf "/tmp/v$VERSION.tar.gz" > /tmp/archive-list.txt
-          if grep -qE '/packaging/arch/PKGBUILD$' /tmp/archive-list.txt; then
-            echo "::error::tag archive contains packaging/arch/PKGBUILD (self-referential checksum)"; exit 1
+          if grep -qE '/packaging/arch/PKGBUILD$|/\.github/workflows/|(^|/)[^/]*\.ko$' /tmp/archive-list.txt; then
+            echo "::error::tag archive contains packaging/arch/PKGBUILD, .github content or a prebuilt .ko"
+            exit 1
           fi
           EXPECTED=$(sed -n "s/^sha256sums=('\([0-9a-f]*\)').*/\1/p" packaging/arch/PKGBUILD | head -1)
           ACTUAL=$(sha256sum "/tmp/v$VERSION.tar.gz" | cut -d' ' -f1)
