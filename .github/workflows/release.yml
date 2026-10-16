@@ -295,11 +295,15 @@ jobs:
           # The source archive MUST NOT contain the packaging recipe: otherwise the
           # PKGBUILD checksum would be self-referential (the archive would contain
           # the file that stores its own hash). .gitattributes export-ignore keeps
-          # packaging/ and .github/ out. Write the listing to a file first to avoid
-          # SIGPIPE-ing tar under pipefail.
+          # packaging/ and .github/ out, and it also keeps the prebuilt kernel
+          # module (analysis/phase3/excalibur-wmi.ko) out. Write the listing to a
+          # file first to avoid SIGPIPE-ing tar under pipefail.
           tar -tzf "excalibur-control-center-$VERSION.tar.gz" > /tmp/archive-list.txt
-          if grep -qE '/packaging/arch/PKGBUILD$|/\.github/workflows/' /tmp/archive-list.txt; then
-            echo "::error::source archive contains packaging/.github content (self-referential checksum)"
+          # NOTE: the .ko branch uses (^|/)[^/]*\.ko$ rather than the tempting
+          # (^|/)\.ko$ — the latter only matches a basename of literally ".ko" and
+          # would miss e.g. analysis/phase3/excalibur-wmi.ko entirely.
+          if grep -qE '/packaging/arch/PKGBUILD$|/\.github/workflows/|(^|/)[^/]*\.ko$' /tmp/archive-list.txt; then
+            echo "::error::source archive contains packaging/.github content or a prebuilt .ko (self-referential checksum or redistributed build artifact)"
             exit 1
           fi
           {
