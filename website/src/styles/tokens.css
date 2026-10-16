@@ -1,0 +1,89 @@
+/* ============================================================================
+   EXCALIBUR Control Center — design tokens
+   Direction: "precision instrument". One accent, restrained depth, a datasheet
+   rhythm. Signal colour (cyan) is reserved for telemetry, never decoration.
+   ========================================================================= */
+
+:root {
+  /* --- Surfaces: neutral graphite, not blue-washed ----------------------- */
+  --bg: #0a0b0d;
+  --bg-1: #0d0f13;
+  --surface: #12151b;
+  --surface-2: #171b22;
+  --panel: rgba(18, 21, 27, 0.72);
+
+  /* --- Ink --------------------------------------------------------------- */
+  --ink: #f3f5f8;
+  --ink-2: #aab2bf;
+  --ink-3: #757e8c;
+  --ink-4: #4b525d;
+
+  /* --- Accent: a single electric blue ------------------------------------ */
+  --accent: #5b95ff;
+  --accent-strong: #2f6fe0;
+  --accent-ink: #bcd6ff;
+
+  /* --- Signal: telemetry data only --------------------------------------- */
+  --signal: #3ecfe0;
+  --signal-dim: rgba(62, 207, 224, 0.5);
+
+  /* --- Status (matches the app's thermal bands) -------------------------- */
+  --ok: #43cf95;
+  --warn: #e0b352;
+  --danger: #ef6f6f;
+
+  /* --- Lines & depth ----------------------------------------------------- */
+  --line: rgba(255, 255, 255, 0.09);
+  --line-2: rgba(255, 255, 255, 0.16);
+  --line-3: rgba(255, 255, 255, 0.3);
+  --shadow: 0 20px 50px -32px rgba(0, 0, 0, 0.9);
+  --shadow-lift: 0 28px 60px -34px rgba(0, 0, 0, 0.95);
+  --shadow-stage: 0 40px 90px -50px rgba(0, 0, 0, 1), 0 2px 0 0 rgba(255, 255, 255, 0.03) inset;
+  --glow-accent: rgba(91, 149, 255, 0.22);
+  --glow-signal: rgba(62, 207, 224, 0.16);
+
+  /* --- Type -------------------------------------------------------------- */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", "Cascadia Code",
+    Menlo, Consolas, "Liberation Mono", monospace;
+
+  --fs-display: clamp(3rem, 1.1rem + 6.4vw, 6.5rem);
+  --fs-hero: clamp(2.7rem, 1.3rem + 5.2vw, 5.6rem);
+  --fs-h2: clamp(1.95rem, 1.15rem + 2.6vw, 3.4rem);
+  --fs-h3: clamp(1.14rem, 1rem + 0.6vw, 1.5rem);
+  --fs-scene: clamp(1.5rem, 1.05rem + 1.7vw, 2.5rem);
+  --fs-lead: clamp(1.04rem, 0.98rem + 0.35vw, 1.24rem);
+  --fs-body: clamp(0.98rem, 0.95rem + 0.12vw, 1.05rem);
+  --fs-small: 0.85rem;
+  --fs-mono: 0.78rem;
+
+  /* --- Space & shape (smaller, non-uniform radii: instrument, not bubble) - */
+  --sp-1: 0.5rem;
+  --sp-2: 0.75rem;
+  --sp-3: 1rem;
+  --sp-4: 1.5rem;
+  --sp-5: 2.25rem;
+  --sp-6: 3.5rem;
+  --sp-7: 5.5rem;
+  --sp-8: 8rem;
+  --shell: 1200px;
+  --shell-wide: 1360px;
+  --r-xs: 4px;
+  --r-sm: 7px;
+  --r: 10px;
+  --r-lg: 16px;
+
+  /* --- Motion ------------------------------------------------------------ */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 0.5s;
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 0.001s;
+  }
+}
