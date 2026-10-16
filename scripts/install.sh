@@ -17,11 +17,13 @@
 #
 # Minimum kernel: 7.2 (see driver/dkms.conf: BUILD_EXCLUSIVE_KERNEL_MIN="7.2").
 #
-# UI: a numbered, staged terminal interface with status indicators. On a real
-# terminal it uses colors and box-drawing characters and offers an optional,
-# non-blocking "log panel" (toggle with 'l', force with -v/--verbose, hide
-# with -q/--quiet). When output is redirected or piped it degrades to plain
-# ASCII text with no panels and never waits for input.
+# UI: a numbered, staged terminal interface with status indicators. On a wide
+# real terminal (>= 100 columns) it uses colors and box-drawing characters and
+# can show an optional "log panel" that opens in the RIGHT column beside the
+# stage output (toggle with 'l', force with -v/--verbose, hide with
+# -q/--quiet). On narrow terminals the panel degrades to an inline framed box;
+# with no tput at all it is skipped. When output is redirected or piped it
+# degrades to plain ASCII text with no panels and never waits for input.
 #
 set -euo pipefail
 
@@ -36,7 +38,10 @@ readonly DKMS_PKG="excalibur-control-center-dkms"
 readonly MIN_KERNEL_MAJOR=7
 readonly MIN_KERNEL_MINOR=2
 readonly UI_WIDTH=64          # width of the stage rule line
-readonly PANEL_INNER=66       # inner content width of the log panel (frame = +4)
+readonly PANEL_INNER=66       # inner content width of the inline log panel (frame = +4)
+readonly SIDE_MIN_COLS=100    # minimum terminal width for a side (right column) panel
+readonly SPLIT_COL=65         # left column width when the side panel is active
+readonly PANEL_MIN_W=24       # minimum width of the side panel itself
 
 # --------------------------------------------------------------------------
 # Global state
@@ -60,8 +65,13 @@ BANNER_VERSION=""
 # UI state
 UI_TTY=0             # stdout is a terminal
 UI_FANCY=0           # colors + unicode + panel allowed
+UI_MARK=0            # print status indicators at all (fancy symbol or ASCII tag)
 PANEL_ON=0           # log panel currently visible
+SIDE_ON=0            # side (right column) panel currently in use
+ROWS_SINCE_DRAW=0    # left-column rows printed since the last panel redraw
 LOG_FILE=""          # buffered verbose detail lines (temp file, TTY only)
+TTY_SAVED=""         # saved `stty -g` for the controlling terminal
+TTY_CBREAK=0         # 1 while the terminal is in single-key (cbreak) mode
 
 # Styles / symbols (filled in by refresh_ui)
 C_RESET=""; C_HDR=""; C_OK=""; C_ERR=""; C_WARN=""; C_INFO=""; C_DIM=""
@@ -79,6 +89,11 @@ refresh_ui() {
     else
         UI_FANCY=0
     fi
+
+    # Status indicators are shown on a real terminal (colored symbol, or the
+    # ASCII tag when colors are disabled). Piped/redirected output is kept as
+    # plain text with no leading markers at all.
+    if [ "$UI_TTY" -eq 1 ]; then UI_MARK=1; else UI_MARK=0; fi
 
     if [ "$UI_FANCY" -eq 1 ]; then
         C_RESET=$'\033[0m'
@@ -102,16 +117,100 @@ repeat_char() {
     printf '%s' "$out"
 }
 
+# terminal width in columns (0 if it cannot be determined)
+term_cols() {
+    local c=""
+    if command -v tput >/dev/null 2>&1; then
+        c="$(tput cols 2>/dev/null || true)"
+    fi
+    case "$c" in
+        ''|*[!0-9]*) c="" ;;
+    esac
+    if [ -z "$c" ] && command -v stty >/dev/null 2>&1 && [ -r /dev/tty ]; then
+        local size=""
+        size="$(stty size < /dev/tty 2>/dev/null || true)"
+        c="${size##* }"
+    fi
+    case "$c" in
+        ''|*[!0-9]*) c=0 ;;
+    esac
+    printf '%s' "$c"
+}
+
+# strip ANSI escapes, carriage returns and tabs from a detail line
+sanitize() {
+    printf '%s' "$1" | sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g; s/\r//g; s/\t/    /g'
+}
+
+# Is a right-column (side) panel usable right now?
+side_panel_ok() {
+    [ "$UI_TTY" -eq 1 ] || return 1
+    command -v tput >/dev/null 2>&1 || return 1
+    local cols
+    cols="$(term_cols)"
+    [ "$cols" -ge "$SIDE_MIN_COLS" ] 2>/dev/null || return 1
+    return 0
+}
+
+# Single-key input needs cbreak mode; a canonical terminal would hold a lone
+# keypress until Enter. The original settings are restored again on exit and
+# around the package manager (which may want canonical, echoing input).
+tty_cbreak_on() {
+    [ "$UI_TTY" -eq 1 ] || return 0
+    [ "$TTY_CBREAK" -eq 1 ] && return 0
+    command -v stty >/dev/null 2>&1 || return 0
+    [ -r /dev/tty ] || return 0
+    TTY_SAVED="$(stty -g < /dev/tty 2>/dev/null || true)"
+    [ -n "$TTY_SAVED" ] || return 0
+    stty -icanon -echo min 1 time 0 < /dev/tty 2>/dev/null || true
+    TTY_CBREAK=1
+}
+
+tty_cbreak_off() {
+    [ "$TTY_CBREAK" -eq 1 ] || return 0
+    if [ -n "$TTY_SAVED" ]; then
+        stty "$TTY_SAVED" < /dev/tty 2>/dev/null || true
+    fi
+    TTY_CBREAK=0
+}
+
 # --------------------------------------------------------------------------
 # Logging helpers: INFO / OK / WARN / ERROR
 #   Fancy (TTY):   ✔ ok    ✖ error   ⚠ warn   ▸ info
 #   Plain  (pipe): [ok]    [!!]      [warn]   [..]
 # --------------------------------------------------------------------------
-info()  { [ "$OPT_QUIET" -eq 1 ] && return 0; printf '%s%s%s %s\n' "$C_INFO" "$S_INFO" "$C_RESET" "$*"; }
-ok()    { printf '%s%s%s %s\n' "$C_OK"   "$S_OK"   "$C_RESET" "$*"; }
-warn()  { printf '%s%s%s %s\n' "$C_WARN" "$S_WARN" "$C_RESET" "$*" >&2; }
-error() { printf '%s%s%s %s\n' "$C_ERR"  "$S_ERR"  "$C_RESET" "$*" >&2; }
+info()  { [ "$OPT_QUIET" -eq 1 ] && return 0; emit out "$C_INFO" "$S_INFO" "$*"; }
+ok()    { emit out "$C_OK"   "$S_OK"   "$*"; }
+warn()  { emit err "$C_WARN" "$S_WARN" "$*"; }
+error() { emit err "$C_ERR"  "$S_ERR"  "$*"; }
 die()   { error "$*"; exit 1; }
+
+# emit <out|err> <color> <symbol> <message...>
+# Prints one status line and records it as one left-column row so the side
+# panel can be aligned with the content it belongs to.
+emit() {
+    local stream="$1" color="$2" sym="$3"
+    shift 3
+    local msg="$*"
+    if [ "$SIDE_ON" -eq 1 ] && [ "${#msg}" -gt "$((SPLIT_COL - 6))" ]; then
+        msg="${msg:0:$((SPLIT_COL - 9))}..."
+    fi
+    if [ "$UI_MARK" -eq 1 ]; then
+        if [ "$stream" = err ]; then
+            printf '%s%s%s %s\n' "$color" "$sym" "$C_RESET" "$msg" >&2
+        else
+            printf '%s%s%s %s\n' "$color" "$sym" "$C_RESET" "$msg"
+        fi
+    else
+        # Plain, marker-free text when output is piped or redirected.
+        if [ "$stream" = err ]; then
+            printf '%s\n' "$msg" >&2
+        else
+            printf '%s\n' "$msg"
+        fi
+    fi
+    ROWS_SINCE_DRAW=$((ROWS_SINCE_DRAW + 1))
+}
 
 # --------------------------------------------------------------------------
 # Optional log panel (verbose details)
@@ -139,25 +238,120 @@ log_detail() {
 # 'l' toggles the log panel. Never blocks, never runs when non-interactive.
 poll_key() {
     [ "$UI_TTY" -eq 1 ] || return 0
+    [ "$OPT_QUIET" -eq 1 ] && return 0
     [ -r /dev/tty ] || return 0
+    # The terminal is in cbreak mode, so a lone keypress is readable without
+    # Enter. The read is bounded so it can never block.
     local key=""
-    if IFS= read -r -s -n 1 -t 0 key < /dev/tty 2>/dev/null; then
-        case "$key" in
-            l | L)
-                if [ "$PANEL_ON" -eq 1 ]; then
-                    PANEL_ON=0
-                    printf '  %s log panel: hidden\n' "$S_INFO"
-                else
-                    PANEL_ON=1
-                    printf '  %s log panel: shown\n' "$S_INFO"
-                fi
-                ;;
-        esac
-    fi
+    IFS= read -r -s -n 1 -t 0.05 key < /dev/tty 2>/dev/null || return 0
+    case "$key" in
+        l | L)
+            if [ "$PANEL_ON" -eq 1 ]; then
+                clear_side_pane "$ROWS_SINCE_DRAW"
+                PANEL_ON=0
+                info "log panel: hidden"
+            else
+                PANEL_ON=1
+                info "log panel: shown"
+                redraw_panel "$ROWS_SINCE_DRAW"
+            fi
+            ;;
+    esac
     return 0
 }
 
-# Print the buffered detail lines inside a framed panel (only when visible).
+# Erase the right column of the last <rows> printed lines (side panel off).
+clear_side_pane() {
+    local rows="$1"
+    [ "$SIDE_ON" -eq 1 ] || return 0
+    [ "$rows" -gt 0 ] || return 0
+    printf '\033[%dA' "$rows"
+    local i
+    for ((i = 0; i < rows; i++)); do
+        printf '\r\033[%dC\033[K\r\n' "$SPLIT_COL"
+    done
+}
+
+# Draw the buffered detail lines as a framed panel in the RIGHT column,
+# overlaid on the last <rows> lines of left-column output. Only called when
+# the side panel is enabled and the terminal is wide enough.
+draw_side_panel() {
+    local rows="$1"
+    [ "$SIDE_ON" -eq 1 ] || return 0
+    [ -n "$LOG_FILE" ] || return 0
+    [ -s "$LOG_FILE" ] || return 0
+
+    local cols panel_w inner
+    cols="$(term_cols)"
+    panel_w=$((cols - SPLIT_COL - 1))
+    [ "$panel_w" -lt "$PANEL_MIN_W" ] && return 0
+    inner=$((panel_w - 4))
+
+    # A framed pane needs a top and a bottom border.
+    local max_content=$((rows - 2))
+    [ "$max_content" -lt 1 ] && return 0
+
+    local -a lines=()
+    mapfile -t lines < "$LOG_FILE"
+    local total=${#lines[@]}
+    [ "$total" -gt 0 ] || return 0
+
+    # Show the newest lines that fit.
+    local first=0
+    [ "$total" -gt "$max_content" ] && first=$((total - max_content))
+    local count=$((total - first))
+    : > "$LOG_FILE"
+
+    local top_fill=$((panel_w - 8))
+    [ "$top_fill" -lt 1 ] && top_fill=1
+
+    printf '\033[%dA' "$rows"
+
+    printf '\r\033[%dC%s%s%s Log %s%s%s\n' "$SPLIT_COL" \
+        "$C_DIM" "$BOX_TL" "$BOX_H" "$(repeat_char "$top_fill" "$BOX_H")" "$BOX_TR" "$C_RESET"
+
+    local r idx line text n pad
+    for ((r = 0; r < count; r++)); do
+        idx=$((first + r))
+        line="${lines[$idx]}"
+        text="$(sanitize "$line")"
+        n=${#text}
+        if [ "$n" -gt "$inner" ]; then
+            text="${text:0:$((inner - 3))}..."
+            n=$inner
+        fi
+        pad=$((inner - n))
+        printf '\r\033[%dC%s%s %s%s %s%s\n' "$SPLIT_COL" \
+            "$C_DIM" "$BOX_V" "$text" "$(repeat_char "$pad" ' ')" "$BOX_V" "$C_RESET"
+    done
+
+    printf '\r\033[%dC%s%s%s%s%s\n' "$SPLIT_COL" \
+        "$C_DIM" "$BOX_BL" "$(repeat_char "$((panel_w - 2))" "$BOX_H")" "$BOX_BR" "$C_RESET"
+
+    # Return to the row we started on.
+    local down=$((rows - (count + 2)))
+    [ "$down" -gt 0 ] && printf '\033[%dB' "$down"
+    printf '\r'
+}
+
+# Decide where the panel goes and draw it over the last <rows> printed lines.
+# Side (right column) when possible, otherwise the inline framed box.
+redraw_panel() {
+    local rows="${1:-0}"
+    SIDE_ON=0
+    if [ "$PANEL_ON" -eq 1 ] && [ "$UI_TTY" -eq 1 ]; then
+        if [ "$rows" -gt 0 ] && side_panel_ok; then
+            SIDE_ON=1
+            draw_side_panel "$rows"
+        else
+            flush_log_panel
+        fi
+    fi
+    ROWS_SINCE_DRAW=0
+}
+
+# Print the buffered detail lines inside an inline framed panel (narrow
+# terminals / no tput fallback).
 flush_log_panel() {
     [ "$PANEL_ON" -eq 1 ] || return 0
     [ -n "$LOG_FILE" ] || return 0
@@ -168,6 +362,13 @@ flush_log_panel() {
     : > "$LOG_FILE"
 
     local inner="$PANEL_INNER"
+    # Adapt the inline box to a narrow terminal so it never wraps.
+    local cols
+    cols="$(term_cols)"
+    if [ "$cols" -gt 0 ] && [ "$((cols - 4))" -lt "$inner" ]; then
+        inner=$((cols - 4))
+    fi
+    [ "$inner" -lt 10 ] && inner=10
     local top_fill=$((inner - 4))
     [ "$top_fill" -lt 1 ] && top_fill=1
 
@@ -176,8 +377,7 @@ flush_log_panel() {
 
     local line text n pad
     for line in "${lines[@]}"; do
-        # Strip ANSI escapes and carriage returns, then truncate to fit.
-        text="$(printf '%s' "$line" | sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g; s/\r//g')"
+        text="$(sanitize "$line")"
         n=${#text}
         if [ "$n" -gt "$inner" ]; then
             text="${text:0:$((inner - 3))}..."
@@ -216,22 +416,27 @@ print_banner() {
     printf '\n'
 }
 
-# stage <label> — flush details, poll the panel key, then print a numbered,
-# aligned stage header.
+# stage <label> — redraw the panel over the previous stage's output, poll the
+# panel key, then print a numbered, aligned stage header.
 stage() {
     STAGE_IDX=$((STAGE_IDX + 1))
     poll_key
-    flush_log_panel
+    redraw_panel "$ROWS_SINCE_DRAW"
 
     local label="$1"
     local ascii_pre="-- [${STAGE_IDX}/${TOTAL_STAGES}] ${label} "
     local pad=$((UI_WIDTH - ${#ascii_pre}))
     [ "$pad" -lt 3 ] && pad=3
 
+    local rule
+    rule="$(repeat_char "$pad" "$BOX_H")"
+
     printf '\n%s%s %s %s%s\n' "$C_HDR" \
         "$(repeat_char 2 "$BOX_H")" \
         "[${STAGE_IDX}/${TOTAL_STAGES}] ${label}" \
-        "$(repeat_char "$pad" "$BOX_H")" "$C_RESET"
+        "$rule" "$C_RESET"
+    # The leading blank line plus the header line.
+    ROWS_SINCE_DRAW=$((ROWS_SINCE_DRAW + 2))
 }
 
 # --------------------------------------------------------------------------
@@ -265,9 +470,10 @@ Notes:
     it as root, e.g.  sudo ./install.sh
   * Requires a running kernel >= 7.2 and, on Debian/Ubuntu, the matching
     kernel headers, because the excalibur-wmi DKMS module is built locally.
-  * On an interactive terminal, press 'l' between stages to toggle the log
-    panel. When output is piped or redirected, no panel is shown and the
-    script never waits for input.
+  * On a real terminal at least 100 columns wide, press 'l' between stages to
+    toggle a side "log panel" in the right column. On narrow terminals the
+    panel falls back to an inline box. When output is piped or redirected, no
+    panel is shown and the script never waits for input.
 EOF
 }
 
@@ -275,11 +481,17 @@ EOF
 # Temporary directory cleanup
 # --------------------------------------------------------------------------
 cleanup() {
+    tty_cbreak_off
     if [ -n "$TMPDIR_INSTALL" ] && [ -d "$TMPDIR_INSTALL" ]; then
         rm -rf "$TMPDIR_INSTALL"
     fi
     if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
         rm -f "$LOG_FILE" "${LOG_FILE}.new"
+    fi
+    # Restore the terminal state if we ever moved the cursor / used colors.
+    if [ "$UI_TTY" -eq 1 ] && command -v tput >/dev/null 2>&1; then
+        tput cnorm 2>/dev/null || true
+        tput sgr0 2>/dev/null || true
     fi
 }
 trap cleanup EXIT
@@ -609,6 +821,8 @@ install_packages() {
     local gui="" dkms_deb=""
 
     info "Installing packages with the native package manager..."
+    # The package manager may prompt for input; give it a normal terminal.
+    tty_cbreak_off
     case "$DISTRO" in
         arch)
             local pkg=""
@@ -643,10 +857,13 @@ install_packages() {
             fi
             ;;
     esac
+    tty_cbreak_on
 }
 
 uninstall_packages() {
     require_root "--uninstall"
+    # The package manager may prompt for input; give it a normal terminal.
+    tty_cbreak_off
     case "$DISTRO" in
         arch)
             info "Uninstalling: pacman -Rns ${GUI_PKG}"
@@ -665,6 +882,7 @@ uninstall_packages() {
             fi
             ;;
     esac
+    tty_cbreak_on
     ok "Uninstall complete."
 }
 
@@ -732,6 +950,7 @@ main() {
     # Detail buffer is only needed on a terminal (the panel is TTY-only).
     if [ "$UI_TTY" -eq 1 ]; then
         LOG_FILE="$(mktemp)"
+        tty_cbreak_on
     fi
 
     print_banner
@@ -746,7 +965,7 @@ main() {
         require_root "--uninstall"
         stage "Uninstall packages"
         uninstall_packages
-        flush_log_panel
+        redraw_panel "$ROWS_SINCE_DRAW"
         exit 0
     fi
 
@@ -757,7 +976,7 @@ main() {
         stage "DKMS availability";      check_dkms
         stage "Secure Boot";            check_secure_boot
         stage "Release & assets";       resolve_version; select_assets
-        flush_log_panel
+        redraw_panel "$ROWS_SINCE_DRAW"
         report_check
         exit 0
     fi
@@ -771,12 +990,12 @@ main() {
     require_root ""
     if is_installed; then
         ok "${GUI_PKG} is already installed. Nothing to do."
-        flush_log_panel
+        redraw_panel "$ROWS_SINCE_DRAW"
         exit 0
     fi
     stage "Download & verify";      download_assets
     stage "Install packages";       install_packages
-    flush_log_panel
+    redraw_panel "$ROWS_SINCE_DRAW"
     post_install_hints
 }
 
