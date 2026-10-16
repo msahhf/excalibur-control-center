@@ -30,7 +30,7 @@ export const packageFiles: Record<PackageId, PackageFile[]> = {
     {
       name: `excalibur-control-center-${RELEASE_VERSION}-1-x86_64.pkg.tar.zst`,
       url: `${ASSET_BASE}/excalibur-control-center-${RELEASE_VERSION}-1-x86_64.pkg.tar.zst`,
-      size: 174149,
+      size: 174157,
     },
     SUMS,
   ],
@@ -70,11 +70,11 @@ export const packageFiles: Record<PackageId, PackageFile[]> = {
   ],
 };
 
-export const packageMeta: Record<PackageId, { format: string; arch: string; checksums: boolean }> = {
-  arch: { format: "pkg.tar.zst", arch: "x86_64", checksums: true },
-  debian: { format: ".deb", arch: "amd64 + all", checksums: true },
-  ubuntu: { format: ".deb", arch: "amd64 + all", checksums: true },
-  appimage: { format: "AppImage", arch: "x86_64", checksums: false },
+export const packageMeta: Record<PackageId, { format: string; arch: string }> = {
+  arch: { format: "pkg.tar.zst", arch: "x86_64" },
+  debian: { format: ".deb", arch: "amd64 + all" },
+  ubuntu: { format: ".deb", arch: "amd64 + all" },
+  appimage: { format: "AppImage", arch: "x86_64" },
 };
 
 export const SOURCE_ARCHIVE = `${ASSET_BASE}/excalibur-control-center-${RELEASE_VERSION}.tar.gz`;
@@ -98,6 +98,8 @@ export const storyImages: Record<StoryId, string> = {
   device: "./images/device-dark.png",
   diagnostics: "./images/diagnostics-dark.png",
 };
+
+export const APPIMAGE_NODRIVER_IMAGE = "./images/dashboard-nodriver-dark.png";
 
 export const COMPAT_ROWS = [
   "hardware",

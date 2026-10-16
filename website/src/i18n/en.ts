@@ -169,7 +169,8 @@ export const en = {
     files: "Files",
     fileCount: "{count} files",
     releasePage: "Release page",
-    sourceArchive: "Source archive",
+    sourceArchive: "Source archive (GUI + driver source, build required)",
+    appimageNoDriver: "This is how the app looks when the driver is not installed.",
     all: "All downloads",
     packages: {
       arch: {
@@ -190,7 +191,7 @@ export const en = {
       appimage: {
         title: "Portable AppImage",
         desc: "A single-file Qt6 GUI for any glibc ≥ 2.35 desktop. No root, nothing written to the system — but it is GUI only.",
-        note: "The AppImage does not install the excalibur-wmi DKMS driver. Live telemetry needs a native driver package.",
+        note: "Live telemetry needs the excalibur-wmi driver, which the AppImage does not include. On Debian/Ubuntu install the separate excalibur-control-center-dkms package (driver only); the Arch package already includes it. The driver needs kernel 7.2+, dkms and kernel headers. With the driver installed, the AppImage works as a portable front-end.",
       },
     },
   },

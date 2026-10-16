@@ -166,7 +166,8 @@ export const tr: Dict = {
     files: "Dosyalar",
     fileCount: "{count} dosya",
     releasePage: "Sürüm sayfası",
-    sourceArchive: "Kaynak arşivi",
+    sourceArchive: "Kaynak arşivi (arayüz + sürücü kaynağı, derleme gerekir)",
+    appimageNoDriver: "Sürücü kurulu değilken uygulama böyle görünür.",
     all: "Tüm indirmeler",
     packages: {
       arch: {
@@ -192,7 +193,7 @@ export const tr: Dict = {
         desc:
           "glibc ≥ 2.35 olan her masaüstü için tek dosyalık Qt6 arayüzü. Root gerekmez, sisteme yazmaz — ancak yalnızca arayüzdür.",
         note:
-          "AppImage, excalibur-wmi DKMS sürücüsünü kurmaz. Canlı telemetri için yerel bir sürücü paketi gerekir.",
+          "Canlı telemetri için excalibur-wmi sürücüsü gerekir; AppImage onu içermez. Debian/Ubuntu'da ayrı excalibur-control-center-dkms paketini kurun (yalnızca sürücü); Arch paketi zaten içerir. Sürücü için çekirdek 7.2+, dkms ve çekirdek başlıkları gerekir. Sürücü kuruluysa AppImage taşınabilir arayüz olarak çalışır.",
       },
     },
   },

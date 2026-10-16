@@ -173,7 +173,8 @@ export const de: Dict = {
     files: "Dateien",
     fileCount: "{count} Dateien",
     releasePage: "Release-Seite",
-    sourceArchive: "Quellarchiv",
+    sourceArchive: "Quellarchiv (GUI + Treiberquelle, Build erforderlich)",
+    appimageNoDriver: "So sieht die App aus, wenn der Treiber nicht installiert ist.",
     all: "Alle Downloads",
     packages: {
       arch: {
@@ -198,7 +199,7 @@ export const de: Dict = {
         desc:
           "Eine einteilige Qt6-GUI für jeden Desktop mit glibc ≥ 2.35. Kein Root, nichts wird ins System geschrieben — aber nur die GUI.",
         note:
-          "Das AppImage installiert den excalibur-wmi-DKMS-Treiber nicht. Live-Telemetrie braucht ein natives Treiberpaket.",
+          "Live-Telemetrie braucht den excalibur-wmi-Treiber, den das AppImage nicht enthält. Unter Debian/Ubuntu das separate Paket excalibur-control-center-dkms installieren (nur der Treiber); das Arch-Paket enthält ihn bereits. Der Treiber braucht Kernel 7.2+, dkms und Kernel-Header. Mit installiertem Treiber dient das AppImage als portable Oberfläche.",
       },
     },
   },

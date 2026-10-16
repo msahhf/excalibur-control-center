@@ -1,8 +1,10 @@
 import { useId, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { SheetHead } from "./SheetHead";
 import { IconArrow, IconDownload } from "./Icons";
+import { ScreenshotFrame } from "./ScreenshotFrame";
 import { useI18n, interpolate } from "../i18n";
 import {
+  APPIMAGE_NODRIVER_IMAGE,
   packageFiles,
   packageMeta,
   packageOrder,
@@ -117,7 +119,9 @@ export function Downloads() {
               <a href={RELEASE_PAGE} target="_blank" rel="noreferrer noopener">
                 {t.downloads.all} · v{RELEASE_VERSION}
               </a>
-              <a href={SOURCE_ARCHIVE}>{t.downloads.sourceArchive}</a>
+              <a href={SOURCE_ARCHIVE} className={activeId === "appimage" ? "pkg__file-link" : undefined}>
+                {t.downloads.sourceArchive}
+              </a>
               <a href={REPO} target="_blank" rel="noreferrer noopener">
                 {t.nav.repoLink} <IconArrow style={{ verticalAlign: "-2px", width: "0.85em" }} />
               </a>
@@ -141,6 +145,15 @@ export function Downloads() {
               </div>
             ))}
             {pkg.note && <p className="pkg__note">ⓘ {pkg.note}</p>}
+            {activeId === "appimage" && (
+              <ScreenshotFrame
+                src={APPIMAGE_NODRIVER_IMAGE}
+                alt={t.downloads.appimageNoDriver}
+                title={pkg.title}
+                eager
+              />
+            )}
+            {activeId === "appimage" && <p className="pkg__note">{t.downloads.appimageNoDriver}</p>}
           </div>
         </div>
       </div>
