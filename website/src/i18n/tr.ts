@@ -167,33 +167,40 @@ export const tr: Dict = {
     fileCount: "{count} dosya",
     releasePage: "Sürüm sayfası",
     sourceArchive: "Kaynak arşivi (arayüz + sürücü kaynağı, derleme gerekir)",
+    otherSource: "Diğer / Kaynak",
     appimageNoDriver: "Sürücü kurulu değilken uygulama böyle görünür.",
     all: "Tüm indirmeler",
+    shaLabel: "SHA-256 (kopyalamak için tıklayın)",
+    groups: {
+      ui: "Arayüz",
+      driver: "Sürücü (canlı telemetri için gerekli)",
+    },
+    driverArchNote: "Arch paketi sürücüyü zaten içerir.",
+    driverPrereq: "Sürücü için çekirdek 7.2+, dkms ve çekirdek başlıkları gerekir.",
     packages: {
       arch: {
         title: "Arch Linux / CachyOS",
         desc:
           "Qt6 arayüzünü ve DKMS olarak entegre excalibur-wmi salt okunur sürücüsünü içeren tek yerel paket.",
-        note: "pacman bunu yalnızca sistemin Qt'si derlemedeki Qt'den eski değilse kurar.",
+        note: "excalibur-wmi sürücüsü bu pakete dahildir.",
       },
       debian: {
         title: "Debian 13 (trixie)",
         desc:
           "Bir GUI paketi ve ayrı bir DKMS kaynak paketi; Debian 13'ün kendi Qt'sine göre derlenmiştir. Telemetri için ikisini de kurun.",
-        note: "Ubuntu paketiyle değiştirilemez.",
+        note: "Bu paketler yalnızca Debian 13 içindir. Ubuntu 24.04 için Ubuntu sekmesindeki paketleri kullanın.",
       },
       ubuntu: {
         title: "Ubuntu 24.04 LTS (noble)",
         desc:
           "Ubuntu 24.04'ün kendi Qt'sine göre ayrıca derlenmiştir. Telemetri için iki paketi de kurun.",
-        note: "Debian paketiyle değiştirilemez.",
+        note: "Bu paketler yalnızca Ubuntu 24.04 içindir. Debian 13 için Debian sekmesindeki paketleri kullanın.",
       },
       appimage: {
         title: "Taşınabilir AppImage",
         desc:
           "glibc ≥ 2.35 olan her masaüstü için tek dosyalık Qt6 arayüzü. Root gerekmez, sisteme yazmaz — ancak yalnızca arayüzdür.",
-        note:
-          "Canlı telemetri için excalibur-wmi sürücüsü gerekir; AppImage onu içermez. Debian/Ubuntu'da ayrı excalibur-control-center-dkms paketini kurun (yalnızca sürücü); Arch paketi zaten içerir. Sürücü için çekirdek 7.2+, dkms ve çekirdek başlıkları gerekir. Sürücü kuruluysa AppImage taşınabilir arayüz olarak çalışır.",
+        note: "",
       },
     },
   },

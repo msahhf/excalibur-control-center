@@ -174,32 +174,39 @@ export const de: Dict = {
     fileCount: "{count} Dateien",
     releasePage: "Release-Seite",
     sourceArchive: "Quellarchiv (GUI + Treiberquelle, Build erforderlich)",
+    otherSource: "Sonstiges / Quelle",
     appimageNoDriver: "So sieht die App aus, wenn der Treiber nicht installiert ist.",
     all: "Alle Downloads",
+    shaLabel: "SHA-256 (zum Kopieren klicken)",
+    groups: {
+      ui: "Oberfläche",
+      driver: "Treiber (für Live-Telemetrie erforderlich)",
+    },
+    driverArchNote: "Das Arch-Paket enthält den Treiber bereits.",
+    driverPrereq: "Der Treiber braucht Kernel 7.2+, dkms und Kernel-Header.",
     packages: {
       arch: {
         title: "Arch Linux / CachyOS",
         desc:
           "Ein natives Paket mit der Qt6-GUI und dem integrierten excalibur-wmi-Nur-Lesen-Treiber als DKMS.",
-        note: "pacman installiert dies nur, wenn das System-Qt mindestens so neu ist wie der Build.",
+        note: "Der excalibur-wmi-Treiber ist in diesem Paket enthalten.",
       },
       debian: {
         title: "Debian 13 (trixie)",
         desc:
           "Ein GUI-Paket plus ein separates DKMS-Quellpaket, gebaut gegen das Qt von Debian 13. Für Telemetrie beide installieren.",
-        note: "Nicht austauschbar mit dem Ubuntu-Paket.",
+        note: "Diese Pakete sind nur für Debian 13. Für Ubuntu 24.04 die Pakete im Ubuntu-Tab verwenden.",
       },
       ubuntu: {
         title: "Ubuntu 24.04 LTS (noble)",
         desc: "Separat für das Qt von Ubuntu 24.04 gebaut. Für Telemetrie beide Pakete installieren.",
-        note: "Nicht austauschbar mit dem Debian-Paket.",
+        note: "Diese Pakete sind nur für Ubuntu 24.04. Für Debian 13 die Pakete im Debian-Tab verwenden.",
       },
       appimage: {
         title: "Portables AppImage",
         desc:
           "Eine einteilige Qt6-GUI für jeden Desktop mit glibc ≥ 2.35. Kein Root, nichts wird ins System geschrieben — aber nur die GUI.",
-        note:
-          "Live-Telemetrie braucht den excalibur-wmi-Treiber, den das AppImage nicht enthält. Unter Debian/Ubuntu das separate Paket excalibur-control-center-dkms installieren (nur der Treiber); das Arch-Paket enthält ihn bereits. Der Treiber braucht Kernel 7.2+, dkms und Kernel-Header. Mit installiertem Treiber dient das AppImage als portable Oberfläche.",
+        note: "",
       },
     },
   },

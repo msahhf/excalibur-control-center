@@ -5,7 +5,7 @@ import { ScreenshotFrame } from "./ScreenshotFrame";
 import { useI18n, interpolate } from "../i18n";
 import {
   APPIMAGE_NODRIVER_IMAGE,
-  packageFiles,
+  packageFileGroups,
   packageMeta,
   packageOrder,
   pickerLabels,
@@ -14,12 +14,36 @@ import {
   REPO,
   SOURCE_ARCHIVE,
   type PackageId,
+  type PackageFile,
 } from "../data/site";
 
 function formatSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${bytes} B`;
+}
+
+// Short digest that expands to the full sha256 and copies it on click.
+function ShaChip({ value, label }: { value: string; label: string }) {
+  const [open, setOpen] = useState(false);
+
+  const onToggle = () => {
+    setOpen((v) => !v);
+    navigator.clipboard?.writeText(value).catch(() => {});
+  };
+
+  return (
+    <button
+      type="button"
+      className="pkg__sha tnum"
+      title={label}
+      aria-label={label}
+      translate="no"
+      onClick={onToggle}
+    >
+      {open ? value : `${value.slice(0, 12)}…`}
+    </button>
+  );
 }
 
 export function Downloads() {
@@ -44,8 +68,9 @@ export function Downloads() {
 
   const pkg = t.downloads.packages[activeId];
   const meta = packageMeta[activeId];
-  const files = packageFiles[activeId];
-  const primary = files[0];
+  const groups = packageFileGroups[activeId];
+  const primary: PackageFile = groups[0].files[0];
+  const totalFiles = groups.reduce((n, g) => n + g.files.length, 0);
 
   return (
     <section className="section" id="download" aria-labelledby="download-title">
@@ -103,7 +128,7 @@ export function Downloads() {
               <span className="chip" translate="no">
                 {meta.arch}
               </span>
-              <span className="chip">{interpolate(t.downloads.fileCount, { count: files.length })}</span>
+              <span className="chip">{interpolate(t.downloads.fileCount, { count: totalFiles })}</span>
             </div>
 
             <p className="pkg__desc">{pkg.desc}</p>
@@ -119,9 +144,6 @@ export function Downloads() {
               <a href={RELEASE_PAGE} target="_blank" rel="noreferrer noopener">
                 {t.downloads.all} · v{RELEASE_VERSION}
               </a>
-              <a href={SOURCE_ARCHIVE} className={activeId === "appimage" ? "pkg__file-link" : undefined}>
-                {t.downloads.sourceArchive}
-              </a>
               <a href={REPO} target="_blank" rel="noreferrer noopener">
                 {t.nav.repoLink} <IconArrow style={{ verticalAlign: "-2px", width: "0.85em" }} />
               </a>
@@ -129,19 +151,37 @@ export function Downloads() {
           </div>
 
           <div className="pkg__files">
-            <span className="pkg__files-label">{t.downloads.files}</span>
-            {files.map((f) => (
-              <div className="pkg__file" key={f.name}>
-                <span className="pkg__file-name">
-                  <code translate="no">{f.name}</code>
-                  {typeof f.size === "number" && (
-                    <span className="pkg__file-size tnum">{formatSize(f.size)}</span>
-                  )}
+            {groups.map((g) => (
+              <div className="pkg__group" key={g.key}>
+                <span className="pkg__group-label">
+                  {g.key === "main" ? t.downloads.files : t.downloads.groups[g.key]}
                 </span>
-                <a className="pkg__file-link" href={f.url} download>
-                  {f.name === "SHA256SUMS" ? t.downloads.checksums : t.downloads.download}
-                  <IconDownload />
-                </a>
+                {g.files.map((f) => (
+                  <div className="pkg__file" key={f.name}>
+                    <span className="pkg__file-name">
+                      <code translate="no">{f.name}</code>
+                      {f.distro && (
+                        <span className="pkg__file-distro" translate="no">
+                          {f.distro}
+                        </span>
+                      )}
+                      {typeof f.size === "number" && (
+                        <span className="pkg__file-size tnum">{formatSize(f.size)}</span>
+                      )}
+                      {f.sha256 && <ShaChip value={f.sha256} label={t.downloads.shaLabel} />}
+                    </span>
+                    <a className="pkg__file-link" href={f.url} download>
+                      {f.name === "SHA256SUMS" ? t.downloads.checksums : t.downloads.download}
+                      <IconDownload />
+                    </a>
+                  </div>
+                ))}
+                {g.key === "driver" && (
+                  <>
+                    <p className="pkg__note">{t.downloads.driverArchNote}</p>
+                    <p className="pkg__note">{t.downloads.driverPrereq}</p>
+                  </>
+                )}
               </div>
             ))}
             {pkg.note && <p className="pkg__note">ⓘ {pkg.note}</p>}
@@ -155,6 +195,11 @@ export function Downloads() {
             )}
             {activeId === "appimage" && <p className="pkg__note">{t.downloads.appimageNoDriver}</p>}
           </div>
+        </div>
+
+        <div className="pkg__source">
+          <span className="pkg__files-label">{t.downloads.otherSource}</span>
+          <a href={SOURCE_ARCHIVE}>{t.downloads.sourceArchive}</a>
         </div>
       </div>
     </section>
