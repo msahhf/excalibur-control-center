@@ -51,7 +51,7 @@ const QColor kSuccessLight = col("#157F3D");
 const QColor kWarningDark = col("#E0A33E");
 // 5.92 / 5.38 (was 3.88 / 3.53, AA fail).
 const QColor kWarningLight = col("#8A5A0B");
-const QColor kCriticalDark = col("#E5484D");
+const QColor kCriticalDark = col("#E96165");
 // Light critical is also read as small text ("High" band label, WCAG 1.4.3 AA
 // 4.5:1): page background 4.81, white 5.29, elevated 4.98, hover 4.77
 // (was 4.30 / 4.73 / 4.45 / 4.26 — three of four failed). Pure red hue 0° is
