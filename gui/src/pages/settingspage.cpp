@@ -43,11 +43,11 @@ SettingsPage::SettingsPage(QWidget *parent)
 {
     auto *root = PageUtils::makeCenteredColumn(this, 720);
 
-    root->addWidget(PageUtils::pageTitle(QStringLiteral("Settings")));
+    root->addWidget(PageUtils::pageTitle(tr("Settings")));
     root->addWidget(PageUtils::pageSubtitle(
-        QStringLiteral("Application preferences. Changes apply immediately and are saved.")));
+        tr("Application preferences. Changes apply immediately and are saved.")));
 
-    auto *title = new QLabel(QStringLiteral("PREFERENCES"));
+    auto *title = new QLabel(tr("PREFERENCES"));
     title->setFont(Theme::labelFont(9, QFont::DemiBold, 150));
     {
         QPalette p = title->palette();
@@ -63,24 +63,24 @@ SettingsPage::SettingsPage(QWidget *parent)
     grid->setColumnStretch(0, 1);
 
     m_theme = makeSelector(surface);
-    m_theme->addItem(QStringLiteral("System"), int(UserSettings::AppTheme::System));
-    m_theme->addItem(QStringLiteral("Light"), int(UserSettings::AppTheme::Light));
-    m_theme->addItem(QStringLiteral("Dark"), int(UserSettings::AppTheme::Dark));
+    m_theme->addItem(tr("System"), int(UserSettings::AppTheme::System));
+    m_theme->addItem(tr("Light"), int(UserSettings::AppTheme::Light));
+    m_theme->addItem(tr("Dark"), int(UserSettings::AppTheme::Dark));
 
     m_unit = makeSelector(surface);
-    m_unit->addItem(QStringLiteral("Celsius"), int(Units::TemperatureUnit::Celsius));
-    m_unit->addItem(QStringLiteral("Fahrenheit"), int(Units::TemperatureUnit::Fahrenheit));
+    m_unit->addItem(tr("Celsius"), int(Units::TemperatureUnit::Celsius));
+    m_unit->addItem(tr("Fahrenheit"), int(Units::TemperatureUnit::Fahrenheit));
 
     m_refresh = makeSelector(surface);
     for (int ms : UserSettings::refreshOptions())
-        m_refresh->addItem(QStringLiteral("%1 s").arg(ms / 1000), ms);
+        m_refresh->addItem(tr("%1 s").arg(ms / 1000), ms);
 
     int r = 0;
-    grid->addWidget(captionLabel(QStringLiteral("Theme")), r, 0, Qt::AlignLeft | Qt::AlignVCenter);
+    grid->addWidget(captionLabel(tr("Theme")), r, 0, Qt::AlignLeft | Qt::AlignVCenter);
     grid->addWidget(m_theme, r++, 1, Qt::AlignRight | Qt::AlignVCenter);
-    grid->addWidget(captionLabel(QStringLiteral("Temperature unit")), r, 0, Qt::AlignLeft | Qt::AlignVCenter);
+    grid->addWidget(captionLabel(tr("Temperature unit")), r, 0, Qt::AlignLeft | Qt::AlignVCenter);
     grid->addWidget(m_unit, r++, 1, Qt::AlignRight | Qt::AlignVCenter);
-    grid->addWidget(captionLabel(QStringLiteral("Refresh interval")), r, 0, Qt::AlignLeft | Qt::AlignVCenter);
+    grid->addWidget(captionLabel(tr("Refresh interval")), r, 0, Qt::AlignLeft | Qt::AlignVCenter);
     grid->addWidget(m_refresh, r++, 1, Qt::AlignRight | Qt::AlignVCenter);
 
     auto *group = new QWidget;
@@ -91,7 +91,7 @@ SettingsPage::SettingsPage(QWidget *parent)
     gv->addWidget(surface);
     root->addWidget(group);
 
-    m_reset = new ActionButton(QStringLiteral("Reset to Defaults"));
+    m_reset = new ActionButton(tr("Reset to Defaults"));
     root->addWidget(m_reset, 0, Qt::AlignLeft);
     root->addStretch(1);
 

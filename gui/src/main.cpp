@@ -4,6 +4,7 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QIcon>
+#include <QLocale>
 #include <QLockFile>
 #include <QPalette>
 #include <QPixmap>
@@ -11,6 +12,7 @@
 #include <QSystemTrayIcon>
 #include <QThread>
 #include <QTimer>
+#include <QTranslator>
 #include <QtGlobal>
 
 #include <cstdio>
@@ -413,6 +415,23 @@ int main(int argc, char **argv)
         UserSettings::instance().setTheme(UserSettings::AppTheme::Light, false);
     else if (hasFlag(args, QStringLiteral("--dark")))
         UserSettings::instance().setTheme(UserSettings::AppTheme::Dark, false);
+
+    // --- i18n (A1) ---------------------------------------------------------
+    // Load the embedded application translator before any window is created, so
+    // every tr() call in the UI resolves against it from the very first widget.
+    // The .qm files are compiled into the Qt resource at :/i18n (see
+    // gui/CMakeLists.txt), so there is no filesystem path to install.
+    // A1 scope: the system locale is the only signal. The in-app language
+    // selector (UserSettings::Language + persisted "language" key) arrives in
+    // A4 and will replace this condition; until then a Turkish system locale
+    // switches the UI to Turkish, everything else stays on the English source.
+    // qtbase's own catalogs (QMessageBox/QFileDialog) are A8 scope.
+    QTranslator appTranslator;
+    if (QLocale::system().language() == QLocale::Turkish
+        && appTranslator.load(QLocale::system(), QStringLiteral("excalibur-control-center"),
+                              QStringLiteral("_"), QStringLiteral(":/i18n"))) {
+        app.installTranslator(&appTranslator);
+    }
 
 #ifdef EXCALIBUR_DEV_HOOKS
     if (hasFlag(args, QStringLiteral("--tray-stress")))
