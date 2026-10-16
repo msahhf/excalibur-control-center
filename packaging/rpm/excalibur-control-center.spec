@@ -14,6 +14,7 @@ BuildRequires:  cmake
 BuildRequires:  ninja-build
 BuildRequires:  gcc-c++
 BuildRequires:  qt6-qtbase-devel
+BuildRequires:  qt6-qttools-devel
 Requires:       qt6-qtbase
 Requires:       dkms
 

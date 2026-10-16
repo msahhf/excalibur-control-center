@@ -16,7 +16,7 @@ OUT="${OUT:-/out}"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >/dev/null 2>&1
 apt-get install -y -qq --no-install-recommends \
-  cmake ninja-build g++ qt6-base-dev qt6-base-dev-tools qt6-qpa-plugins qt6-wayland qt6-svg-dev \
+  cmake ninja-build g++ qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-l10n-tools qt6-qpa-plugins qt6-wayland qt6-svg-dev \
   libgl1-mesa-dev libxkbcommon-dev file wget ca-certificates zlib1g-dev >/dev/null 2>&1
 
 mkdir -p /tools && cd /tools
