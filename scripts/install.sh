@@ -17,6 +17,12 @@
 #
 # Minimum kernel: 7.2 (see driver/dkms.conf: BUILD_EXCLUSIVE_KERNEL_MIN="7.2").
 #
+# UI: a numbered, staged terminal interface with status indicators. On a real
+# terminal it uses colors and box-drawing characters and offers an optional,
+# non-blocking "log panel" (toggle with 'l', force with -v/--verbose, hide
+# with -q/--quiet). When output is redirected or piped it degrades to plain
+# ASCII text with no panels and never waits for input.
+#
 set -euo pipefail
 
 # --------------------------------------------------------------------------
@@ -29,21 +35,208 @@ readonly GUI_PKG="excalibur-control-center"
 readonly DKMS_PKG="excalibur-control-center-dkms"
 readonly MIN_KERNEL_MAJOR=7
 readonly MIN_KERNEL_MINOR=2
+readonly UI_WIDTH=64          # width of the stage rule line
+readonly PANEL_INNER=66       # inner content width of the log panel (frame = +4)
 
 # --------------------------------------------------------------------------
-# Logging helpers (INFO / WARN / ERROR), colorized when stdout is a TTY
+# Global state
 # --------------------------------------------------------------------------
-if [ -t 1 ]; then
-    C_RESET=$'\033[0m'; C_INFO=$'\033[1;34m'; C_WARN=$'\033[1;33m'; C_ERR=$'\033[1;31m'
-else
-    C_RESET=""; C_INFO=""; C_WARN=""; C_ERR=""
-fi
+OPT_CHECK=0
+OPT_UNINSTALL=0
+OPT_VERSION=""
+OPT_VERBOSE=0
+OPT_QUIET=0
+OPT_NO_COLOR=0
 
-info()  { printf '%s[INFO]%s  %s\n'  "$C_INFO" "$C_RESET" "$*"; }
-warn()  { printf '%s[WARN]%s  %s\n'  "$C_WARN" "$C_RESET" "$*" >&2; }
-error() { printf '%s[ERROR]%s %s\n'  "$C_ERR"  "$C_RESET" "$*" >&2; }
+DISTRO=""            # arch | debian | ubuntu
+VERSION=""           # resolved release version, without leading "v"
+TMPDIR_INSTALL=""
+
+MODE="Install"       # Install | Check | Uninstall
+TOTAL_STAGES=0
+STAGE_IDX=0
+BANNER_VERSION=""
+
+# UI state
+UI_TTY=0             # stdout is a terminal
+UI_FANCY=0           # colors + unicode + panel allowed
+PANEL_ON=0           # log panel currently visible
+LOG_FILE=""          # buffered verbose detail lines (temp file, TTY only)
+
+# Styles / symbols (filled in by refresh_ui)
+C_RESET=""; C_HDR=""; C_OK=""; C_ERR=""; C_WARN=""; C_INFO=""; C_DIM=""
+S_OK=""; S_ERR=""; S_WARN=""; S_INFO=""
+BOX_TL=""; BOX_TR=""; BOX_BL=""; BOX_BR=""; BOX_H=""; BOX_V=""
+
+# --------------------------------------------------------------------------
+# UI setup
+# --------------------------------------------------------------------------
+refresh_ui() {
+    if [ -t 1 ]; then UI_TTY=1; else UI_TTY=0; fi
+
+    if [ "$UI_TTY" -eq 1 ] && [ "$OPT_NO_COLOR" -eq 0 ] && [ -z "${NO_COLOR:-}" ]; then
+        UI_FANCY=1
+    else
+        UI_FANCY=0
+    fi
+
+    if [ "$UI_FANCY" -eq 1 ]; then
+        C_RESET=$'\033[0m'
+        C_HDR=$'\033[1;36m'; C_OK=$'\033[1;32m'; C_ERR=$'\033[1;31m'
+        C_WARN=$'\033[1;33m'; C_INFO=$'\033[1;34m'; C_DIM=$'\033[2m'
+        S_OK='✔'; S_ERR='✖'; S_WARN='⚠'; S_INFO='▸'
+        BOX_TL='╭'; BOX_TR='╮'; BOX_BL='╰'; BOX_BR='╯'
+        BOX_H='─'; BOX_V='│'
+    else
+        C_RESET=""; C_HDR=""; C_OK=""; C_ERR=""; C_WARN=""; C_INFO=""; C_DIM=""
+        S_OK='[ok]'; S_ERR='[!!]'; S_WARN='[warn]'; S_INFO='[..]'
+        BOX_TL='+'; BOX_TR='+'; BOX_BL='+'; BOX_BR='+'
+        BOX_H='-'; BOX_V='|'
+    fi
+}
+
+# repeat_char <count> <char> — no external tools (works with multi-byte chars)
+repeat_char() {
+    local n="$1" c="$2" out="" i
+    for ((i = 0; i < n; i++)); do out+="$c"; done
+    printf '%s' "$out"
+}
+
+# --------------------------------------------------------------------------
+# Logging helpers: INFO / OK / WARN / ERROR
+#   Fancy (TTY):   ✔ ok    ✖ error   ⚠ warn   ▸ info
+#   Plain  (pipe): [ok]    [!!]      [warn]   [..]
+# --------------------------------------------------------------------------
+info()  { [ "$OPT_QUIET" -eq 1 ] && return 0; printf '%s%s%s %s\n' "$C_INFO" "$S_INFO" "$C_RESET" "$*"; }
+ok()    { printf '%s%s%s %s\n' "$C_OK"   "$S_OK"   "$C_RESET" "$*"; }
+warn()  { printf '%s%s%s %s\n' "$C_WARN" "$S_WARN" "$C_RESET" "$*" >&2; }
+error() { printf '%s%s%s %s\n' "$C_ERR"  "$S_ERR"  "$C_RESET" "$*" >&2; }
 die()   { error "$*"; exit 1; }
 
+# --------------------------------------------------------------------------
+# Optional log panel (verbose details)
+# --------------------------------------------------------------------------
+# log_detail <line...> — record a detailed line. On a terminal it is appended
+# to a buffer file (a file, not an array, so that lines emitted from inside a
+# command-substitution subshell still reach the panel); off a terminal it is
+# printed inline to stderr in verbose mode only.
+log_detail() {
+    if [ "$UI_TTY" -eq 1 ]; then
+        [ -n "$LOG_FILE" ] || return 0
+        printf '%s\n' "$*" >> "$LOG_FILE"
+        if [ "$(wc -l < "$LOG_FILE")" -gt 400 ]; then
+            tail -n 300 "$LOG_FILE" > "${LOG_FILE}.new"
+            mv "${LOG_FILE}.new" "$LOG_FILE"
+        fi
+    elif [ "$OPT_VERBOSE" -eq 1 ] && [ "$OPT_QUIET" -eq 0 ]; then
+        # stderr, so callers capturing stdout (e.g. the GitHub API JSON) do
+        # not swallow the detail line.
+        printf '    %s\n' "$*" >&2
+    fi
+}
+
+# Non-blocking key poll, run between stages. Only on an interactive terminal.
+# 'l' toggles the log panel. Never blocks, never runs when non-interactive.
+poll_key() {
+    [ "$UI_TTY" -eq 1 ] || return 0
+    [ -r /dev/tty ] || return 0
+    local key=""
+    if IFS= read -r -s -n 1 -t 0 key < /dev/tty 2>/dev/null; then
+        case "$key" in
+            l | L)
+                if [ "$PANEL_ON" -eq 1 ]; then
+                    PANEL_ON=0
+                    printf '  %s log panel: hidden\n' "$S_INFO"
+                else
+                    PANEL_ON=1
+                    printf '  %s log panel: shown\n' "$S_INFO"
+                fi
+                ;;
+        esac
+    fi
+    return 0
+}
+
+# Print the buffered detail lines inside a framed panel (only when visible).
+flush_log_panel() {
+    [ "$PANEL_ON" -eq 1 ] || return 0
+    [ -n "$LOG_FILE" ] || return 0
+    [ -s "$LOG_FILE" ] || return 0
+
+    local -a lines=()
+    mapfile -t lines < "$LOG_FILE"
+    : > "$LOG_FILE"
+
+    local inner="$PANEL_INNER"
+    local top_fill=$((inner - 4))
+    [ "$top_fill" -lt 1 ] && top_fill=1
+
+    printf '%s%s Log %s%s\n' \
+        "$C_DIM$BOX_TL" "$BOX_H" "$(repeat_char "$top_fill" "$BOX_H")" "$BOX_TR$C_RESET"
+
+    local line text n pad
+    for line in "${lines[@]}"; do
+        # Strip ANSI escapes and carriage returns, then truncate to fit.
+        text="$(printf '%s' "$line" | sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g; s/\r//g')"
+        n=${#text}
+        if [ "$n" -gt "$inner" ]; then
+            text="${text:0:$((inner - 3))}..."
+            n=$inner
+        fi
+        pad=$((inner - n))
+        printf '%s%s %s%s %s%s\n' "$C_DIM" "$BOX_V" "$text" \
+            "$(repeat_char "$pad" ' ')" "$BOX_V" "$C_RESET"
+    done
+
+    printf '%s%s%s\n\n' "$C_DIM$BOX_BL" "$(repeat_char "$((inner + 2))" "$BOX_H")" "$BOX_BR$C_RESET"
+}
+
+# --------------------------------------------------------------------------
+# Banner and stage headers
+# --------------------------------------------------------------------------
+print_banner() {
+    if [ "$UI_FANCY" -eq 0 ]; then
+        printf '\nexcalibur-control-center - one-command installer\n'
+        printf 'Mode: %s   Version: %s\n\n' "$MODE" "$BANNER_VERSION"
+        return 0
+    fi
+
+    local title="excalibur-control-center"
+    local meta="Mode: ${MODE}   ·   Version: ${BANNER_VERSION}"
+    local w=${#title}
+    [ "${#meta}" -gt "$w" ] && w=${#meta}
+    w=$((w + 2))
+
+    local rule
+    rule="$(repeat_char "$w" "$BOX_H")"
+    printf '\n%s%s%s%s%s\n' "$C_HDR" "$BOX_TL" "$rule" "$BOX_TR" "$C_RESET"
+    printf '%s%s%s %-*s %s%s\n' "$C_HDR" "$BOX_V" "$C_RESET" "$((w - 2))" "$title" "$C_HDR" "$BOX_V$C_RESET"
+    printf '%s%s%s %-*s %s%s\n' "$C_HDR" "$BOX_V" "$C_RESET" "$((w - 2))" "$meta" "$C_HDR" "$BOX_V$C_RESET"
+    printf '%s%s%s%s%s\n' "$C_HDR" "$BOX_BL" "$rule" "$BOX_BR" "$C_RESET"
+    printf '\n'
+}
+
+# stage <label> — flush details, poll the panel key, then print a numbered,
+# aligned stage header.
+stage() {
+    STAGE_IDX=$((STAGE_IDX + 1))
+    poll_key
+    flush_log_panel
+
+    local label="$1"
+    local ascii_pre="-- [${STAGE_IDX}/${TOTAL_STAGES}] ${label} "
+    local pad=$((UI_WIDTH - ${#ascii_pre}))
+    [ "$pad" -lt 3 ] && pad=3
+
+    printf '\n%s%s %s %s%s\n' "$C_HDR" \
+        "$(repeat_char 2 "$BOX_H")" \
+        "[${STAGE_IDX}/${TOTAL_STAGES}] ${label}" \
+        "$(repeat_char "$pad" "$BOX_H")" "$C_RESET"
+}
+
+# --------------------------------------------------------------------------
+# Usage
+# --------------------------------------------------------------------------
 usage() {
     cat <<'EOF'
 excalibur-control-center one-command installer
@@ -60,29 +253,33 @@ Options:
                     (the leading "v" is optional).
   --uninstall       Remove the installed packages with the native package
                     manager. Requires root.
-  --help            Show this help and exit.
+  -v, --verbose     Show the detailed log panel (commands and outputs).
+                    Only used on an interactive terminal.
+  -q, --quiet       Hide the log panel and the informational messages.
+  --no-color        Disable colored output and box-drawing characters
+                    (also honored via the NO_COLOR environment variable).
+  --help, -h        Show this help and exit.
 
 Notes:
   * This script never calls sudo itself. To install or uninstall you must run
     it as root, e.g.  sudo ./install.sh
   * Requires a running kernel >= 7.2 and, on Debian/Ubuntu, the matching
     kernel headers, because the excalibur-wmi DKMS module is built locally.
+  * On an interactive terminal, press 'l' between stages to toggle the log
+    panel. When output is piped or redirected, no panel is shown and the
+    script never waits for input.
 EOF
 }
 
 # --------------------------------------------------------------------------
-# Global state
+# Temporary directory cleanup
 # --------------------------------------------------------------------------
-OPT_CHECK=0
-OPT_UNINSTALL=0
-OPT_VERSION=""
-DISTRO=""            # arch | debian | ubuntu
-VERSION=""           # resolved release version, without leading "v"
-TMPDIR_INSTALL=""
-
 cleanup() {
     if [ -n "$TMPDIR_INSTALL" ] && [ -d "$TMPDIR_INSTALL" ]; then
         rm -rf "$TMPDIR_INSTALL"
+    fi
+    if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
+        rm -f "$LOG_FILE" "${LOG_FILE}.new"
     fi
 }
 trap cleanup EXIT
@@ -95,6 +292,9 @@ parse_args() {
         case "$1" in
             --check)     OPT_CHECK=1 ;;
             --uninstall) OPT_UNINSTALL=1 ;;
+            --verbose|-v) OPT_VERBOSE=1 ;;
+            --quiet|-q)  OPT_QUIET=1 ;;
+            --no-color)  OPT_NO_COLOR=1 ;;
             --help|-h)   usage; exit 0 ;;
             --version)
                 [ $# -ge 2 ] || die "--version requires an argument, e.g. --version 0.5.6"
@@ -172,13 +372,13 @@ check_kernel() {
         error "${MIN_KERNEL_MAJOR}.${MIN_KERNEL_MINOR}+ kernel and re-run the installer."
         exit 1
     fi
-    info "Running kernel: $rel (OK, >= ${MIN_KERNEL_MAJOR}.${MIN_KERNEL_MINOR})"
+    ok "Running kernel: $rel (>= ${MIN_KERNEL_MAJOR}.${MIN_KERNEL_MINOR})"
 }
 
 check_headers() {
     local build_dir="/lib/modules/$(uname -r)/build"
     if [ -d "$build_dir" ]; then
-        info "Kernel headers present: $build_dir"
+        ok "Kernel headers present: $build_dir"
         return 0
     fi
 
@@ -200,7 +400,7 @@ check_headers() {
 
 check_dkms() {
     if command -v dkms >/dev/null 2>&1; then
-        info "dkms found: $(command -v dkms)"
+        ok "dkms found: $(command -v dkms)"
         return 0
     fi
     warn "The 'dkms' command was not found on this system."
@@ -232,6 +432,7 @@ fetch_release_json() {
     # Prefer gh when available, fall back to curl.
     if command -v gh >/dev/null 2>&1; then
         path="${url#https://api.github.com/}"
+        log_detail "gh api ${path}"
         if out="$(gh api "$path" 2>/dev/null)"; then
             printf '%s' "$out"
             return 0
@@ -242,6 +443,7 @@ fetch_release_json() {
     command -v curl >/dev/null 2>&1 \
         || die "Neither 'gh' nor 'curl' is available; cannot query the GitHub API."
 
+    log_detail "curl -fsSL -H 'Accept: application/vnd.github+json' ${url}"
     curl -fsSL -H 'Accept: application/vnd.github+json' "$url"
 }
 
@@ -272,7 +474,7 @@ resolve_version() {
     tag="$(json_tag "$json")"
     [ -n "$tag" ] || die "Could not parse the release tag from the GitHub API response."
     VERSION="${tag#v}"
-    info "Latest release: $tag (version $VERSION)"
+    ok "Latest release: $tag (version $VERSION)"
 }
 
 # ARR_ASSETS holds the real asset names of the release (one per line),
@@ -387,15 +589,17 @@ download_assets() {
     local a
     for a in "${RESULT_ASSETS[@]}"; do
         info "  - $a"
+        log_detail "curl -fsSL -o ${TMPDIR_INSTALL}/${a} $(asset_url "$a")"
         curl -fsSL -o "${TMPDIR_INSTALL}/${a}" "$(asset_url "$a")" \
             || die "Failed to download ${a}."
     done
 
     info "Verifying SHA256 checksums..."
+    log_detail "sha256sum -c --ignore-missing SHA256SUMS (in ${TMPDIR_INSTALL})"
     if ! ( cd "$TMPDIR_INSTALL" && sha256sum -c --ignore-missing SHA256SUMS ); then
         die "Checksum verification FAILED. The downloaded files are corrupt or have been tampered with. Aborting."
     fi
-    info "All downloads verified against SHA256SUMS."
+    ok "All downloads verified against SHA256SUMS."
 }
 
 # --------------------------------------------------------------------------
@@ -413,6 +617,7 @@ install_packages() {
                 case "$a" in *.pkg.tar.zst) pkg="${TMPDIR_INSTALL}/${a}" ;; esac
             done
             info "Running: pacman -U ${pkg}"
+            log_detail "pacman -U ${pkg}"
             if ! pacman -U "$pkg"; then
                 error "The package manager (pacman) failed. The output above is shown"
                 error "unchanged on purpose; please read it. This installer does not"
@@ -429,6 +634,7 @@ install_packages() {
                 esac
             done
             info "Running: apt install ${gui} ${dkms_deb}"
+            log_detail "apt install ${gui} ${dkms_deb}"
             if ! apt install "$gui" "$dkms_deb"; then
                 error "The package manager (apt) failed. The output above is shown"
                 error "unchanged on purpose; please read it. This installer does not"
@@ -444,6 +650,7 @@ uninstall_packages() {
     case "$DISTRO" in
         arch)
             info "Uninstalling: pacman -Rns ${GUI_PKG}"
+            log_detail "pacman -Rns ${GUI_PKG}"
             if ! pacman -Rns "$GUI_PKG"; then
                 error "pacman failed to remove ${GUI_PKG}. Output above is unchanged."
                 exit 1
@@ -451,19 +658,20 @@ uninstall_packages() {
             ;;
         debian|ubuntu)
             info "Uninstalling: apt remove ${GUI_PKG} ${DKMS_PKG}"
+            log_detail "apt remove ${GUI_PKG} ${DKMS_PKG}"
             if ! apt remove "$GUI_PKG" "$DKMS_PKG"; then
                 error "apt failed to remove the packages. Output above is unchanged."
                 exit 1
             fi
             ;;
     esac
-    info "Uninstall complete."
+    ok "Uninstall complete."
 }
 
 post_install_hints() {
     echo
-    info "Installation finished. Suggested next steps (run these yourself; this"
-    info "installer did not run them):"
+    ok "Installation finished."
+    info "Suggested next steps (run these yourself; this installer did not run them):"
     echo
     echo "    sudo modprobe excalibur_wmi        # load the driver now"
     echo "    dkms status                        # check the DKMS module state"
@@ -476,7 +684,7 @@ post_install_hints() {
 # --------------------------------------------------------------------------
 report_check() {
     echo
-    info "Check complete. No files were downloaded or installed."
+    ok "Check complete. No files were downloaded or installed."
     echo
     echo "  Distribution : $DISTRO"
     echo "  Release      : v${VERSION}"
@@ -494,43 +702,81 @@ report_check() {
 # Main
 # --------------------------------------------------------------------------
 main() {
+    refresh_ui
     parse_args "$@"
+    refresh_ui
 
-    info "excalibur-control-center installer"
-    detect_distro
-
-    # Uninstall only needs the distribution (to pick the right package manager)
-    # and root. It must NOT require kernel checks, kernel headers, network
-    # access, version resolution or asset selection, so it runs right here —
-    # before any of those.
+    # Determine the mode (drives the banner and the stage numbering).
     if [ "$OPT_UNINSTALL" -eq 1 ]; then
+        MODE="Uninstall"; TOTAL_STAGES=3
+    elif [ "$OPT_CHECK" -eq 1 ]; then
+        MODE="Check";     TOTAL_STAGES=6
+    else
+        MODE="Install";   TOTAL_STAGES=8
+    fi
+
+    if [ "$MODE" = "Uninstall" ]; then
+        BANNER_VERSION="n/a"
+    elif [ -n "$OPT_VERSION" ]; then
+        BANNER_VERSION="v${OPT_VERSION}"
+    else
+        BANNER_VERSION="latest"
+    fi
+
+    # The log panel is only ever used on a real terminal, and never in quiet
+    # mode. Off a terminal there is no panel and no waiting, ever.
+    if [ "$UI_TTY" -eq 1 ] && [ "$OPT_VERBOSE" -eq 1 ] && [ "$OPT_QUIET" -eq 0 ]; then
+        PANEL_ON=1
+    fi
+
+    # Detail buffer is only needed on a terminal (the panel is TTY-only).
+    if [ "$UI_TTY" -eq 1 ]; then
+        LOG_FILE="$(mktemp)"
+    fi
+
+    print_banner
+
+    # --uninstall only needs the distribution (to pick the right package
+    # manager) and root. It must NOT require kernel checks, kernel headers,
+    # network access, version resolution or asset selection.
+    if [ "$OPT_UNINSTALL" -eq 1 ]; then
+        stage "Distribution detection"
+        detect_distro
+        stage "Root check"
         require_root "--uninstall"
+        stage "Uninstall packages"
         uninstall_packages
+        flush_log_panel
         exit 0
     fi
 
-    check_kernel
-    check_headers
-    check_dkms
-    check_secure_boot
-
-    resolve_version
-    select_assets
-
     if [ "$OPT_CHECK" -eq 1 ]; then
+        stage "Distribution detection"; detect_distro
+        stage "Kernel check";           check_kernel
+        stage "Kernel headers";         check_headers
+        stage "DKMS availability";      check_dkms
+        stage "Secure Boot";            check_secure_boot
+        stage "Release & assets";       resolve_version; select_assets
+        flush_log_panel
         report_check
         exit 0
     fi
 
+    stage "Distribution detection"; detect_distro
+    stage "Kernel check";           check_kernel
+    stage "Kernel headers";         check_headers
+    stage "DKMS & Secure Boot";     check_dkms; check_secure_boot
+    stage "Release & assets";       resolve_version; select_assets
+    stage "Root & installed state"
     require_root ""
-
     if is_installed; then
-        info "${GUI_PKG} is already installed. Nothing to do."
+        ok "${GUI_PKG} is already installed. Nothing to do."
+        flush_log_panel
         exit 0
     fi
-
-    download_assets
-    install_packages
+    stage "Download & verify";      download_assets
+    stage "Install packages";       install_packages
+    flush_log_panel
     post_install_hints
 }
 
