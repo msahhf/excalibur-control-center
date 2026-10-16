@@ -55,7 +55,7 @@ public:
         // from a child label: assistive tech only sees what we tell it here
         // (role + checked state come from NavButtonAccessible below).
         setAccessibleName(label);
-        setAccessibleDescription(QStringLiteral(
+        setAccessibleDescription(tr(
             "Navigation entry. Press Enter or Space to open the page, "
             "use the arrow keys to move between entries."));
         m_hoverAnim = new QPropertyAnimation(this, "hoverProgress", this);

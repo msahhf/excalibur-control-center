@@ -16,7 +16,8 @@ public:
     void setMessage(const QString &title, const QString &body);
 
 private:
-    QString m_title = QStringLiteral("Telemetry Unavailable");
-    QString m_body = QStringLiteral(
-        "Load the EXCALIBUR hardware driver to enable hardware telemetry.");
+    // Defaults are assigned in the constructor (tr() cannot be used in a
+    // member default initializer, plan section 4.1).
+    QString m_title;
+    QString m_body;
 };

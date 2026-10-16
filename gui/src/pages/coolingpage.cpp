@@ -10,6 +10,7 @@
 #include "util/units.h"
 #include "theme/theme.h"
 
+#include <QCoreApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QStackedWidget>
@@ -74,26 +75,26 @@ QString relationText(const QVector<HistorySample> &h, bool cpu)
     }
 
     if (validT < 3)
-        return QStringLiteral("Collecting 60-second history\u2026");
+        return QCoreApplication::translate("CoolingPage", "Collecting 60-second history\u2026");
     if (!haveF || validF < 3)
-        return QStringLiteral("Fan data unavailable");
+        return QCoreApplication::translate("CoolingPage", "Fan data unavailable");
 
     const double dt = lastT - firstT;
     const double df = lastF - firstF;
 
     if (df > 100.0 && dt > 1.5)
-        return QStringLiteral("Fan rising with temperature");
+        return QCoreApplication::translate("CoolingPage", "Fan rising with temperature");
     if (df > 100.0)
-        return QStringLiteral("Fan active, temperature steady");
+        return QCoreApplication::translate("CoolingPage", "Fan active, temperature steady");
     if (df < -100.0 && dt < -1.5)
-        return QStringLiteral("Fan easing as temperature falls");
+        return QCoreApplication::translate("CoolingPage", "Fan easing as temperature falls");
     if (df < -100.0)
-        return QStringLiteral("Fan easing, temperature steady");
+        return QCoreApplication::translate("CoolingPage", "Fan easing, temperature steady");
     if (dt > 1.5)
-        return QStringLiteral("Temperature rising, fan steady");
+        return QCoreApplication::translate("CoolingPage", "Temperature rising, fan steady");
     if (dt < -1.5)
-        return QStringLiteral("Temperature falling, fan steady");
-    return QStringLiteral("Temperature and fan steady");
+        return QCoreApplication::translate("CoolingPage", "Temperature falling, fan steady");
+    return QCoreApplication::translate("CoolingPage", "Temperature and fan steady");
 }
 
 } // namespace
@@ -103,9 +104,9 @@ CoolingPage::CoolingPage(QWidget *parent)
 {
     auto *root = PageUtils::makeCenteredColumn(this);
 
-    root->addWidget(PageUtils::pageTitle(QStringLiteral("Cooling")));
+    root->addWidget(PageUtils::pageTitle(tr("Cooling")));
     root->addWidget(PageUtils::pageSubtitle(
-        QStringLiteral("How the cooling system responds to thermal load.")));
+        tr("How the cooling system responds to thermal load.")));
 
     m_stack = new QStackedWidget;
 
@@ -114,17 +115,17 @@ CoolingPage::CoolingPage(QWidget *parent)
     v->setContentsMargins(0, Theme::Space::M, 0, 0);
     v->setSpacing(Theme::Space::L);
 
-    m_cpu = makeSection(QStringLiteral("CPU"));
-    m_gpu = makeSection(QStringLiteral("GPU"));
+    m_cpu = makeSection(tr("CPU"));
+    m_gpu = makeSection(tr("GPU"));
     v->addWidget(m_cpu.panel);
     v->addWidget(m_gpu.panel);
     v->addStretch(1);
 
     m_empty = new EmptyState;
     m_empty->setMessage(
-        QStringLiteral("Cooling data unavailable"),
-        QStringLiteral("The EXCALIBUR hardware interface is not currently available. "
-                       "History appears once the excalibur_wmi driver is loaded."));
+        tr("Cooling data unavailable"),
+        tr("The EXCALIBUR hardware interface is not currently available. "
+           "History appears once the excalibur_wmi driver is loaded."));
 
     m_stack->addWidget(m_content);
     m_stack->addWidget(m_empty);
@@ -220,7 +221,7 @@ CoolingPage::Section CoolingPage::makeSection(const QString &identity)
         timeRow->setSpacing(0);
         agoOut = new QLabel;
         agoOut->setFont(Theme::font(9, QFont::Normal));
-        auto *now = new QLabel(QStringLiteral("now"));
+        auto *now = new QLabel(tr("now"));
         now->setFont(Theme::font(9, QFont::Normal));
         for (QLabel *tl : {agoOut, now}) {
             QPalette p = tl->palette();
@@ -234,9 +235,9 @@ CoolingPage::Section CoolingPage::makeSection(const QString &identity)
         return block;
     };
 
-    v->addLayout(makeSparkBlock(QStringLiteral("Temperature"), s.tempSpark, s.tempAgo));
+    v->addLayout(makeSparkBlock(tr("Temperature"), s.tempSpark, s.tempAgo));
     v->addSpacing(Theme::Space::S);
-    v->addLayout(makeSparkBlock(QStringLiteral("Fan speed"), s.fanSpark, s.fanAgo));
+    v->addLayout(makeSparkBlock(tr("Fan speed"), s.fanSpark, s.fanAgo));
     v->addSpacing(Theme::Space::S);
 
     s.tempSpark->setFillAlpha(55);
@@ -306,8 +307,8 @@ void CoolingPage::setTelemetry(const TelemetrySnapshot &s, const QVector<History
                                   ? (h.last().timestampMs - h.first().timestampMs)
                                   : 0;
         const int spanSec = int(spanMs / 1000);
-        const QString ago = (spanSec <= 0) ? QStringLiteral("now")
-                                           : QStringLiteral("%1s ago").arg(spanSec);
+        const QString ago = (spanSec <= 0) ? tr("now")
+                                           : tr("%1s ago").arg(spanSec);
         sec.tempAgo->setText(ago);
         sec.fanAgo->setText(ago);
     };

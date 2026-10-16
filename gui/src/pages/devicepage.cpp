@@ -8,6 +8,7 @@
 #include "util/units.h"
 
 #include <QClipboard>
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QGridLayout>
 #include <QGuiApplication>
@@ -17,17 +18,15 @@
 
 namespace {
 
-QString notAvailable(const QString &v)
-{
-    return v.isEmpty() ? QStringLiteral("Not available") : v;
-}
-
 // Raw hwmon channel names — technical, shown only in the copied diagnostics.
 const QString kSensorsRaw =
     QStringLiteral("temp1_input \u00B7 temp2_input \u00B7 fan1_input \u00B7 fan2_input");
-// User-facing description of what the driver exposes (no raw file names).
-const QString kSensorChannels =
-    QStringLiteral("CPU temp \u00B7 GPU temp \u00B7 CPU fan \u00B7 GPU fan");
+
+QString notAvailable(const QString &v)
+{
+    // Not a QObject member: tr() does not compile here (plan section 4.1).
+    return v.isEmpty() ? QCoreApplication::translate("DevicePage", "Not available") : v;
+}
 
 QLabel *captionLabel(const QString &text)
 {
@@ -96,9 +95,9 @@ DevicePage::DevicePage(QWidget *parent)
 
     auto *root = PageUtils::makeCenteredColumn(this);
 
-    root->addWidget(PageUtils::pageTitle(QStringLiteral("Device")));
+    root->addWidget(PageUtils::pageTitle(tr("Device")));
     root->addWidget(PageUtils::pageSubtitle(
-        QStringLiteral("Hardware and software interface details for this machine.")));
+        tr("Hardware and software interface details for this machine.")));
 
     // Product identity line.
     auto *product = new QLabel(m_info.model());
@@ -125,7 +124,7 @@ DevicePage::DevicePage(QWidget *parent)
 
     // SYSTEM group.
     QGridLayout *sysGrid = nullptr;
-    QWidget *sysGroup = makeGroup(QStringLiteral("SYSTEM"), sysGrid, this);
+    QWidget *sysGroup = makeGroup(tr("SYSTEM"), sysGrid, this);
     m_model = valueLabel(m_info.model());
     m_board = valueLabel(notAvailable(m_info.boardName));
     m_bios = valueLabel(m_info.bios());
@@ -135,30 +134,30 @@ DevicePage::DevicePage(QWidget *parent)
                                      .arg(m_info.kernelType, m_info.kernelVersion, m_info.architecture);
     m_kernel = valueLabel(notAvailable(kernel));
     int r = 0;
-    addRow(sysGrid, r++, captionLabel(QStringLiteral("Model")), m_model);
-    addRow(sysGrid, r++, captionLabel(QStringLiteral("Board")), m_board);
-    addRow(sysGrid, r++, captionLabel(QStringLiteral("BIOS")), m_bios);
-    addRow(sysGrid, r++, captionLabel(QStringLiteral("Kernel")), m_kernel);
+    addRow(sysGrid, r++, captionLabel(tr("Model")), m_model);
+    addRow(sysGrid, r++, captionLabel(tr("Board")), m_board);
+    addRow(sysGrid, r++, captionLabel(tr("BIOS")), m_bios);
+    addRow(sysGrid, r++, captionLabel(tr("Kernel")), m_kernel);
     root->addWidget(sysGroup);
 
     // TELEMETRY group.
     QGridLayout *telGrid = nullptr;
-    QWidget *telGroup = makeGroup(QStringLiteral("TELEMETRY"), telGrid, this);
+    QWidget *telGroup = makeGroup(tr("TELEMETRY"), telGrid, this);
     m_driver = valueLabel(QString());
     m_interface = valueLabel(QStringLiteral("WMI \u2192 hwmon"));
     m_sensorStatus = valueLabel(QString());
     m_hwmon = valueLabel(QString());
-    m_sensors = valueLabel(kSensorChannels);
+    m_sensors = valueLabel(tr("CPU temp \u00B7 GPU temp \u00B7 CPU fan \u00B7 GPU fan"));
     r = 0;
-    addRow(telGrid, r++, captionLabel(QStringLiteral("Telemetry Driver")), m_driver);
-    addRow(telGrid, r++, captionLabel(QStringLiteral("Interface")), m_interface);
-    addRow(telGrid, r++, captionLabel(QStringLiteral("Sensor Status")), m_sensorStatus);
-    addRow(telGrid, r++, captionLabel(QStringLiteral("Device")), m_hwmon);
-    addRow(telGrid, r++, captionLabel(QStringLiteral("Sensors")), m_sensors);
+    addRow(telGrid, r++, captionLabel(tr("Telemetry Driver")), m_driver);
+    addRow(telGrid, r++, captionLabel(tr("Interface")), m_interface);
+    addRow(telGrid, r++, captionLabel(tr("Sensor Status")), m_sensorStatus);
+    addRow(telGrid, r++, captionLabel(tr("Device")), m_hwmon);
+    addRow(telGrid, r++, captionLabel(tr("Sensors")), m_sensors);
     root->addWidget(telGroup);
 
     // Copy diagnostics action.
-    m_copy = new ActionButton(QStringLiteral("Copy diagnostics"));
+    m_copy = new ActionButton(tr("Copy diagnostics"));
     connect(m_copy, &ActionButton::clicked, this, &DevicePage::copyDiagnostics);
     root->addWidget(m_copy, 0, Qt::AlignLeft);
     root->addStretch(1);
@@ -178,18 +177,18 @@ void DevicePage::refreshStatus()
     const bool degraded = m_snapshot.status == AppState::Status::Degraded;
     const bool disconnected = m_snapshot.status == AppState::Status::Disconnected;
 
-    const QString friendly = connected ? QStringLiteral("Connected")
-                             : degraded  ? QStringLiteral("Limited")
-                                         : QStringLiteral("Unavailable");
+    const QString friendly = connected ? tr("Connected")
+                             : degraded  ? tr("Limited")
+                                         : tr("Unavailable");
     const QString raw = connected ? QStringLiteral("CONNECTED")
                         : degraded  ? QStringLiteral("DEGRADED")
                                     : QStringLiteral("DISCONNECTED");
 
     m_driver->setText(m_snapshot.deviceFound ? QStringLiteral("excalibur_wmi")
-                                             : QStringLiteral("Not available"));
+                                             : tr("Not available"));
     m_sensorStatus->setText(friendly);
     m_stateText = raw;
-    m_hwmon->setText(disconnected ? QStringLiteral("Not available") : notAvailable(m_snapshot.hwmonPath));
+    m_hwmon->setText(disconnected ? tr("Not available") : notAvailable(m_snapshot.hwmonPath));
 
     QColor statusColor = Theme::textMuted();
     if (connected)
@@ -204,7 +203,7 @@ void DevicePage::refreshStatus()
 QString DevicePage::diagnosticsText() const
 {
     const auto reading = [](const QString &label, bool valid, const QString &value) {
-        return QStringLiteral("%1: %2\n").arg(label, valid ? value : QStringLiteral("Not available"));
+        return QStringLiteral("%1: %2\n").arg(label, valid ? value : tr("Not available"));
     };
     const Units::TemperatureUnit unit = UserSettings::instance().tempUnit();
     const QString unitSym = Units::symbol(unit);
@@ -221,31 +220,31 @@ QString DevicePage::diagnosticsText() const
 
     QString t;
     t += QStringLiteral("EXCALIBUR Control Center \u2014 Diagnostics\n");
-    t += QStringLiteral("Generated: %1\n\n").arg(QDateTime::currentDateTime().toString(Qt::ISODate));
-    t += QStringLiteral("Model: %1\n").arg(m_info.model());
-    t += QStringLiteral("Manufacturer: %1\n").arg(notAvailable(m_info.manufacturer));
-    t += QStringLiteral("Board: %1\n").arg(notAvailable(m_info.boardName));
-    t += QStringLiteral("BIOS: %1\n").arg(m_info.bios());
-    t += QStringLiteral("Kernel: %1\n").arg(notAvailable(kernel));
-    t += QStringLiteral("Driver: %1\n").arg(notAvailable(m_snapshot.deviceFound ? QStringLiteral("excalibur_wmi") : QString()));
+    t += tr("Generated: %1\n\n").arg(QDateTime::currentDateTime().toString(Qt::ISODate));
+    t += tr("Model: %1\n").arg(m_info.model());
+    t += tr("Manufacturer: %1\n").arg(notAvailable(m_info.manufacturer));
+    t += tr("Board: %1\n").arg(notAvailable(m_info.boardName));
+    t += tr("BIOS: %1\n").arg(m_info.bios());
+    t += tr("Kernel: %1\n").arg(notAvailable(kernel));
+    t += tr("Driver: %1\n").arg(notAvailable(m_snapshot.deviceFound ? QStringLiteral("excalibur_wmi") : QString()));
     t += QStringLiteral("Interface: WMI \u2192 hwmon\n");
-    t += QStringLiteral("Sensor status: %1\n").arg(m_sensorStatus->text());
-    t += QStringLiteral("Internal state: %1\n").arg(m_stateText);
-    t += QStringLiteral("hwmon: %1\n").arg(notAvailable(m_snapshot.hwmonPath));
-    t += QStringLiteral("Sensors: %1\n\n").arg(kSensorsRaw);
-    t += QStringLiteral("Current readings\n");
-    t += reading(QStringLiteral("CPU temperature"), m_snapshot.cpuTempValid, cpuTemp);
-    t += reading(QStringLiteral("GPU temperature"), m_snapshot.gpuTempValid, gpuTemp);
-    t += reading(QStringLiteral("CPU fan"), m_snapshot.cpuFanValid, cpuFan);
-    t += reading(QStringLiteral("GPU fan"), m_snapshot.gpuFanValid, gpuFan);
+    t += tr("Sensor status: %1\n").arg(m_sensorStatus->text());
+    t += tr("Internal state: %1\n").arg(m_stateText);
+    t += tr("hwmon: %1\n").arg(notAvailable(m_snapshot.hwmonPath));
+    t += tr("Sensors: %1\n\n").arg(kSensorsRaw);
+    t += tr("Current readings\n");
+    t += reading(tr("CPU temperature"), m_snapshot.cpuTempValid, cpuTemp);
+    t += reading(tr("GPU temperature"), m_snapshot.gpuTempValid, gpuTemp);
+    t += reading(tr("CPU fan"), m_snapshot.cpuFanValid, cpuFan);
+    t += reading(tr("GPU fan"), m_snapshot.gpuFanValid, gpuFan);
     return t;
 }
 
 void DevicePage::copyDiagnostics()
 {
     QGuiApplication::clipboard()->setText(diagnosticsText());
-    m_copy->setText(QStringLiteral("Copied"));
+    m_copy->setText(tr("Copied"));
     QTimer::singleShot(1500, this, [this]() {
-        m_copy->setText(QStringLiteral("Copy diagnostics"));
+        m_copy->setText(tr("Copy diagnostics"));
     });
 }

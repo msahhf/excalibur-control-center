@@ -13,7 +13,7 @@ FanStatus::FanStatus(QWidget *parent)
     row->setContentsMargins(0, 0, 0, 0);
     row->setSpacing(Theme::Space::S);
 
-    m_caption = new QLabel(QStringLiteral("Fan"));
+    m_caption = new QLabel(tr("Fan"));
     m_caption->setFont(Theme::font(11, QFont::Medium));
     {
         QPalette p = m_caption->palette();

@@ -130,7 +130,7 @@ HeroStatus::HeroStatus(QWidget *parent)
     v->addWidget(m_content);
 
     // Row 1: section label + cooling pill, so the pill no longer adds a row.
-    m_label = new QLabel(QStringLiteral("SYSTEM STATUS"));
+    m_label = new QLabel(tr("SYSTEM STATUS"));
     m_label->setFont(Theme::labelFont(9, QFont::DemiBold, 155));
     {
         QPalette p = m_label->palette();
@@ -148,7 +148,7 @@ HeroStatus::HeroStatus(QWidget *parent)
     cv->addLayout(row1);
 
     // Row 2: the state headline + the two headline temperatures inline.
-    m_title = new QLabel(QStringLiteral("System Normal"));
+    m_title = new QLabel(tr("System Normal"));
     m_title->setFont(Theme::font(22, QFont::Bold));
     {
         QPalette p = m_title->palette();
@@ -156,8 +156,8 @@ HeroStatus::HeroStatus(QWidget *parent)
         m_title->setPalette(p);
     }
 
-    const Headline cpu = makeHeadline(QStringLiteral("CPU"));
-    const Headline gpu = makeHeadline(QStringLiteral("GPU"));
+    const Headline cpu = makeHeadline(tr("CPU"));
+    const Headline gpu = makeHeadline(tr("GPU"));
     m_cpuDot = cpu.dot;
     m_gpuDot = gpu.dot;
     m_cpuCaption = cpu.caption;
@@ -183,7 +183,7 @@ HeroStatus::HeroStatus(QWidget *parent)
     cv->addLayout(row2);
 
     // Row 3: plain-language detail.
-    m_subtitle = new QLabel(QStringLiteral("Temperatures and cooling are operating normally."));
+    m_subtitle = new QLabel(tr("Temperatures and cooling are operating normally."));
     m_subtitle->setFont(Theme::font(11, QFont::Normal));
     m_subtitle->setWordWrap(true);
     {
@@ -210,31 +210,31 @@ void HeroStatus::setSystemState(AppState::Status status, AppState::Band band)
 
     switch (status) {
     case AppState::Status::Disconnected:
-        m_title->setText(QStringLiteral("Telemetry Unavailable"));
-        m_subtitle->setText(QStringLiteral(
+        m_title->setText(tr("Telemetry Unavailable"));
+        m_subtitle->setText(tr(
             "The EXCALIBUR hardware interface is not currently available."));
         break;
     case AppState::Status::Degraded:
-        m_title->setText(QStringLiteral("Limited Telemetry"));
-        m_subtitle->setText(QStringLiteral(
+        m_title->setText(tr("Limited Telemetry"));
+        m_subtitle->setText(tr(
             "Some sensor readings are currently unavailable."));
         break;
     case AppState::Status::Connected:
         switch (band) {
         case AppState::Band::Cool:
         case AppState::Band::Normal:
-            m_title->setText(QStringLiteral("System Normal"));
-            m_subtitle->setText(QStringLiteral(
+            m_title->setText(tr("System Normal"));
+            m_subtitle->setText(tr(
                 "Temperatures and cooling are operating normally."));
             break;
         case AppState::Band::Warm:
-            m_title->setText(QStringLiteral("System Warm"));
-            m_subtitle->setText(QStringLiteral(
+            m_title->setText(tr("System Warm"));
+            m_subtitle->setText(tr(
                 "The system is under increased thermal load."));
             break;
         case AppState::Band::High:
-            m_title->setText(QStringLiteral("Thermal Load Elevated"));
-            m_subtitle->setText(QStringLiteral(
+            m_title->setText(tr("Thermal Load Elevated"));
+            m_subtitle->setText(tr(
                 "Temperatures are high. Cooling is working to keep up."));
             break;
         }

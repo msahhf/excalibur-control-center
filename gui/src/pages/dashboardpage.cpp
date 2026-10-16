@@ -91,9 +91,9 @@ DashboardPage::DashboardPage(QWidget *parent)
 {
     auto *root = PageUtils::makeCenteredColumn(this);
 
-    root->addWidget(PageUtils::pageTitle(QStringLiteral("Dashboard")));
+    root->addWidget(PageUtils::pageTitle(tr("Dashboard")));
     root->addWidget(PageUtils::pageSubtitle(
-        QStringLiteral("System state and hardware telemetry at a glance.")));
+        tr("System state and hardware telemetry at a glance.")));
 
     m_body = new QVBoxLayout;
     m_body->setContentsMargins(0, Theme::Space::M, 0, 0);
@@ -124,9 +124,9 @@ DashboardPage::DashboardPage(QWidget *parent)
 
     m_empty = new EmptyState;
     m_empty->setMessage(
-        QStringLiteral("Waiting for hardware"),
-        QStringLiteral("Load the excalibur_wmi driver to enable hardware telemetry. "
-                       "This screen updates automatically when the device appears."));
+        tr("Waiting for hardware"),
+        tr("Load the excalibur_wmi driver to enable hardware telemetry. "
+           "This screen updates automatically when the device appears."));
 
     m_stack->addWidget(m_content);
     m_stack->addWidget(m_empty);

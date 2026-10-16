@@ -4,6 +4,7 @@
 #include "app/usersettings.h"
 #include "app/version.h"
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QElapsedTimer>
 #include <QFile>
@@ -32,21 +33,24 @@ QString buildType()
     if (!t.isEmpty())
         return t;
 #endif
+    // Free helper, not a QObject member: tr() does not compile (plan 4.1).
 #ifdef QT_NO_DEBUG
-    return QStringLiteral("Release");
+    return QCoreApplication::translate("AppDiagnostics", "Release");
 #else
-    return QStringLiteral("Debug");
+    return QCoreApplication::translate("AppDiagnostics", "Debug");
 #endif
 }
 
 QString stateString(AppState::Status status)
 {
     switch (status) {
-    case AppState::Status::Connected: return QStringLiteral("Connected");
-    case AppState::Status::Degraded: return QStringLiteral("Degraded");
+    case AppState::Status::Connected:
+        return QCoreApplication::translate("AppDiagnostics", "Connected");
+    case AppState::Status::Degraded:
+        return QCoreApplication::translate("AppDiagnostics", "Degraded");
     case AppState::Status::Disconnected: break;
     }
-    return QStringLiteral("Unavailable");
+    return QCoreApplication::translate("AppDiagnostics", "Unavailable");
 }
 
 QString themeString(UserSettings::AppTheme theme)
