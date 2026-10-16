@@ -52,9 +52,16 @@ const QColor kWarningDark = col("#E0A33E");
 // 5.92 / 5.38 (was 3.88 / 3.53, AA fail).
 const QColor kWarningLight = col("#8A5A0B");
 const QColor kCriticalDark = col("#E5484D");
-const QColor kCriticalLight = col("#D33A3A");
+// Light critical is also read as small text ("High" band label, WCAG 1.4.3 AA
+// 4.5:1): page background 4.81, white 5.29, elevated 4.98, hover 4.77
+// (was 4.30 / 4.73 / 4.45 / 4.26 — three of four failed). Pure red hue 0° is
+// unchanged so it stays clear of the 4° accent red.
+const QColor kCriticalLight = col("#C73434");
 const QColor kCoolDark = col("#4FB0E6");
-const QColor kCoolLight = col("#2A87C4");
+// Light cool is also read as small text ("Cool" band label): page background
+// 4.90, white 5.39, elevated 5.07, hover 4.85 (was 3.56 / 3.92 / 3.69 / 3.53
+// — all four failed). Blue hue preserved (205° vs 204°).
+const QColor kCoolLight = col("#1F6FA8");
 
 } // namespace
 
@@ -99,11 +106,12 @@ void applyApplicationPalette()
     p.setColor(QPalette::ToolTipText, textPrimary());
     p.setColor(QPalette::Mid, border());
     p.setColor(QPalette::Highlight, accent());
-    // Selection/hover fill colour is the accent. In the light theme the accent
-    // was darkened for AA small text (#C42D22), which would drag the previous
-    // dark highlight text down to 3.20:1 — white on it is 5.61:1. The dark
-    // accent is unchanged, so it keeps the primary text pairing.
-    p.setColor(QPalette::HighlightedText, isDark() ? textPrimary() : QColor(Qt::white));
+    // Selection/hover fill colour is the accent. Light theme: white on the
+    // darkened #C42D22 accent = 5.61:1. Dark theme: the highlight stays the
+    // bright accent #FF4D3D, where the previous primary text #E8EAED measured
+    // only 2.73:1 — the near-black ink (#14171C) measures 5.46:1 (AA small
+    // text); HighlightedText is only ever painted over Highlight.
+    p.setColor(QPalette::HighlightedText, isDark() ? kLightTextPrimary : QColor(Qt::white));
     p.setColor(QPalette::Disabled, QPalette::WindowText, textMuted());
     p.setColor(QPalette::Disabled, QPalette::Text, textMuted());
     qApp->setPalette(p);
