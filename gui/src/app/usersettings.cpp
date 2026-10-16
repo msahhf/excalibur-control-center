@@ -6,6 +6,7 @@ namespace {
 constexpr char kKeyTheme[] = "theme";
 constexpr char kKeyUnit[] = "temperatureUnit";
 constexpr char kKeyRefresh[] = "refreshIntervalMs";
+constexpr char kKeyLanguage[] = "language";
 } // namespace
 
 UserSettings &UserSettings::instance()
@@ -30,6 +31,11 @@ void UserSettings::load()
     bool ok = false;
     const int refresh = m_settings.value(kKeyRefresh, kDefaultRefreshMs).toInt(&ok);
     m_refreshMs = (ok && isRefreshValid(refresh)) ? refresh : kDefaultRefreshMs;
+
+    // Missing key (older configs) or an unknown value -> System, which means
+    // "follow the operating system language" (see main.cpp).
+    m_language = languageFromString(
+        m_settings.value(kKeyLanguage, languageToString(Language::System)).toString());
 }
 
 void UserSettings::setTheme(AppTheme theme, bool persist)
@@ -68,11 +74,24 @@ void UserSettings::setRefreshMs(int ms, bool persist)
     emit refreshMsChanged();
 }
 
+void UserSettings::setLanguage(Language language, bool persist)
+{
+    if (m_language == language)
+        return;
+    m_language = language;
+    if (persist) {
+        m_settings.setValue(kKeyLanguage, languageToString(language));
+        m_settings.sync();
+    }
+    emit languageChanged();
+}
+
 void UserSettings::resetToDefaults()
 {
     setTheme(AppTheme::System);
     setTempUnit(Units::TemperatureUnit::Celsius);
     setRefreshMs(kDefaultRefreshMs);
+    setLanguage(Language::System);
 }
 
 UserSettings::AppTheme UserSettings::themeFromString(const QString &s)
@@ -104,6 +123,26 @@ QString UserSettings::themeToString(AppTheme theme)
 QString UserSettings::tempUnitToString(Units::TemperatureUnit unit)
 {
     return Units::isFahrenheit(unit) ? QStringLiteral("fahrenheit") : QStringLiteral("celsius");
+}
+
+UserSettings::Language UserSettings::languageFromString(const QString &s)
+{
+    const QString v = s.trimmed().toLower();
+    if (v == QLatin1String("en"))
+        return Language::English;
+    if (v == QLatin1String("tr"))
+        return Language::Turkish;
+    return Language::System; // default / invalid
+}
+
+QString UserSettings::languageToString(Language language)
+{
+    switch (language) {
+    case Language::English: return QStringLiteral("en");
+    case Language::Turkish: return QStringLiteral("tr");
+    case Language::System: break;
+    }
+    return QStringLiteral("system");
 }
 
 QVector<int> UserSettings::refreshOptions()

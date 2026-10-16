@@ -862,61 +862,73 @@
     </message>
     <message>
         <location filename="../src/pages/settingspage.cpp" line="48"/>
-        <source>Application preferences. Changes apply immediately and are saved.</source>
+        <source>Application preferences. Changes are saved immediately; language changes apply on restart.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="50"/>
+        <location filename="../src/pages/settingspage.cpp" line="51"/>
         <source>PREFERENCES</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="66"/>
+        <location filename="../src/pages/settingspage.cpp" line="81"/>
+        <location filename="../src/pages/settingspage.cpp" line="89"/>
         <source>System</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="67"/>
+        <location filename="../src/pages/settingspage.cpp" line="86"/>
+        <location filename="../src/pages/settingspage.cpp" line="102"/>
+        <source>Language</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/pages/settingspage.cpp" line="90"/>
         <source>Light</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="68"/>
+        <location filename="../src/pages/settingspage.cpp" line="91"/>
         <source>Dark</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="71"/>
+        <location filename="../src/pages/settingspage.cpp" line="94"/>
         <source>Celsius</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="72"/>
+        <location filename="../src/pages/settingspage.cpp" line="95"/>
         <source>Fahrenheit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="76"/>
+        <location filename="../src/pages/settingspage.cpp" line="99"/>
         <source>%1 s</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="79"/>
+        <location filename="../src/pages/settingspage.cpp" line="104"/>
         <source>Theme</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="81"/>
+        <location filename="../src/pages/settingspage.cpp" line="106"/>
         <source>Temperature unit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="83"/>
+        <location filename="../src/pages/settingspage.cpp" line="108"/>
         <source>Refresh interval</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/pages/settingspage.cpp" line="94"/>
+        <location filename="../src/pages/settingspage.cpp" line="115"/>
+        <source>The new language will be used the next time you start the application.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/pages/settingspage.cpp" line="130"/>
         <source>Reset to Defaults</source>
         <translation type="unfinished"></translation>
     </message>
