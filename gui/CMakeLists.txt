@@ -101,10 +101,14 @@ target_link_libraries(excalibur-control-center PRIVATE Qt6::Widgets)
 # Only the Turkish catalog is produced; English is the source language (A5).
 # The committed .ts declares language="tr_TR"; lupdate preserves that attribute
 # across refreshes (do not pass -target-language, it makes lupdate warn).
+#
+# Portability: the leading positional argument is the target whose sources are
+# scanned. Qt 6.4-6.6 only understand this positional form (they infer the
+# sources from it); the SOURCE_TARGETS keyword used here previously was added in
+# Qt 6.7, where the call below still works via automatic source collection.
+# Both lines of Qt end up embedding the compiled .qm under :/i18n.
 qt_add_translations(excalibur-control-center
-    TS_FILES i18n/excalibur-control-center_tr.ts
-    SOURCE_TARGETS excalibur-control-center
-)
+    TS_FILES i18n/excalibur-control-center_tr.ts)
 
 target_compile_options(excalibur-control-center PRIVATE -Wall -Wextra)
 
