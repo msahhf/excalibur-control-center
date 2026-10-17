@@ -43,10 +43,10 @@ checksum:
 
 ```
 source=("https://github.com/msahhf/excalibur-control-center/archive/refs/tags/v$pkgver.tar.gz")
-# The real sha256 is produced during the release: the tag archive does not
-# exist before the tag is pushed, so it is filled in by `updpkgsums` in the
-# release workflow (and recorded afterwards).
-sha256sums=('TO_BE_SET_AFTER_TAG')
+# Real sha256 of the v0.5.7 tag archive, recorded here after the tag was pushed.
+# On a new release bump pkgver, then regenerate this with `updpkgsums`
+# (or recompute it by hand) and refresh .SRCINFO.
+sha256sums=('a1ab1c99099527870cacb2be2591b552bb987c01e4bdcc2907f866a1b1b45363')
 ```
 
 ```bash
