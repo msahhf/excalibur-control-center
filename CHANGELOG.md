@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.5.8
+
+First published release since v0.5.6. (v0.5.7 was prepared but **never
+released** — its release workflow failed on Qt 6.4.) Still strictly read-only
+telemetry (no fan/RGB/power control).
+
+### Added
+
+- **Turkish localisation (i18n).** A translation catalog
+  (`gui/i18n/excalibur-control-center_tr.ts`, 186 messages) and a **Language**
+  selector in Settings (System / English / Türkçe). The choice is applied on the
+  next start. Internal serialisation values remain stable English tokens, so a
+  language change never alters persisted settings.
+- **Close-to-tray.** Closing the window now hides it to the system tray (with a
+  one-time hint balloon); choosing **Quit** from the tray menu exits the app.
+- **One-command install (`scripts/install.sh`).** Detects the distribution,
+  checks prerequisites, verifies the released asset's SHA256 and installs the GUI
+  and the DKMS driver. Supports `--check`, `--version` and `--uninstall`.
+
+### Fixed
+
+- **Qt 6.4 compatibility.** `qt_add_translations` is called without the
+  `SOURCE_TARGETS` keyword (added in Qt 6.7), so the build works again on Qt 6.4
+  (Ubuntu 24.04 / Debian 12 / AppImage builds). A new **Ubuntu 24.04 (Qt 6.4)
+  GUI build** CI gate guards this.
+- **Accessibility / contrast.** Theme tokens were adjusted to meet **WCAG AA**
+  contrast on cards, and the hand-painted navigation is now exposed to assistive
+  technology (accessible name, role and state).
+- **Source-archive hygiene.** The prebuilt `analysis/phase3/excalibur-wmi.ko` is
+  now kept out of source archives (`.gitattributes` `export-ignore`) and CI fails
+  if a real `.ko` ever reappears in a package. The "driver source only" wording
+  was corrected.
+- **README install table.** Package names now match the actual release assets,
+  and the one-command install is documented.
+
+### Notes
+
+- `scripts/install.sh` was exercised **by hand on one real CachyOS machine**
+  (install/uninstall); CI never runs it on real hardware.
+- **v0.5.7 was not released** — this changelog jumps from v0.5.6 straight to
+  v0.5.8.
+
 ## v0.5.7
 
 Application and installation release. Still strictly read-only telemetry (no
