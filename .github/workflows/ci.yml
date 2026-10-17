@@ -60,6 +60,54 @@ jobs:
 
           echo "source archive guard OK"
 
+  # Qt 6.4 compatibility gate. The Arch job above builds against a very recent
+  # Qt (6.11/6.12); the deb/AppImage builds (Ubuntu 24.04, Debian 12) ship an
+  # older Qt 6.4 that only runs in release.yml, i.e. *after* a tag is cut. That
+  # gap let the v0.5.7 release break on Qt 6.4 (`qt_add_translations ...
+  # SOURCE_TARGETS` was added in Qt 6.7). This job reproduces the oldest
+  # supported Qt on a plain ubuntu:24.04 container so the same regression class
+  # is caught on every push/PR, before a release is tagged. It deliberately
+  # builds only the GUI (configure + build), covering the qt_add_translations /
+  # lupdate / lrelease path, .qm generation and the :/i18n embedding.
+  qt64-build:
+    name: Ubuntu 24.04 (Qt 6.4) GUI build
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies (Qt 6.4)
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+            cmake ninja-build g++ \
+            qt6-base-dev qt6-tools-dev qt6-l10n-tools \
+            ca-certificates
+
+      - name: Show Qt version (must be 6.4.x)
+        run: |
+          qmake6 -query QT_VERSION
+          QT_VER=$(qmake6 -query QT_VERSION)
+          echo "Qt version: $QT_VER"
+          case "$QT_VER" in
+            6.4.*) echo "Qt 6.4 series confirmed" ;;
+            *) echo "::error::expected Qt 6.4.x, got $QT_VER"; exit 1 ;;
+          esac
+
+      - name: GUI configure + build (compiler warnings gated)
+        run: |
+          cmake -S gui -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build 2>&1 | tee build.log
+          # Only fail on *compiler* warnings: `warning:` (lowercase) matches the
+          # gcc/clang diagnostic form ("file.cpp:12:5: warning: ...") but not
+          # CMake's own "CMake Warning at ..." (capitalised), which is expected
+          # noise on the older Qt 6.4 toolchain.
+          if grep -q 'warning:' build.log; then
+            echo "::error::compiler warnings found on Qt 6.4 (-Wall -Wextra must be clean)"
+            exit 1
+          fi
+
   arch:
     name: Arch build · package · DKMS · validation
     runs-on: ubuntu-latest
