@@ -188,11 +188,59 @@ jobs:
 
       - name: makepkg from the public release source (non-root)
         run: |
-          # PKGBUILD source is the GitHub release archive for v$VERSION; makepkg
-          # downloads it and verifies the sha256 itself.
+          set -euo pipefail
+          # The PKGBUILD's canonical source is this version's GitHub release
+          # archive, so the committed build is tag-dependent: on a *pre-tag*
+          # preparation branch the tag does not exist yet (404) and the
+          # committed sha256sums is the placeholder 'TO_BE_SET_AFTER_TAG'
+          # (release.yml rewrites it with updpkgsums once the tag is pushed).
+          # Two modes keep the build verifiable in both cases without ever
+          # skipping or faking a checksum:
+          #
+          #   * tag published -> unchanged historical behaviour: makepkg fetches
+          #     the real release archive and verifies the committed real sha256;
+          #   * tag absent    -> reproduce the tag archive locally with
+          #     `git archive` (identical .gitattributes export-ignore semantics
+          #     and the same excalibur-control-center-$VERSION/ root as GitHub's
+          #     /archive/refs/tags/<tag>.tar.gz), record its REAL sha256, and
+          #     build against that local file. makepkg still verifies a genuine
+          #     hash of a genuine archive — no fake or skipped checksum.
           useradd -m builder
           chown -R builder:builder .
-          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -C -c -f --noconfirm"
+
+          # Write the tag query to a variable before grepping: piping the remote
+          # listing into `grep -q` under `pipefail` can SIGPIPE git and fail.
+          TAGS=$(git ls-remote --tags origin "refs/tags/v$VERSION")
+          if printf '%s\n' "$TAGS" | grep -q "refs/tags/v$VERSION"; then
+            echo "tag v$VERSION is published: building from the released source archive"
+            su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -C -c -f --noconfirm"
+          else
+            echo "tag v$VERSION is not published yet: building from a local git-archive source"
+            SRCDEST=/tmp/excalibur-srcdest
+            rm -rf "$SRCDEST"
+            mkdir -p "$SRCDEST"
+            # Same export-ignore semantics as GitHub's tag auto-archive.
+            git archive --format=tar.gz \
+              --prefix="excalibur-control-center-$VERSION/" \
+              -o "$SRCDEST/v$VERSION.tar.gz" HEAD
+            LOCAL_SHA=$(sha256sum "$SRCDEST/v$VERSION.tar.gz" | cut -d' ' -f1)
+            echo "local source archive sha256: $LOCAL_SHA"
+
+            # Patch a throwaway copy of the recipe only: point source at the
+            # local archive and set sha256sums to its real hash. The committed
+            # PKGBUILD is not left modified (a restore step puts it back before
+            # the .SRCINFO check below).
+            cp packaging/arch/PKGBUILD "$SRCDEST/PKGBUILD"
+            sed -i "s|^source=.*|source=(\"file://$SRCDEST/v$VERSION.tar.gz\")|" "$SRCDEST/PKGBUILD"
+            sed -i "s|^sha256sums=.*|sha256sums=('$LOCAL_SHA')|" "$SRCDEST/PKGBUILD"
+
+            # The (unchanged) Qt ABI step builds a second package with `makepkg`
+            # in packaging/arch, so the local-source recipe must be in place
+            # there too for the pre-tag run.
+            install -m644 "$SRCDEST/PKGBUILD" packaging/arch/PKGBUILD
+            chown -R builder:builder "$SRCDEST" packaging/arch
+            su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -C -c -f --noconfirm"
+          fi
 
       - name: Package content audit
         run: |
@@ -267,6 +315,20 @@ jobs:
           echo "negative test OK: lower-than-required declaration rejected"
           bash packaging/arch/verify-qt-abi.sh "$TMP/usr/bin/excalibur-control-center" 99.0
           echo "positive test OK: higher-than-required declaration accepted"
+
+      - name: Restore the committed PKGBUILD after the pre-tag local build
+        run: |
+          # On a pre-tag run the makepkg step builds from a throwaway recipe
+          # (local archive + its real sha256) placed in packaging/arch so the
+          # unchanged Qt ABI step above could reuse it. Put the committed
+          # PKGBUILD back so the checksum-drift and .SRCINFO-vs-PKGBUILD checks
+          # below keep running against the real recipe. No-op on a tagged run.
+          if ! git diff --quiet -- packaging/arch/PKGBUILD; then
+            git checkout -- packaging/arch/PKGBUILD
+            echo "restored committed packaging/arch/PKGBUILD"
+          else
+            echo "packaging/arch/PKGBUILD already pristine (tagged run)"
+          fi
 
       - name: Source archive checksum drift check
         run: |
