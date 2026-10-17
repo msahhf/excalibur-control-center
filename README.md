@@ -85,6 +85,49 @@ The Debian 13 and Ubuntu 24.04 `.deb` packages are built against each
 distribution's own Qt version (Debian 13: Qt 6.8; Ubuntu 24.04: Qt 6.4) and are
 **not interchangeable** — always use the package built for your distribution.
 
+### One-command install
+
+A convenience installer script is provided that detects your distribution,
+checks the prerequisites and installs the GUI package **together with** the
+`excalibur-wmi` DKMS driver using your native package manager.
+
+**Download it, read it, then run it.** Do **not** pipe it straight into a shell
+— `curl … | sudo bash` is **not recommended**, because you would run code you
+never looked at as root:
+
+```bash
+# 1. download
+curl -fsSLO https://raw.githubusercontent.com/msahhf/excalibur-control-center/main/scripts/install.sh
+
+# 2. read it (recommended)
+less install.sh
+
+# 3. run it (root is required for the actual install)
+chmod +x install.sh
+sudo ./install.sh
+```
+
+Options:
+
+```bash
+./install.sh --check      # detect distro + prereqs, show what WOULD be installed
+                          # (does NOT require root, does NOT download/install)
+sudo ./install.sh --version 0.5.6   # install a specific release instead of latest
+sudo ./install.sh --uninstall       # remove the installed packages
+./install.sh --help                 # usage
+```
+
+Supported distributions: Arch-based (including CachyOS), Debian 13 (trixie) and
+Ubuntu 24.04 LTS (noble). On any other system the script exits with an error and
+points you to the AppImage or the source archive.
+
+> **Warning:** the script requires root and has **not been tested on real
+> hardware** yet.
+>
+> **Note:** the script currently lives only in the repository — it is **not yet
+> included in any release**. The `raw.githubusercontent.com` URL above therefore
+> always points at the latest `main` branch, not at a tagged release.
+
 ### Arch Linux / CachyOS
 
 The package provides **both the application and the integrated DKMS driver**.
