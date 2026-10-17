@@ -76,9 +76,10 @@ exposes read-only hwmon telemetry.
 | Distribution | Package | Driver (DKMS) |
 | ------------ | ------- | ------------- |
 | Arch Linux / CachyOS | `excalibur-control-center-<ver>-1-x86_64.pkg.tar.zst` | included in the same package |
-| Debian 13 (trixie) | `excalibur-control-center_<ver>_amd64.deb` + `excalibur-control-center-dkms_<ver>_all.deb` | separate DKMS package |
-| Ubuntu 24.04 LTS (noble) | `excalibur-control-center_<ver>_amd64.deb` + `excalibur-control-center-dkms_<ver>_all.deb` | separate DKMS package |
+| Debian 13 (trixie) | `excalibur-control-center_<ver>-1.deb13_amd64.deb` + `excalibur-control-center-dkms_<ver>-1.deb13_all.deb` | separate DKMS package |
+| Ubuntu 24.04 LTS (noble) | `excalibur-control-center_<ver>-1.ubuntu24.04_amd64.deb` + `excalibur-control-center-dkms_<ver>-1.ubuntu24.04_all.deb` | separate DKMS package |
 | Any glibc >= 2.35 desktop | `EXCALIBUR_Control_Center-x86_64.AppImage` | **not included** (GUI only) |
+| Any distribution (source) | `excalibur-control-center-<ver>.tar.gz` | application + driver source — build required |
 
 The Debian 13 and Ubuntu 24.04 `.deb` packages are built against each
 distribution's own Qt version (Debian 13: Qt 6.8; Ubuntu 24.04: Qt 6.4) and are
@@ -100,7 +101,10 @@ Install both the GUI and the DKMS driver package (this pulls in `dkms`; kernel
 headers for your running kernel must be installed for the module to build):
 
 ```bash
-sudo apt install ./excalibur-control-center_<ver>_amd64.deb ./excalibur-control-center-dkms_<ver>_all.deb
+# Debian 13 (trixie):
+sudo apt install ./excalibur-control-center_<ver>-1.deb13_amd64.deb ./excalibur-control-center-dkms_<ver>-1.deb13_all.deb
+# Ubuntu 24.04 (noble):
+sudo apt install ./excalibur-control-center_<ver>-1.ubuntu24.04_amd64.deb ./excalibur-control-center-dkms_<ver>-1.ubuntu24.04_all.deb
 # remove:
 sudo apt remove excalibur-control-center excalibur-control-center-dkms
 ```
