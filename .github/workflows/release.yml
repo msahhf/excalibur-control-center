@@ -3,8 +3,8 @@ name: Release
 # Tag-driven release. Builds the Arch package from the public release source,
 # builds+tests the GUI-only AppImage (Debian 12), builds+tests the Debian 13 and
 # Ubuntu 24.04 .deb packages, computes SHA256SUMS (package + source archive +
-# AppImage + both .deb sets), uploads build artifacts, and publishes a GitHub
-# Release for the tag with everything attached.
+# AppImage + both .deb sets + installer script), uploads build artifacts, and
+# publishes a GitHub Release for the tag with everything attached.
 #
 # The release job needs every required build/test job, so a failed package can
 # never produce a release with missing or stale artifacts.
@@ -306,8 +306,12 @@ jobs:
             echo "::error::source archive contains packaging/.github content or a prebuilt .ko (self-referential checksum or redistributed build artifact)"
             exit 1
           fi
+          # Ship the one-command installer as a release asset (flat basename so
+          # `sha256sum -c SHA256SUMS` finds it next to the other downloads).
+          cp scripts/install.sh install.sh
           {
             echo "# EXCALIBUR Control Center v$VERSION release checksums"
+            ( cd "$GITHUB_WORKSPACE" && sha256sum install.sh )
             ( cd "$GITHUB_WORKSPACE" && sha256sum "excalibur-control-center-$VERSION.tar.gz" )
             ( cd packaging/arch && sha256sum excalibur-control-center-[0-9]*.pkg.tar.zst )
             ( cd "$GITHUB_WORKSPACE/appimage-dist" && sha256sum ./*.AppImage )
@@ -327,6 +331,7 @@ jobs:
             deb-debian13/*.deb
             deb-ubuntu2404/*.deb
             packaging/arch/SHA256SUMS
+            install.sh
           if-no-files-found: error
 
       - name: Publish GitHub Release
@@ -342,6 +347,7 @@ jobs:
             deb-debian13/*.deb
             deb-ubuntu2404/*.deb
             packaging/arch/SHA256SUMS
+            install.sh
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
