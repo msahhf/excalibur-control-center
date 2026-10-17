@@ -79,7 +79,7 @@ exposes read-only hwmon telemetry.
 | Debian 13 (trixie) | `excalibur-control-center_<ver>-1.deb13_amd64.deb` + `excalibur-control-center-dkms_<ver>-1.deb13_all.deb` | separate DKMS package |
 | Ubuntu 24.04 LTS (noble) | `excalibur-control-center_<ver>-1.ubuntu24.04_amd64.deb` + `excalibur-control-center-dkms_<ver>-1.ubuntu24.04_all.deb` | separate DKMS package |
 | Any glibc >= 2.35 desktop | `EXCALIBUR_Control_Center-x86_64.AppImage` | **not included** (GUI only) |
-| Any distribution (driver source) | `excalibur-control-center-<ver>.tar.gz` | driver source only — build required |
+| Any distribution (source) | `excalibur-control-center-<ver>.tar.gz` | application + driver source — build required |
 
 The Debian 13 and Ubuntu 24.04 `.deb` packages are built against each
 distribution's own Qt version (Debian 13: Qt 6.8; Ubuntu 24.04: Qt 6.4) and are
