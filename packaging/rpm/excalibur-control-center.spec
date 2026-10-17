@@ -1,5 +1,5 @@
 Name:           excalibur-control-center
-Version:        0.5.7
+Version:        0.5.8
 Release:        1%{?dist}
 Summary:        Read-only hardware telemetry for CASPER EXCALIBUR laptops
 License:        GPL-2.0-only
@@ -68,6 +68,12 @@ fi
 /usr/src/excalibur-wmi-%{version}
 
 %changelog
+* Sat Oct 17 2026 Muhammedsah Fidan <muhammedsahfidan@gmail.com> - 0.5.8-1
+- First published release since 0.5.6 (0.5.7 was prepared but not released — its
+  release workflow failed on Qt 6.4): Turkish i18n with a language selector and
+  WCAG AA contrast/accessibility fixes, close-to-tray behaviour, a one-command
+  install script, a source-archive CI guard, and a Qt 6.4 compatibility fix.
+
 * Sat Oct 17 2026 Muhammedsah Fidan <muhammedsahfidan@gmail.com> - 0.5.7-1
 - Track the 0.5.7 release (GUI + DKMS subpackage): Turkish i18n with a language
   selector and WCAG AA contrast/accessibility fixes, close-to-tray behaviour, a

@@ -258,7 +258,7 @@ versions, the hwmon device path and the recent temperature/fan history.
 ## Status
 
 ```
-Current release : v0.5.7
+Current release : v0.5.8
 Stage           : Public release / active development
 Platform        : Linux
 Primary target  : CachyOS / Arch Linux

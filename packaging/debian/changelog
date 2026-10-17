@@ -1,3 +1,16 @@
+excalibur-control-center (0.5.8-1) unstable; urgency=medium
+
+  * First published release since v0.5.6 (v0.5.7 was prepared but not released —
+    its release workflow failed on Qt 6.4).
+  * Turkish i18n (186 messages) with a language selector in Settings, plus WCAG
+    AA contrast and accessibility (AT-visible navigation) fixes.
+  * Close-to-tray behaviour and a one-command `scripts/install.sh`.
+  * Source-archive guard so the prebuilt kernel module (`.ko`) is never shipped.
+  * Qt 6.4 compatibility fix (`qt_add_translations` without SOURCE_TARGETS), plus
+    a new Ubuntu 24.04 (Qt 6.4) GUI build CI gate.
+
+ -- Muhammedsah Fidan <muhammedsahfidan@gmail.com>  Sat, 17 Oct 2026 18:00:00 +0300
+
 excalibur-control-center (0.5.7-1) unstable; urgency=medium
 
   * Turkish i18n (186 messages) with a language selector in Settings, plus WCAG
