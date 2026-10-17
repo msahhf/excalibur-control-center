@@ -75,6 +75,19 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Mark the workspace as a safe git directory (root)
+        run: |
+          # This job runs as root in the container and later `chown -R
+          # builder:builder .` hands the workspace to the unprivileged build
+          # user. Every root `git` call after that (ls-remote/archive/diff/
+          # checkout) would otherwise abort with "detected dubious ownership".
+          # actions/checkout@v4 already does this via its default
+          # set-safe-directory=true, but we state it explicitly here so the
+          # guarantee does not silently depend on that default: it writes to
+          # root's global git config and therefore covers all later root git
+          # invocations in this job.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: "Derive version (single source: CMake)"
         run: |
           VERSION=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' gui/CMakeLists.txt | head -n1)
