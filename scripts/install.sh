@@ -897,6 +897,22 @@ post_install_hints() {
     echo
 }
 
+# Visual-only hint shown after the packages have been removed. It never unloads
+# the module itself: a module that is still resident keeps serving the system
+# until the next reboot, so we only *tell* the user about it. The optional
+# argument overrides the sysfs path so both branches can be exercised without a
+# real excalibur_wmi module (or root).
+post_uninstall_hints() {
+    local mod="${1:-/sys/module/excalibur_wmi}"
+    # Not loaded (no module directory): stay silent and leave the output clean.
+    [ -d "$mod" ] || return 0
+    echo
+    warn "The excalibur_wmi kernel module is still loaded in memory."
+    warn "It will be gone after a reboot. To unload it now (only if not in use):"
+    echo "        sudo modprobe -r excalibur_wmi"
+    echo
+}
+
 # --------------------------------------------------------------------------
 # --check report
 # --------------------------------------------------------------------------
@@ -965,6 +981,7 @@ main() {
         require_root "--uninstall"
         stage "Uninstall packages"
         uninstall_packages
+        post_uninstall_hints
         redraw_panel "$ROWS_SINCE_DRAW"
         exit 0
     fi
