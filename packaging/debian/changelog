@@ -1,3 +1,12 @@
+excalibur-control-center (0.5.7-1) unstable; urgency=medium
+
+  * Turkish i18n (186 messages) with a language selector in Settings, plus WCAG
+    AA contrast and accessibility (AT-visible navigation) fixes.
+  * Close-to-tray behaviour and a one-command `scripts/install.sh`.
+  * Source-archive guard so the prebuilt kernel module (`.ko`) is never shipped.
+
+ -- Muhammedsah Fidan <muhammedsahfidan@gmail.com>  Sat, 17 Oct 2026 10:00:00 +0300
+
 excalibur-control-center (0.5.6-1) unstable; urgency=medium
 
   * Debian 13 / Ubuntu 24.04 packaging. Identical package contents to 0.5.5;
