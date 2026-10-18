@@ -904,11 +904,19 @@ int main()
     //
     // The tests below make exactly one attribute fail at a time and record, for
     // every case, which attributes the device actually kept, so the real effect
-    // of a partial write is measured instead of assumed. Two independent failure
-    // mechanisms are used: (1) clearing the write bit (0444) so
-    // open(WriteOnly|Truncate) fails with EACCES, exactly as it would on a
-    // root-owned sysfs attribute, and (2) replacing the attribute with a
-    // DIRECTORY so the open fails for a different reason.
+    // of a partial write is measured instead of assumed.
+    //
+    // Both failure mechanisms are ROOT-INDEPENDENT: they are enforced by the
+    // kernel during path resolution (not by a permission check, which root is
+    // allowed to bypass). An earlier revision cleared the write bit (0444) to
+    // force EACCES; that silently stopped working under CI's root runner, which
+    // may write a 0444 file regardless. The two mechanisms used here are:
+    //   (1) replacing the attribute with a DIRECTORY, so
+    //       open(WriteOnly|Truncate) fails with EISDIR;
+    //   (2) replacing it with a self-referential SYMLINK, so open() fails with
+    //       ELOOP.
+    // Neither errno depends on the caller's uid, so the cases below behave
+    // identically for root and for an unprivileged user.
     //
     // Everything happens inside a QTemporaryDir. The real /sys tree is never
     // touched, and no privilege is escalated.
@@ -928,16 +936,6 @@ int main()
                 return QStringLiteral("<unreadable>");
             return QString::fromUtf8(f.readAll());
         };
-        const auto setWritable = [](const QString &path) {
-            return QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner
-                                                   | QFile::ReadUser | QFile::WriteUser
-                                                   | QFile::ReadGroup | QFile::ReadOther);
-        };
-        const auto setReadOnly = [](const QString &path) {
-            return QFile::setPermissions(path, QFile::ReadOwner | QFile::ReadUser
-                                                   | QFile::ReadGroup | QFile::ReadOther);
-        };
-
         // Attribute names in WRITE order.
         const QString attr[3] = {QStringLiteral("multi_intensity"),
                                  QStringLiteral("brightness"), QStringLiteral("effect")};
@@ -963,9 +961,18 @@ int main()
             LedData readBack{};
         };
 
+        // Root-independent way to make one attribute's open(WriteOnly|Truncate)
+        // fail. Both variants are kernel-enforced at path resolution and do not
+        // consult file permissions, so they fail for root exactly as for an
+        // unprivileged user.
+        enum class Fail {
+            Directory,  // attribute path is a directory  -> EISDIR
+            Symlink,    // attribute path is a self-loop   -> ELOOP
+        };
+
         // failIndex: 0 = multi_intensity, 1 = brightness, 2 = effect.
-        // asDirectory: induce failure by replacing the attribute with a dir.
-        const auto runCase = [&](int failIndex, bool asDirectory) -> Outcome {
+        // fail: which root-independent mechanism induces the failure.
+        const auto runCase = [&](int failIndex, Fail fail) -> Outcome {
             Outcome r;
             QTemporaryDir dir;
             if (!dir.isValid())
@@ -978,13 +985,13 @@ int main()
 
             if (failIndex >= 0) {
                 const QString target = zoneDir + QLatin1Char('/') + attr[failIndex];
-                if (asDirectory) {
-                    QFile::remove(target);
+                QFile::remove(target);
+                if (fail == Fail::Directory) {
                     QDir().mkpath(target);
                     r.blocked = QFileInfo(target).isDir();
                 } else {
-                    setReadOnly(target);
-                    r.blocked = !QFileInfo(target).isWritable();
+                    QFile::link(target, target); // self-referential -> ELOOP
+                    r.blocked = QFileInfo(target).isSymLink();
                 }
             }
 
@@ -999,17 +1006,18 @@ int main()
             for (int i = 0; i < 3; ++i)
                 r.after[i] = slurp(zoneDir + QLatin1Char('/') + attr[i]);
 
+            // read() opens all three attributes, so it is only meaningful while
+            // every attribute is a regular file (i.e. the control case).
             if (const auto back = client.read(Zone::ZoneA)) {
                 r.hasReadBack = true;
                 r.readBack = *back;
-                setWritable(zoneDir + "/multi_intensity"); // keep the tmp tree sane
             }
             return r;
         };
 
         // --- control: with every attribute writable the write is complete ----
         {
-            const Outcome o = runCase(-1, false);
+            const Outcome o = runCase(-1, Fail::Directory);
             CHECK(o.ok);
             CHECK_STR(o.after[0], "1 2 3\n");
             CHECK_STR(o.after[1], "7\n");
@@ -1021,39 +1029,35 @@ int main()
         }
 
         // --- case A: the FIRST attribute (multi_intensity) fails -------------
-        // write() stops before touching anything else, so the zone is intact.
+        // write() stops before touching anything else, so no sibling changes.
+        // multi_intensity is now a non-regular node, so the zone cannot be read
+        // back (read() opens all three attributes); the raw sibling files prove
+        // that nothing else was modified.
         {
-            const Outcome o = runCase(0, false);
+            const Outcome o = runCase(0, Fail::Directory);
             CHECK(o.blocked);
             CHECK(!o.ok);
-            CHECK(o.after[0] == o.before[0]);   // multi_intensity  unchanged
+            CHECK(o.after[0] == o.before[0]);   // multi_intensity  still blocked (dir)
             CHECK(o.after[1] == o.before[1]);   // brightness       unchanged
             CHECK(o.after[2] == o.before[2]);   // effect           unchanged
-            CHECK_STR(o.after[0], "10 20 30\n");
             CHECK_STR(o.after[1], "5\n");
             CHECK_STR(o.after[2], "off\n");
-            CHECK(o.hasReadBack);
-            CHECK(o.readBack.effect == Effect::Off);       // device still holds OLD state
-            CHECK(o.readBack.brightness == 5);
-            CHECK(o.readBack.red == 10);
         }
 
         // --- case B: the SECOND attribute (brightness) fails -----------------
         // multi_intensity has ALREADY landed -> the zone is left PARTIAL.
         // This is the case that makes a "values unchanged" message a lie.
         {
-            const Outcome o = runCase(1, false);
+            const Outcome o = runCase(1, Fail::Directory);
             CHECK(o.blocked);
             CHECK(!o.ok);
             CHECK_STR(o.after[0], "1 2 3\n");    // landed BEFORE the failure
-            CHECK(o.after[1] == o.before[1]);    // brightness refused  (still "5\n")
+            CHECK(o.after[1] == o.before[1]);    // brightness refused  (blocked)
             CHECK(o.after[2] == o.before[2]);    // effect never attempted ("off\n")
-            CHECK(o.hasReadBack);
-            CHECK(o.readBack.red == 1);          // NEW intensity survived ...
-            CHECK(o.readBack.green == 2);
-            CHECK(o.readBack.blue == 3);
-            CHECK(o.readBack.brightness == 5);   // ... while brightness stayed OLD
-            CHECK(o.readBack.effect == Effect::Off); // ... and effect is still OLD
+            CHECK_STR(o.after[2], "off\n");
+            // The landed multi_intensity is the NEW value, so a consumer must
+            // NOT report "nothing changed": the device is in a partial state.
+            CHECK(o.after[0] != o.before[0]);
             // No rollback: the landed attribute was NOT restored to "10 20 30".
             CHECK_STR(o.after[0], "1 2 3\n");
         }
@@ -1061,26 +1065,25 @@ int main()
         // --- case C: the LAST attribute (effect) fails -----------------------
         // Both earlier attributes have landed -> the largest partial state.
         {
-            const Outcome o = runCase(2, false);
+            const Outcome o = runCase(2, Fail::Directory);
             CHECK(o.blocked);
             CHECK(!o.ok);
             CHECK_STR(o.after[0], "1 2 3\n");    // multi_intensity  landed
             CHECK_STR(o.after[1], "7\n");        // brightness       landed
-            CHECK(o.after[2] == o.before[2]);    // effect           refused
-            CHECK(o.hasReadBack);
-            CHECK(o.readBack.red == 1 && o.readBack.green == 2 && o.readBack.blue == 3);
-            CHECK(o.readBack.brightness == 7);
-            CHECK(o.readBack.effect == Effect::Off); // NOT Breathing -> PARTIAL
+            CHECK(o.after[2] == o.before[2]);    // effect           refused (blocked)
+            CHECK(o.after[0] != o.before[0]);    // NEW -> "changed", not "unchanged"
+            CHECK(o.after[1] != o.before[1]);
             // The two landed attributes are NOT rolled back.
             CHECK_STR(o.after[0], "1 2 3\n");
             CHECK_STR(o.after[1], "7\n");
         }
 
-        // --- case D: a second, independent failure mechanism -----------------
-        // The attribute is a DIRECTORY, not a read-only file. write() still
-        // fails, and because it is the FIRST attribute nothing else is touched.
+        // --- case D: a second, independent root-independent mechanism --------
+        // The attribute is a self-referential SYMLINK, so open() fails with
+        // ELOOP rather than EISDIR. write() still fails, and because it is the
+        // FIRST attribute nothing else is touched.
         {
-            const Outcome o = runCase(0, true);
+            const Outcome o = runCase(0, Fail::Symlink);
             CHECK(o.blocked);
             CHECK(!o.ok);
             CHECK(o.after[1] == o.before[1]);    // brightness unchanged ("5\n")
