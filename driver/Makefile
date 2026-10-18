@@ -1,4 +1,4 @@
-# DKMS build for the excalibur-wmi read-only hwmon driver.
+# DKMS build for the excalibur-wmi hwmon driver (gated RGB write path, off by default).
 #
 # DKMS installs the sources under /usr/src/<PACKAGE_NAME>-<PACKAGE_VERSION>/ and
 # builds them for each installed kernel by invoking `make` with KERNELRELEASE set

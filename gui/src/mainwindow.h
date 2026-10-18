@@ -9,6 +9,7 @@ class PageContainer;
 class DashboardPage;
 class CoolingPage;
 class DevicePage;
+class LightingPage;
 class DiagnosticsPage;
 class SettingsPage;
 class AboutPage;
@@ -75,6 +76,7 @@ private:
     DashboardPage *m_dashboard = nullptr;
     CoolingPage *m_cooling = nullptr;
     DevicePage *m_device = nullptr;
+    LightingPage *m_lighting = nullptr;
     DiagnosticsPage *m_diagnostics = nullptr;
     SettingsPage *m_settingsPage = nullptr;
     AboutPage *m_about = nullptr;

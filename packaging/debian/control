@@ -11,16 +11,25 @@ Package: excalibur-control-center
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: excalibur-control-center-dkms
-Description: Read-only hardware telemetry for CASPER EXCALIBUR laptops
+Description: Hardware telemetry and RGB UI for CASPER EXCALIBUR laptops
  Native Qt6 desktop application that shows CPU/GPU temperature and fan RPM
  telemetry exposed through the Linux hwmon interface, plus diagnostics and a
- system tray. It is strictly read-only and never requires root.
+ system tray. The hwmon telemetry is read-only, and no fan, power, or
+ performance control is added. RGB LED control is present but works only when
+ the excalibur-wmi driver is loaded with its write path explicitly enabled
+ (off by default); RGB firmware behaviour is not verified on real hardware.
 
 Package: excalibur-control-center-dkms
 Architecture: all
 Depends: dkms, ${misc:Depends}
 Recommends: excalibur-control-center, linux-headers-amd64 | linux-headers-generic
-Description: excalibur-wmi read-only hwmon driver sources (DKMS)
+Description: excalibur-wmi hwmon driver sources (DKMS)
  DKMS kernel module sources for the CASPER EXCALIBUR G870 (NLXB 001). The dkms
- framework builds the read-only hwmon module against each installed kernel.
- Requires the 7.2.x kernel WMI API (wmidev_set_block/query_block).
+ framework builds the module against each installed kernel. The hwmon
+ temperature/fan telemetry is read-only and no fan, power, or performance
+ control is added. The driver also contains an RGB LED write path that is gated
+ off by default and must be explicitly enabled at load time; RGB firmware
+ behaviour, physical zone mapping, effects, and brightness are not verified on
+ real hardware, and enabling the gate does not make the firmware operation safe
+ or guaranteed to work. Requires the 7.2.x kernel WMI API
+ (wmidev_set_block/query_block).

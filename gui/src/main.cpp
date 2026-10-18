@@ -274,9 +274,16 @@ int runTrayStress(const QStringList &args)
     if (const QString c = flagValue(args, QStringLiteral("--cycles")); !c.isEmpty())
         cycles = c.toInt();
 
+    // Read the page count once, but keep only the integer: a runtime theme change
+    // rebuilds the central shell and would leave a PageContainer* held across the
+    // loop dangling.
+    int pageCount = 1;
+    if (PageContainer *pc = window.findChild<PageContainer *>())
+        pageCount = pc->count() > 0 ? pc->count() : 1;
+
     for (int i = 0; i < cycles; ++i) {
-        window.showPage(i % 6); // navigate across all pages
-        window.hide();          // hide (instant)
+        window.showPage(i % pageCount); // navigate across all pages
+        window.hide();                  // hide (instant)
         QApplication::processEvents();
         window.show();          // show (instant)
         QApplication::processEvents();
@@ -337,12 +344,19 @@ int runStress(const QStringList &args)
     const bool doUnit = !hasFlag(args, QStringLiteral("--no-unit"));
     const bool doRefresh = !hasFlag(args, QStringLiteral("--no-refresh"));
 
+    // Read the page count once, but keep only the integer: this loop changes the
+    // theme, which rebuilds the central shell, so a PageContainer* held across the
+    // loop would dangle.
+    int pageCount = 1;
+    if (PageContainer *pageContainer = window.findChild<PageContainer *>())
+        pageCount = pageContainer->count() > 0 ? pageContainer->count() : 1;
+
     QElapsedTimer total;
     total.start();
     long iter = 0;
     while (total.elapsed() < seconds * 1000) {
         if (doNav)
-            window.showPage(int(iter % 6));
+            window.showPage(int(iter % pageCount));
         QApplication::processEvents();
         if (doHide) {
             window.hide();

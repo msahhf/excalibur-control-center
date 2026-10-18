@@ -1,11 +1,14 @@
 # EXCALIBUR Control Center — GUI (v0.5.1)
 
-Read-only telemetry dashboard for the **CASPER EXCALIBUR G870** (NLXB 001).
+Telemetry dashboard for the **CASPER EXCALIBUR G870** (NLXB 001). Telemetry is read-only;
+an experimental RGB write path is present but **off by default** (see "RGB control (experimental)" below).
 
 ## v0.5.1 scope
 
 - **Qt6 Widgets** (C++17), native KDE/Breeze look, Wayland-friendly.
-- **Read-only telemetry** only. **No** writes, **no** power mode, **no** RGB, **no** fan control.
+- **Telemetry is read-only.** **No** power mode, **no** fan control, **no** performance modes.
+  An **experimental** RGB write path exists but is **off by default and unverified** — see
+  "RGB control (experimental)".
 - Reads **Linux hwmon/sysfs** exclusively — the GUI never talks to WMI, ACPI, or the EC.
 - **No root** required (plain sysfs reads, mode 0444).
 
@@ -45,7 +48,9 @@ The GUI **never** loads the kernel module itself.
 
 ## Prerequisite
 
-The read-only hwmon kernel module must be loaded (by the user, with appropriate privileges):
+The hwmon kernel module must be loaded (by the user, with appropriate privileges). Its
+telemetry interface is **read-only**; it also carries an **experimental, default-off**
+LED/RGB write path (see "RGB control (experimental)"):
 
 ```
 excalibur-wmi.ko   →   hwmon device "excalibur_g870"
@@ -123,6 +128,20 @@ to test parsing/status logic against a fake tree; it does not affect hardware.
 
 Power mode, keyboard RGB, fan boost, manual fan control — intentionally absent.
 (Manual fan control is unsupported by this firmware: `SET 0x205` is a no-op.)
+
+## RGB control (experimental, off by default, unverified)
+
+This is **unpublished development scope**, separate from the released read-only
+telemetry feature:
+
+- An RGB/LED write path exists in the driver and GUI, but is **disabled by default**
+  at both layers: the kernel module gate (`enable_write`) is OFF, and the GUI's own
+  write switch is OFF and never persisted.
+- **Unverified:** the firmware command behaviour, the physical zone mapping and the
+  effect semantics have not been confirmed against real hardware.
+- Opening the kernel gate is a root action; it does **not** make the firmware
+  behaviour safe or validated.
+- RGB hardware support is therefore **not** claimed as working or verified.
 
 ## Dev-only hooks (not part of the shipped app)
 

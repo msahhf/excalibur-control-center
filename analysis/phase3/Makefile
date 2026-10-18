@@ -1,4 +1,4 @@
-# Phase III — read-only hwmon prototype (EXCALIBUR G870)
+# Phase III — hwmon read-only telemetry prototype with a gated RGB write path (EXCALIBUR G870)
 # Build ONLY for the running kernel; no modules_install, no persistent install.
 obj-m += excalibur-wmi.o
 

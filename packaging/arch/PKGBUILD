@@ -2,7 +2,7 @@
 #
 # Single user-facing product package: EXCALIBUR Control Center.
 #   * the Qt6 GUI (Dashboard/Cooling/Device/Diagnostics/Settings/About + tray)
-#   * the excalibur-wmi read-only hwmon driver, integrated as DKMS
+#   * the excalibur-wmi hwmon driver (gated RGB write path, off by default), integrated as DKMS
 #
 # There is intentionally no separate `excalibur-wmi-dkms` package and no meta
 # package: one AUR package, `excalibur-control-center`, provides both. Arch's
@@ -22,7 +22,7 @@
 pkgname=excalibur-control-center
 pkgver=0.5.8
 pkgrel=1
-pkgdesc="EXCALIBUR Control Center: read-only telemetry GUI and excalibur-wmi hwmon driver (DKMS)"
+pkgdesc="EXCALIBUR Control Center: hardware telemetry GUI and excalibur-wmi hwmon driver (DKMS)"
 arch=('x86_64')
 license=('GPL-2.0-only')
 # Runtime dependencies.

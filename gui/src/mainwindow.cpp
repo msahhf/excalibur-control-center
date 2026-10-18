@@ -11,6 +11,7 @@
 #include "pages/dashboardpage.h"
 #include "pages/devicepage.h"
 #include "pages/diagnosticspage.h"
+#include "pages/lightingpage.h"
 #include "pages/settingspage.h"
 #include "theme/theme.h"
 
@@ -117,6 +118,7 @@ void MainWindow::installCentral()
     m_dashboard = new DashboardPage;
     m_cooling = new CoolingPage;
     m_device = new DevicePage;
+    m_lighting = new LightingPage;
     m_diagnostics = new DiagnosticsPage;
     m_settingsPage = new SettingsPage;
     m_about = new AboutPage;
@@ -124,9 +126,10 @@ void MainWindow::installCentral()
     m_pages->addPage(m_dashboard);    // 0
     m_pages->addPage(m_cooling);      // 1
     m_pages->addPage(m_device);       // 2
-    m_pages->addPage(m_diagnostics);  // 3
-    m_pages->addPage(m_settingsPage); // 4
-    m_pages->addPage(m_about);        // 5
+    m_pages->addPage(m_lighting);     // 3
+    m_pages->addPage(m_diagnostics);  // 4
+    m_pages->addPage(m_settingsPage); // 5
+    m_pages->addPage(m_about);        // 6
 
     root->addWidget(m_sidebar);
     root->addWidget(m_pages, 1);
@@ -136,6 +139,7 @@ void MainWindow::installCentral()
     m_sidebar->addItem(tr("Dashboard"), Sidebar::Icon::Dashboard);
     m_sidebar->addItem(tr("Cooling"), Sidebar::Icon::Cooling);
     m_sidebar->addItem(tr("Device"), Sidebar::Icon::Device);
+    m_sidebar->addItem(tr("Lighting"), Sidebar::Icon::Lighting);
     m_sidebar->addItem(tr("Diagnostics"), Sidebar::Icon::Diagnostics);
     m_sidebar->addItem(tr("Settings"), Sidebar::Icon::Settings);
     m_sidebar->addBottomItem(tr("About"), Sidebar::Icon::About);
@@ -206,9 +210,10 @@ QString MainWindow::pageName(int index) const
     case 0: return tr("Dashboard");
     case 1: return tr("Cooling");
     case 2: return tr("Device");
-    case 3: return tr("Diagnostics");
-    case 4: return tr("Settings");
-    case 5: return tr("About");
+    case 3: return tr("Lighting");
+    case 4: return tr("Diagnostics");
+    case 5: return tr("Settings");
+    case 6: return tr("About");
     default: break;
     }
     return QString();

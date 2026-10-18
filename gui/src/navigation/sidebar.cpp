@@ -246,6 +246,23 @@ private:
             }
             break;
         }
+        case Sidebar::Icon::Lighting: {
+            // A bulb: glass dome + screw base + three soft rays.
+            const QPointF ctr(x + s * 0.5, y + s * 0.42);
+            p.drawEllipse(ctr, s * 0.26, s * 0.26);
+            // Base / cap.
+            p.drawLine(QPointF(ctr.x() - s * 0.12, ctr.y() + s * 0.30),
+                       QPointF(ctr.x() - s * 0.12, ctr.y() + s * 0.40));
+            p.drawLine(QPointF(ctr.x() + s * 0.12, ctr.y() + s * 0.30),
+                       QPointF(ctr.x() + s * 0.12, ctr.y() + s * 0.40));
+            p.drawLine(QPointF(ctr.x() - s * 0.12, ctr.y() + s * 0.40),
+                       QPointF(ctr.x() + s * 0.12, ctr.y() + s * 0.40));
+            // Rays.
+            p.drawLine(QPointF(ctr.x(), y + s * 0.04), QPointF(ctr.x(), y + s * 0.12));
+            p.drawLine(QPointF(x + s * 0.10, y + s * 0.16), QPointF(x + s * 0.18, y + s * 0.24));
+            p.drawLine(QPointF(x + s * 0.90, y + s * 0.16), QPointF(x + s * 0.82, y + s * 0.24));
+            break;
+        }
         case Sidebar::Icon::Diagnostics: {
             // A small "pulse" line — the diagnostics / monitor mark.
             const qreal mid = y + s * 0.5;

@@ -1,5 +1,5 @@
 pkgbase = excalibur-control-center
-	pkgdesc = EXCALIBUR Control Center: read-only telemetry GUI and excalibur-wmi hwmon driver (DKMS)
+	pkgdesc = EXCALIBUR Control Center: hardware telemetry GUI and excalibur-wmi hwmon driver (DKMS)
 	pkgver = 0.5.8
 	pkgrel = 1
 	arch = x86_64

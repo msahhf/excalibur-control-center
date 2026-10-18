@@ -14,7 +14,7 @@ class Sidebar : public QWidget
     Q_OBJECT
 
 public:
-    enum class Icon { Dashboard, Cooling, Device, Diagnostics, Settings, About };
+    enum class Icon { Dashboard, Cooling, Device, Lighting, Diagnostics, Settings, About };
 
     explicit Sidebar(QWidget *parent = nullptr);
 

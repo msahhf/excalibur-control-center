@@ -834,60 +834,450 @@
     </message>
 </context>
 <context>
+    <name>LightingPage</name>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="86"/>
+        <source>Select all</source>
+        <translation>Tümünü seç</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="88"/>
+        <source>Keyboard</source>
+        <translation>Klavye</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="109"/>
+        <source>OFF</source>
+        <translation>KAPALI</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="111"/>
+        <source>Static</source>
+        <translation>Sabit</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="113"/>
+        <source>Breathing</source>
+        <translation>Nefes</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="115"/>
+        <source>Colorful cycle</source>
+        <translation>Renk döngüsü</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="117"/>
+        <source>Ambilight</source>
+        <translation>Ambilight</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1177"/>
+        <location filename="../src/pages/lightingpage.cpp" line="1741"/>
+        <source>LED interface unavailable</source>
+        <translation>LED arayüzü kullanılamıyor</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1178"/>
+        <source>No lighting control interface was found. The prototype led-class-multicolor module (excalibur::* LEDs) is not loaded, so there is nothing to configure. Nothing is written to the hardware.</source>
+        <translation>Hiçbir aydınlatma denetim arayüzü bulunamadı. Prototip led-class-multicolor modülü (excalibur::* LED&apos;leri) yüklü değil, dolayısıyla yapılandırılacak bir şey yok. Donanıma hiçbir şey yazılmaz.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1194"/>
+        <source>Lighting</source>
+        <translation>Aydınlatma</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1196"/>
+        <source>Compose an effect, colour and brightness for each LED zone. Nothing is written to the hardware unless both write gates are open.</source>
+        <translation>Her LED bölgesi için bir efekt, renk ve parlaklık oluşturun. Her iki yazma kapısı da açık olmadıkça donanıma hiçbir şey yazılmaz.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1204"/>
+        <source>Rescan</source>
+        <translation>Yeniden tara</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1205"/>
+        <source>Rescan for LED zones</source>
+        <translation>LED bölgelerini yeniden tara</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1232"/>
+        <source>ZONES</source>
+        <translation>BÖLGELER</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1253"/>
+        <source>SCHEMATIC</source>
+        <translation>ŞEMA</translation>
+    </message>
+    <message>
+        <source>Representative schematic — the physical zone positions are not verified. The letters A/B/C are illustrative, not a verified key map.</source>
+        <translation type="vanished">Temsilî şema — fiziksel bölge konumları doğrulanmadı. A/B/C harfleri temsilîdir, doğrulanmış bir tuş eşlemesi değildir.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1265"/>
+        <source>Representative schematic — NOT a live hardware view and NOT a physical key map. Every region is painted with the SELECTED zone&apos;s current edit/preview values only, so the other regions do not show their own real state. The A/B/C positions and letters are illustrative; the zone-to-key mapping is not verified. Nothing here reflects the device until Apply succeeds.</source>
+        <translation>Temsilî şema — canlı bir donanım görünümü DEĞİLDİR ve fiziksel bir tuş eşlemesi DEĞİLDİR. Her bölge yalnızca SEÇİLİ bölgenin güncel düzenleme/önizleme değerleriyle boyanır; bu nedenle diğer bölgeler kendi gerçek durumlarını göstermez. A/B/C konumları ve harfleri temsilîdir; bölge-tuş eşlemesi doğrulanmadı. Uygula başarılı olana kadar buradaki hiçbir şey cihaza yansımaz.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1306"/>
+        <source>LED on/off</source>
+        <translation>LED aç/kapat</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1309"/>
+        <source>Switches the selected zone between the OFF effect and the last live setting.</source>
+        <translation>Seçili bölgeyi OFF efekti ile son canlı ayar arasında değiştirir.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1321"/>
+        <source>Colour</source>
+        <translation>Renk</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1336"/>
+        <source>Choose colour…</source>
+        <translation>Renk seç…</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1367"/>
+        <location filename="../src/pages/lightingpage.cpp" line="1374"/>
+        <location filename="../src/pages/lightingpage.cpp" line="1452"/>
+        <source>Brightness</source>
+        <translation>Parlaklık</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1375"/>
+        <source>Brightness from %1 to %2.</source>
+        <translation>Parlaklık %1 ile %2 arasında.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1396"/>
+        <location filename="../src/pages/lightingpage.cpp" line="1450"/>
+        <source>Effect</source>
+        <translation>Efekt</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1412"/>
+        <source>Effect names come from the OEM panel; the actual product software behaviour has not been verified.</source>
+        <translation>Efekt adları OEM panelinden alınmıştır; gerçek ürün yazılımı davranışı doğrulanmadı.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1428"/>
+        <source>PREVIEW</source>
+        <translation>ÖNİZLEME</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1448"/>
+        <source>Zone</source>
+        <translation>Bölge</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1457"/>
+        <source>Packed word</source>
+        <translation>Paketlenmiş sözcük</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1481"/>
+        <source>HARDWARE WRITE</source>
+        <translation>DONANIMA YAZMA</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1489"/>
+        <source>Enable the application write gate (this session only)</source>
+        <translation>Uygulama yazma kapısını aç (yalnızca bu oturum)</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1491"/>
+        <source>Off by default and never saved. Even when enabled, writing only happens if the kernel gate is also open.</source>
+        <translation>Varsayılan olarak kapalıdır ve hiçbir zaman kaydedilmez. Etkinleştirildiğinde bile yazma yalnızca çekirdek kapısı da açıksa gerçekleşir.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1518"/>
+        <location filename="../src/pages/lightingpage.cpp" line="1519"/>
+        <source>Apply to hardware</source>
+        <translation>Donanıma uygula</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1544"/>
+        <source>NOT — protocol not verified</source>
+        <translation>NOT — protokol doğrulanmadı</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1549"/>
+        <source>The firmware behaviour of these effects, the zone-to-LED mapping and the physical point mapping have not been verified. The 0xFB00 / 0x0100 SMI calls used by the vendor tool carry a hang risk. Treat everything on this page as a prototype, not as a verified product feature.</source>
+        <translation>Bu efektlerin ürün yazılımı davranışı, bölgeden LED&apos;e eşleme ve fiziksel nokta eşlemesi doğrulanmadı. Üretici aracının kullandığı 0xFB00 / 0x0100 SMI çağrıları takılma (hang) riski taşır. Bu sayfadaki her şeyi doğrulanmış bir ürün özelliği değil, bir prototip olarak değerlendirin.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1575"/>
+        <source>No LED zones reported.</source>
+        <translation>Hiçbir LED bölgesi bildirilmedi.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1630"/>
+        <location filename="../src/pages/lightingpage.cpp" line="1848"/>
+        <source>%1 / %2</source>
+        <translation>%1 / %2</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1668"/>
+        <source>Write gate open — Apply will write these values to the device.</source>
+        <translation>Yazma kapısı açık — Uygula bu değerleri cihaza yazacak.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1669"/>
+        <source>Dry-run — nothing is written.</source>
+        <translation>Deneme modu — hiçbir şey yazılmaz.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1682"/>
+        <source>Kernel gate: not present</source>
+        <translation>Çekirdek kapısı: yok</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1685"/>
+        <source>Kernel gate: open</source>
+        <translation>Çekirdek kapısı: açık</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1688"/>
+        <source>Kernel gate: closed</source>
+        <translation>Çekirdek kapısı: kapalı</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1692"/>
+        <source>Application gate: open</source>
+        <translation>Uygulama kapısı: açık</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1693"/>
+        <source>Application gate: closed</source>
+        <translation>Uygulama kapısı: kapalı</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1699"/>
+        <source>The application gate is open, but the kernel gate is closed, so writing stays blocked. To open the kernel gate, run this yourself: echo Y &gt; /sys/module/excalibur_wmi/parameters/enable_write</source>
+        <translation>Uygulama kapısı açık, ancak çekirdek kapısı kapalı, bu yüzden yazma engellenir. Çekirdek kapısını açmak için şu komutu kendiniz çalıştırın: echo Y &gt; /sys/module/excalibur_wmi/parameters/enable_write</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1704"/>
+        <source>The kernel gate is open, but the application gate is off, so Apply does nothing.</source>
+        <translation>Çekirdek kapısı açık, ancak uygulama kapısı kapalı olduğundan Uygula bir şey yapmaz.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1726"/>
+        <source>Interface unavailable.</source>
+        <translation>Arayüz kullanılamıyor.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1728"/>
+        <source>Blocked — both gates must be open.</source>
+        <translation>Engellendi — her iki kapı da açık olmalı.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1738"/>
+        <source>LED interface available</source>
+        <translation>LED arayüzü kullanılabilir</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1857"/>
+        <source>Choose colour</source>
+        <translation>Renk seç</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1871"/>
+        <source>Applied</source>
+        <translation>Uygulandı</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1876"/>
+        <source>Partial write</source>
+        <translation>Kısmi yazma</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1881"/>
+        <source>Write failed</source>
+        <translation>Yazma başarısız</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1886"/>
+        <source>Not applied</source>
+        <translation>Uygulanmadı</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1908"/>
+        <source>Not applied — the LED interface is unavailable.</source>
+        <translation>Uygulanmadı — LED arayüzü kullanılamıyor.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1912"/>
+        <source>Not applied — the write gate is closed.</source>
+        <translation>Uygulanmadı — yazma kapısı kapalı.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1919"/>
+        <source>Applied to %1.</source>
+        <translation>%1 bölgesine uygulandı.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1935"/>
+        <source>Applied to %1 (confirmed by reading the current LED state).</source>
+        <translation>%1 bölgesine uygulandı (güncel LED durumu okunarak doğrulandı).</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1939"/>
+        <source>Write FAILED — %1 was left in a PARTIAL state (the device does not match the requested values); re-read before retrying.</source>
+        <translation>Yazma BAŞARISIZ — %1 KISMİ durumda kaldı (cihaz istenen değerlerle eşleşmiyor); yeniden denemeden önce durumu tekrar okuyun.</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="1944"/>
+        <source>Write FAILED — the device state is unknown; re-read before retrying.</source>
+        <translation>Yazma BAŞARISIZ — cihaz durumu bilinmiyor; yeniden denemeden önce durumu tekrar okuyun.</translation>
+    </message>
+    <message>
+        <source>Write failed — values unchanged.</source>
+        <translation type="vanished">Yazma başarısız — değerler değişmedi.</translation>
+    </message>
+</context>
+<context>
+    <name>LightingUi::ColorSwatch</name>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="368"/>
+        <source>Selected colour</source>
+        <translation>Seçili renk</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="368"/>
+        <source>Colour preset</source>
+        <translation>Renk hazır ayarı</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="369"/>
+        <source>Sets the LED colour.</source>
+        <translation>LED rengini ayarlar.</translation>
+    </message>
+</context>
+<context>
+    <name>LightingUi::EffectCard</name>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="530"/>
+        <source>Applies this lighting effect.</source>
+        <translation>Bu aydınlatma efektini uygular.</translation>
+    </message>
+</context>
+<context>
+    <name>LightingUi::GlowPreview</name>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="665"/>
+        <source>Colour preview</source>
+        <translation>Renk önizlemesi</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="666"/>
+        <source>Approximate appearance of the selected lighting.</source>
+        <translation>Seçili aydınlatmanın yaklaşık görünümü.</translation>
+    </message>
+</context>
+<context>
+    <name>LightingUi::Schematic</name>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="733"/>
+        <source>Representative zone schematic</source>
+        <translation>Temsilî bölge şeması</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="734"/>
+        <source>This is not a live hardware view. Every region is filled with the currently selected zone&apos;s edit and preview values only, so other regions do not show their own real state, and it is not a physical key map. Click a region to select its zone; the A/B/C positions are illustrative and the physical key layout is not verified. Use the arrow keys to cycle zones.</source>
+        <translation>Bu, canlı bir donanım görünümü değildir. Her bölge yalnızca o anda seçili bölgenin düzenleme ve önizleme değerleriyle doldurulur; bu nedenle diğer bölgeler kendi gerçek durumlarını göstermez ve bu, fiziksel bir tuş eşlemesi değildir. Bölgesini seçmek için bir alana tıklayın; A/B/C konumları temsilîdir ve fiziksel tuş düzeni doğrulanmadı. Bölgeler arasında geçiş yapmak için ok tuşlarını kullanın.</translation>
+    </message>
+    <message>
+        <source>Click a region to select its zone. The A/B/C positions are illustrative; the physical key layout is not verified. Use the arrow keys to cycle zones.</source>
+        <translation type="vanished">Bölgesini seçmek için bir alana tıklayın. A/B/C konumları temsilîdir; fiziksel tuş düzeni doğrulanmadı. Bölgeler arasında geçiş yapmak için ok tuşlarını kullanın.</translation>
+    </message>
+</context>
+<context>
+    <name>LightingUi::ToggleSwitch</name>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="268"/>
+        <source>LED on/off</source>
+        <translation>LED aç/kapat</translation>
+    </message>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="270"/>
+        <source>Turns the selected zone on or off. Off maps to the OFF effect.</source>
+        <translation>Seçili bölgeyi açar veya kapatır. Kapalı durumu OFF efektine karşılık gelir.</translation>
+    </message>
+</context>
+<context>
+    <name>LightingUi::ZoneChip</name>
+    <message>
+        <location filename="../src/pages/lightingpage.cpp" line="446"/>
+        <source>Selects this LED zone.</source>
+        <translation>Bu LED bölgesini seçer.</translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
-        <location filename="../src/mainwindow.cpp" line="136"/>
-        <location filename="../src/mainwindow.cpp" line="206"/>
+        <location filename="../src/mainwindow.cpp" line="139"/>
+        <location filename="../src/mainwindow.cpp" line="210"/>
         <source>Dashboard</source>
         <translation>Gösterge paneli</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="137"/>
-        <location filename="../src/mainwindow.cpp" line="207"/>
+        <location filename="../src/mainwindow.cpp" line="140"/>
+        <location filename="../src/mainwindow.cpp" line="211"/>
         <source>Cooling</source>
         <translation>Soğutma</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="138"/>
-        <location filename="../src/mainwindow.cpp" line="208"/>
+        <location filename="../src/mainwindow.cpp" line="141"/>
+        <location filename="../src/mainwindow.cpp" line="212"/>
         <source>Device</source>
         <translation>Cihaz</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="139"/>
-        <location filename="../src/mainwindow.cpp" line="209"/>
+        <location filename="../src/mainwindow.cpp" line="142"/>
+        <location filename="../src/mainwindow.cpp" line="213"/>
+        <source>Lighting</source>
+        <translation>Aydınlatma</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="143"/>
+        <location filename="../src/mainwindow.cpp" line="214"/>
         <source>Diagnostics</source>
         <translation>Tanılama</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="140"/>
-        <location filename="../src/mainwindow.cpp" line="210"/>
+        <location filename="../src/mainwindow.cpp" line="144"/>
+        <location filename="../src/mainwindow.cpp" line="215"/>
         <source>Settings</source>
         <translation>Ayarlar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="141"/>
-        <location filename="../src/mainwindow.cpp" line="211"/>
+        <location filename="../src/mainwindow.cpp" line="145"/>
+        <location filename="../src/mainwindow.cpp" line="216"/>
         <source>About</source>
         <translation>Hakkında</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="358"/>
+        <location filename="../src/mainwindow.cpp" line="363"/>
         <source>Running in the system tray. Use the tray icon to reopen or quit.</source>
         <translation>Uygulama sistem tepsisinde çalışıyor. Yeniden açmak veya çıkmak için tepsi simgesini kullanın.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="383"/>
+        <location filename="../src/mainwindow.cpp" line="388"/>
         <source>Open EXCALIBUR Control Center</source>
         <translation>EXCALIBUR Control Center&apos;i aç</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="386"/>
+        <location filename="../src/mainwindow.cpp" line="391"/>
         <source>Show/Hide</source>
         <translation>Göster/Gizle</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="390"/>
+        <location filename="../src/mainwindow.cpp" line="395"/>
         <source>Quit</source>
         <translation>Çıkış</translation>
     </message>

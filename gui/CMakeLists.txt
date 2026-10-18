@@ -78,6 +78,14 @@ add_executable(excalibur-control-center
     src/pages/coolingpage.h
     src/pages/devicepage.cpp
     src/pages/devicepage.h
+    src/pages/lightingpage.cpp
+    src/pages/lightingpage.h
+    src/app/leddata.cpp
+    src/app/leddata.h
+    src/app/rgbclient.cpp
+    src/app/rgbclient.h
+    src/app/contrast.cpp
+    src/app/contrast.h
     src/pages/diagnosticspage.cpp
     src/pages/diagnosticspage.h
     src/pages/aboutpage.cpp
@@ -133,7 +141,13 @@ if(EXCALIBUR_BUILD_TESTS)
         src/app/usersettings.cpp
         src/app/usersettings.h
         src/theme/theme.cpp
-        src/theme/theme.h)
+        src/theme/theme.h
+        src/app/leddata.cpp
+        src/app/leddata.h
+        src/app/rgbclient.cpp
+        src/app/rgbclient.h
+        src/app/contrast.cpp
+        src/app/contrast.h)
     target_include_directories(excalibur-tests PRIVATE src)
     target_link_libraries(excalibur-tests PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets)
     add_test(NAME units-and-settings COMMAND excalibur-tests)

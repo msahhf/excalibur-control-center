@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- AppStream metadata for EXCALIBUR Control Center.
-     Only verified, implemented features are described: this is a read-only
-     telemetry/monitor application. There is NO fan control, RGB, power or
+     Only verified, implemented features are described. Telemetry is read-only by
+     default. An experimental, default-off RGB write path exists but is NOT
+     verified and is not advertised here. There is NO fan, power or
      performance-mode control. -->
 <component type="desktop-application">
   <id>excalibur-control-center.desktop</id>
@@ -17,7 +18,7 @@
       live thermal and cooling telemetry exposed by CASPER EXCALIBUR laptops
       through the Linux hwmon interface.
     </p>
-    <p>It is strictly read-only and runs entirely as a normal user:</p>
+    <p>Telemetry is read-only by default and runs entirely as a normal user:</p>
     <ul>
       <li>CPU and GPU temperature</li>
       <li>CPU and GPU fan RPM telemetry</li>
@@ -28,8 +29,10 @@
       <li>System tray with background operation</li>
     </ul>
     <p>
-      The application never writes to the hardware. It does not control fans, does
-      not provide RGB, power or performance modes, and never requires root.
+      By default the application only reads: it does not control fans and provides
+      no power or performance modes, and it never requires root. An experimental
+      RGB/LED write path exists but is off by default and unverified, so it is not
+      advertised as a supported feature.
     </p>
   </description>
 
