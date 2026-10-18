@@ -5,7 +5,10 @@
 //   * hwmon plausibility bounds (util/sensorrange.h)
 //   * RGB LED 32-bit packing / whitelists / token conversion (app/leddata.*)
 //     and the sysfs client against a QTemporaryDir mock (app/rgbclient.*);
-//     the real /sys tree is never touched.
+//     the real /sys tree is never touched. This includes the NON-atomic
+//     partial-write behaviour of RgbClient::write(): each of the three
+//     attributes is made to fail in turn and the attributes that survived are
+//     recorded, so the (absence of a) rollback guarantee is pinned down.
 //   * WCAG 2.1 contrast / compositing helpers (app/contrast.*).
 //
 // No Qt event loop, no window, no sysfs access. Exit code 0 = all pass.
@@ -19,6 +22,7 @@
 #include <QColor>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QVector>
 
@@ -886,6 +890,204 @@ int main()
         RgbClient empty(tmp.path() + QStringLiteral("/does-not-exist"));
         CHECK(!empty.discover());
         CHECK(!empty.available());
+    }
+
+    // =========================================================================
+    // app/rgbclient.* — PARTIAL WRITE (T2).
+    //
+    // write() rewrites THREE sysfs attributes in a fixed order:
+    //     multi_intensity  ->  brightness  ->  effect
+    // and returns true only when every one of them landed. It is NEITHER atomic
+    // NOR transactional: on the first failure it returns immediately and leaves
+    // whatever earlier attributes had already succeeded in place. There is NO
+    // rollback guarantee -- a false return does NOT mean "nothing changed".
+    //
+    // The tests below make exactly one attribute fail at a time and record, for
+    // every case, which attributes the device actually kept, so the real effect
+    // of a partial write is measured instead of assumed. Two independent failure
+    // mechanisms are used: (1) clearing the write bit (0444) so
+    // open(WriteOnly|Truncate) fails with EACCES, exactly as it would on a
+    // root-owned sysfs attribute, and (2) replacing the attribute with a
+    // DIRECTORY so the open fails for a different reason.
+    //
+    // Everything happens inside a QTemporaryDir. The real /sys tree is never
+    // touched, and no privilege is escalated.
+    // =========================================================================
+    {
+        using namespace Lighting;
+
+        const auto putRaw = [](const QString &path, const char *value) {
+            QFile f(path);
+            const QByteArray bytes(value);
+            return f.open(QIODevice::WriteOnly | QIODevice::Truncate)
+                && f.write(bytes) == bytes.size();
+        };
+        const auto slurp = [](const QString &path) {
+            QFile f(path);
+            if (!f.open(QIODevice::ReadOnly))
+                return QStringLiteral("<unreadable>");
+            return QString::fromUtf8(f.readAll());
+        };
+        const auto setWritable = [](const QString &path) {
+            return QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner
+                                                   | QFile::ReadUser | QFile::WriteUser
+                                                   | QFile::ReadGroup | QFile::ReadOther);
+        };
+        const auto setReadOnly = [](const QString &path) {
+            return QFile::setPermissions(path, QFile::ReadOwner | QFile::ReadUser
+                                                   | QFile::ReadGroup | QFile::ReadOther);
+        };
+
+        // Attribute names in WRITE order.
+        const QString attr[3] = {QStringLiteral("multi_intensity"),
+                                 QStringLiteral("brightness"), QStringLiteral("effect")};
+
+        // The requested composition differs from the mock's starting values in
+        // EVERY field, so each attribute that lands is visibly a change.
+        const LedData want = [] {
+            LedData d;
+            d.effect = Effect::Breathing;
+            d.brightness = 7;
+            d.red = 1;
+            d.green = 2;
+            d.blue = 3;
+            return d;
+        }();
+
+        struct Outcome {
+            bool blocked = false;  // the induced block was actually in effect
+            bool ok = false;       // write()'s return value
+            QString before[3];
+            QString after[3];
+            bool hasReadBack = false;
+            LedData readBack{};
+        };
+
+        // failIndex: 0 = multi_intensity, 1 = brightness, 2 = effect.
+        // asDirectory: induce failure by replacing the attribute with a dir.
+        const auto runCase = [&](int failIndex, bool asDirectory) -> Outcome {
+            Outcome r;
+            QTemporaryDir dir;
+            if (!dir.isValid())
+                return r;
+            const QString zoneDir = dir.path() + QStringLiteral("/excalibur::zone-a");
+            QDir().mkpath(zoneDir);
+            putRaw(zoneDir + "/multi_intensity", "10 20 30\n");
+            putRaw(zoneDir + "/brightness", "5\n");
+            putRaw(zoneDir + "/effect", "off\n");
+
+            if (failIndex >= 0) {
+                const QString target = zoneDir + QLatin1Char('/') + attr[failIndex];
+                if (asDirectory) {
+                    QFile::remove(target);
+                    QDir().mkpath(target);
+                    r.blocked = QFileInfo(target).isDir();
+                } else {
+                    setReadOnly(target);
+                    r.blocked = !QFileInfo(target).isWritable();
+                }
+            }
+
+            for (int i = 0; i < 3; ++i)
+                r.before[i] = slurp(zoneDir + QLatin1Char('/') + attr[i]);
+
+            RgbClient client(dir.path());
+            client.discover();
+            client.setHardwareWriteEnabled(true); // gate open for this test only
+            r.ok = client.write(Zone::ZoneA, want);
+
+            for (int i = 0; i < 3; ++i)
+                r.after[i] = slurp(zoneDir + QLatin1Char('/') + attr[i]);
+
+            if (const auto back = client.read(Zone::ZoneA)) {
+                r.hasReadBack = true;
+                r.readBack = *back;
+                setWritable(zoneDir + "/multi_intensity"); // keep the tmp tree sane
+            }
+            return r;
+        };
+
+        // --- control: with every attribute writable the write is complete ----
+        {
+            const Outcome o = runCase(-1, false);
+            CHECK(o.ok);
+            CHECK_STR(o.after[0], "1 2 3\n");
+            CHECK_STR(o.after[1], "7\n");
+            CHECK_STR(o.after[2], "breathing\n");
+            CHECK(o.hasReadBack);
+            CHECK(o.readBack.effect == Effect::Breathing);
+            CHECK(o.readBack.brightness == 7);
+            CHECK(o.readBack.red == 1 && o.readBack.green == 2 && o.readBack.blue == 3);
+        }
+
+        // --- case A: the FIRST attribute (multi_intensity) fails -------------
+        // write() stops before touching anything else, so the zone is intact.
+        {
+            const Outcome o = runCase(0, false);
+            CHECK(o.blocked);
+            CHECK(!o.ok);
+            CHECK(o.after[0] == o.before[0]);   // multi_intensity  unchanged
+            CHECK(o.after[1] == o.before[1]);   // brightness       unchanged
+            CHECK(o.after[2] == o.before[2]);   // effect           unchanged
+            CHECK_STR(o.after[0], "10 20 30\n");
+            CHECK_STR(o.after[1], "5\n");
+            CHECK_STR(o.after[2], "off\n");
+            CHECK(o.hasReadBack);
+            CHECK(o.readBack.effect == Effect::Off);       // device still holds OLD state
+            CHECK(o.readBack.brightness == 5);
+            CHECK(o.readBack.red == 10);
+        }
+
+        // --- case B: the SECOND attribute (brightness) fails -----------------
+        // multi_intensity has ALREADY landed -> the zone is left PARTIAL.
+        // This is the case that makes a "values unchanged" message a lie.
+        {
+            const Outcome o = runCase(1, false);
+            CHECK(o.blocked);
+            CHECK(!o.ok);
+            CHECK_STR(o.after[0], "1 2 3\n");    // landed BEFORE the failure
+            CHECK(o.after[1] == o.before[1]);    // brightness refused  (still "5\n")
+            CHECK(o.after[2] == o.before[2]);    // effect never attempted ("off\n")
+            CHECK(o.hasReadBack);
+            CHECK(o.readBack.red == 1);          // NEW intensity survived ...
+            CHECK(o.readBack.green == 2);
+            CHECK(o.readBack.blue == 3);
+            CHECK(o.readBack.brightness == 5);   // ... while brightness stayed OLD
+            CHECK(o.readBack.effect == Effect::Off); // ... and effect is still OLD
+            // No rollback: the landed attribute was NOT restored to "10 20 30".
+            CHECK_STR(o.after[0], "1 2 3\n");
+        }
+
+        // --- case C: the LAST attribute (effect) fails -----------------------
+        // Both earlier attributes have landed -> the largest partial state.
+        {
+            const Outcome o = runCase(2, false);
+            CHECK(o.blocked);
+            CHECK(!o.ok);
+            CHECK_STR(o.after[0], "1 2 3\n");    // multi_intensity  landed
+            CHECK_STR(o.after[1], "7\n");        // brightness       landed
+            CHECK(o.after[2] == o.before[2]);    // effect           refused
+            CHECK(o.hasReadBack);
+            CHECK(o.readBack.red == 1 && o.readBack.green == 2 && o.readBack.blue == 3);
+            CHECK(o.readBack.brightness == 7);
+            CHECK(o.readBack.effect == Effect::Off); // NOT Breathing -> PARTIAL
+            // The two landed attributes are NOT rolled back.
+            CHECK_STR(o.after[0], "1 2 3\n");
+            CHECK_STR(o.after[1], "7\n");
+        }
+
+        // --- case D: a second, independent failure mechanism -----------------
+        // The attribute is a DIRECTORY, not a read-only file. write() still
+        // fails, and because it is the FIRST attribute nothing else is touched.
+        {
+            const Outcome o = runCase(0, true);
+            CHECK(o.blocked);
+            CHECK(!o.ok);
+            CHECK(o.after[1] == o.before[1]);    // brightness unchanged ("5\n")
+            CHECK(o.after[2] == o.before[2]);    // effect unchanged     ("off\n")
+            CHECK_STR(o.after[1], "5\n");
+            CHECK_STR(o.after[2], "off\n");
+        }
     }
 
     // =========================================================================

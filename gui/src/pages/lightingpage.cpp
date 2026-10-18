@@ -30,6 +30,7 @@
 #include <QSlider>
 #include <QSpinBox>
 #include <QStackedWidget>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include <cmath>
@@ -1221,6 +1222,53 @@ LightingPage::LightingPage(QWidget *parent)
 
     buildUi();
     rescan();
+
+#ifdef EXCALIBUR_DEV_HOOKS
+    // --- dev-hook seam (EXCALIBUR_DEV_HOOKS only) --------------------------
+    // Lets a single, automated offscreen run open the application write gate and
+    // Apply once, so the write outcome (Applied / Partial write / Write failed /
+    // Not applied) can be captured as a screenshot without a user session. Both
+    // variables are unset in normal use, and this whole block is compiled out of
+    // a release build (EXCALIBUR_DEV_HOOKS is OFF by default), so the production
+    // path is unchanged.
+    //   EXCALIBUR_UI_GATE=1     open the in-session application gate
+    //   EXCALIBUR_AUTO_APPLY=1  also Apply once, right after the gate opens
+    // The kernel gate is still required and is read from EXCALIBUR_KERNEL_GATE_FILE
+    // (existing seam); the client's write switch is still only set by refreshGate().
+    const auto devFlag = [](const char *name) {
+        const QString v = qEnvironmentVariable(name).trimmed().toLower();
+        return !v.isEmpty() && v != QLatin1String("0") && v != QLatin1String("false");
+    };
+    if (devFlag("EXCALIBUR_UI_GATE")) {
+        m_uiGate = true;
+        if (m_uiGateBox) {
+            // Route through the checkbox, exactly as a real click would, so the
+            // toggled() slot runs refreshGate() and grants the client its write
+            // switch. Nothing here bypasses the two-gate rule.
+            m_uiGateBox->setChecked(true);
+        }
+        refreshGate();
+
+        if (devFlag("EXCALIBUR_AUTO_APPLY")) {
+            // The page hydrates its editor from the device on load, so applying
+            // the hydrated values would be indistinguishable from a no-op.
+            // Compose a target that differs from the device's starting state in
+            // every field, so whichever attribute the device refuses to accept
+            // leaves an observable partial state.
+            m_data.effect = Lighting::Effect::Breathing;
+            m_data.brightness = 3;
+            m_data.red = 0x09;
+            m_data.green = 0x09;
+            m_data.blue = 0x09;
+            applyStateToControls();
+            refreshPreview();
+            // Deferred by one event-loop turn so the widget tree has been laid
+            // out once before Apply runs -- a closer match to a user clicking
+            // the button on a visible window.
+            QTimer::singleShot(0, this, [this]() { onApply(); });
+        }
+    }
+#endif // EXCALIBUR_DEV_HOOKS
 }
 
 QString LightingPage::kernelGatePath() const

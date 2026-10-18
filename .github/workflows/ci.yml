@@ -60,6 +60,22 @@ jobs:
 
           echo "source archive guard OK"
 
+      # i18n guard: a committed .ts must not carry placeholder translations.
+      # `lupdate` emits type="unfinished" (source copied into <translation>) for
+      # strings it could not match to a prior translation, and a bare
+      # <translation/> (or <translation></translation>) for an untranslated
+      # message. Either one means the Turkish UI would silently fall back to
+      # English at runtime, so fail fast here. Pure grep: no tools, no network.
+      - name: i18n guard (no unfinished / empty translations)
+        run: |
+          set -euo pipefail
+          ts_file=gui/i18n/excalibur-control-center_tr.ts
+          if grep -nE '<translation[^>]*type="unfinished"|<translation\s*/>|<translation>\s*</translation>' "$ts_file"; then
+            echo "::error file=$ts_file::unfinished or empty <translation> present; complete the translation before committing"
+            exit 1
+          fi
+          echo "i18n guard OK — no unfinished or empty translations in $ts_file"
+
   # Qt 6.4 compatibility gate. The Arch job above builds against a very recent
   # Qt (6.11/6.12); the deb/AppImage builds (Ubuntu 24.04, Debian 12) ship an
   # older Qt 6.4 that only runs in release.yml, i.e. *after* a tag is cut. That
