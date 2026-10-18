@@ -78,10 +78,16 @@
  *   birakmaz); RGB ise kullanilamaz durumdadir ve kullaniciya dev_err/dev_warn ile
  *   acikca bildirilir.
  *
- * SUSPEND/RESUME:
- *   Suspend/resume hook'u KASITLI olarak EKLENMEMISTIR; LED core'un kendi
- *   suspend/resume akisi resume aninda yazma tetikleyebilir. Bu risk nedeniyle
- *   ikinci bir resume-yazma yolu eklenmemistir (ayrica enable_write kapisi gecerli).
+ * TEARDOWN (devm action — F1/F2 FIX):
+ *   Probe, TUM LED kayitlarindan SONRA bir devm action kaydeder:
+ *     ret = devm_add_action_or_reset(&wdev->dev, exc_leds_disable_action, d);
+ *   Bu action driver unbind/remove aninda calisir (devres_release_all() zinciri
+ *   icinde kobject_del DEN ONCE). exc_leds_disable_action() -> exc_leds_disable(d)
+ *   d->lock alir, d->leds_disabled = true yapar, kilidi birakir.
+ *   Bu sayede driver'un clear yolu (devm hwmon + LED class device unregister)
+ *   varken LED core resume/son-yazma path'leri -EPERM alir ve HICBIR WMI SET
+ *   komutu gondermez.
+ *   Suspend/resume hook'u YOKTUR (kastli); enable_write=0 kapisi yine de gecerli kalir.
  *
  * NOT (dogrulanmamis): LED durum GERI OKUMA (a0=0xFA00, a1=0x0100) protokolu
  *   DOGRULANMAMISTIR -> bu surucude KULLANILMAZ; durum yalnizca yazma yolunda izlenir.
@@ -128,9 +134,6 @@
 #define EXC_MODE_OFF		0
 #define EXC_MODE_STATIC		1
 #define EXC_MODE_BREATHING	3
-/* Forward declarations for teardown functions (used before definition). */
-static void exc_leds_disable(struct excalibur_data *d);
-static void exc_leds_disable_action(void *data);
 #define EXC_MODE_COLORFUL	6
 #define EXC_MODE_AMBILIGHT	7
 
@@ -156,6 +159,7 @@ struct excalibur_data {
 	struct mutex lock;	/* serilestirir: hwmon cache + WMI set + query + parse */
 	unsigned long last_update;	/* jiffies */
 	bool valid;
+	bool leds_disabled;	/* teardown devm action tarafindan set edilir */
 	u16 cpu_temp;		/* a2 : CPU sicaklik (C, EC RTMP)  */
 	u16 gpu_temp;		/* a3 : GPU sicaklik (C, EC VGAT)  */
 	u16 cpu_fan;		/* a4 : CPU fan tach (LIKELY RPM)  */
@@ -208,6 +212,33 @@ static const struct exc_mode_def exc_modes[] = {
 static inline u16 exc_le16(const u8 *p)
 {
 	return (u16)p[0] | ((u16)p[1] << 8);
+}
+
+/* ==========================================================================
+ * TEARDOWN (devm action — F1/F2 FIX)
+ * ========================================================================== */
+
+/*
+ * exc_leds_disable: teardown aninda cagrilir (devm action zinciri icinde).
+ * d->lock alir, leds_disabled = true yapar, kilidi birakir.
+ * Bu sayede tum ileriki LED store yollari -EPERM doner ve HICBIR WMI SET
+ * komutu gonderilmez (enable_write=1 olsa bile). enable_write kapisi yine de
+ * gecerli kalir; bu ikinci kapidir.
+ */
+static void exc_leds_disable(struct excalibur_data *d)
+{
+	mutex_lock(&d->lock);
+	d->leds_disabled = true;
+	mutex_unlock(&d->lock);
+}
+
+/*
+ * exc_leds_disable_action: devm action callback.
+ * devres_release_all() -> action calistirilir -> exc_leds_disable(d).
+ */
+static void exc_leds_disable_action(void *data)
+{
+	exc_leds_disable(data);
 }
 
 /* ==========================================================================
@@ -431,6 +462,9 @@ static int exc_led_send_locked(struct exc_led *led, u32 data)
 	lockdep_assert_held(&d->lock);
 
 	if (!enable_write)
+		return -EPERM;
+
+	if (d->leds_disabled)
 		return -EPERM;
 
 	/* a0 = 0xFB00 (LED SET) ; a1 = 0x0100 (LE u16) */
@@ -728,7 +762,13 @@ static int excalibur_probe(struct wmi_device *wdev, const void *context)
 		 * LED'in devm-yonetimli 'effect' grubunu) TERS sirada TAM olarak
 		 * geri al. Basarisiz LED'in kendi kaydi zaten
 		 * excalibur_register_led() icinde geri alinmistir.
+		 *
+		 * F1/F2 FIX: leds_disabled = true set ETMEDEN ONCE unregister
+		 * dongusune gir, bu sekilde teardown action'tan hemen once LED
+		 * core resume/son-yazma path'leri -EPERM alir.
 		 */
+		d->leds_disabled = true;
+
 		const char *failed = exc_led_defs[i].label;
 		int failed_err = ret;
 
@@ -750,6 +790,17 @@ static int excalibur_probe(struct wmi_device *wdev, const void *context)
 
 		return 0;
 	}
+
+	/* 3) Devm action for teardown (F1/F2 fix): runs on driver unbind/remove,
+	 *    sets leds_disabled under lock BEFORE LED unregister.
+	 *    Order: hwmon -> LED1 -> ... -> LED7 -> teardown_action
+	 *    LIFO cleanup: teardown_action -> LED7 -> ... -> LED1 -> hwmon
+	 *    CORRECT: teardown_action runs FIRST, sets leds_disabled=true,
+	 *    then LED unregister happens.
+	 */
+	ret = devm_add_action_or_reset(&wdev->dev, exc_leds_disable_action, d);
+	if (ret)
+		return ret;
 
 	dev_info(&wdev->dev,
 		 "probe ok; read-only hwmon 'excalibur_g870' + %zu RGB LEDs (write=%s)\n",
