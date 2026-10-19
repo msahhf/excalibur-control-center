@@ -763,11 +763,11 @@ static int excalibur_probe(struct wmi_device *wdev, const void *context)
 		 * geri al. Basarisiz LED'in kendi kaydi zaten
 		 * excalibur_register_led() icinde geri alinmistir.
 		 *
-		 * F1/F2 FIX: leds_disabled = true set ETMEDEN ONCE unregister
-		 * dongusune gir, bu sekilde teardown action'tan hemen once LED
-		 * core resume/son-yazma path'leri -EPERM alir.
+		 * F1/F2 FIX: Use exc_leds_disable() which acquires d->lock before
+		 * setting leds_disabled = true. This ensures LED core resume/final
+		 * write paths see -EPERM before entering the unregister loop.
 		 */
-		d->leds_disabled = true;
+		exc_leds_disable(d);
 
 		const char *failed = exc_led_defs[i].label;
 		int failed_err = ret;
