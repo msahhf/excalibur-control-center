@@ -57,7 +57,7 @@ website/
     styles/               # tokens · base · layout · widgets
     components/
       Nav, LanguageSwitcher, Hero, Story, ReadOnly, Architecture,
-      Diagnostics, Downloads, Compatibility, FinalCta, Footer,
+      Diagnostics, Downloads, QuickInstall, Compatibility, FinalCta, Footer,
       ScreenshotFrame, Lightbox, SheetHead, Brand, Icons
 ```
 
@@ -66,7 +66,8 @@ website/
 Cinematic hero → a **vertical intro that becomes a horizontal scrollytelling
 story** (Dashboard / Cooling / Device / Diagnostics) and returns to vertical flow
 → *Read, don't control* with a one-way telemetry pipeline diagram → how it works
-→ exportable diagnostics → downloads (segmented platform selector) →
+→ exportable diagnostics → downloads (Quick Install one-liner + segmented
+platform selector) →
 compatibility → final CTA → footer.
 
 ## Localisation
@@ -92,15 +93,40 @@ sensor values are fabricated.
 - No live telemetry: a browser cannot read the hardware. Screenshots are static
   captures; the Diagnostics JSON is a **representative schema with real field
   names and placeholder values** (labelled as such in the UI).
-- Download links are the **real** v0.5.6 release assets; nothing is guessed.
+- Download links are the **real** v0.5.8 release assets; nothing is guessed. The
+  asset names, byte sizes and sha256 values in `src/data/site.ts` were taken from
+  the GitHub release and verified by downloading every file and hashing it
+  against the published `SHA256SUMS`.
 - Compatibility is stated exactly as verified: Fedora RPM is not published, the
   driver does not support kernel 6.18.x LTS, and the AppImage is GUI-only.
 - The logo is an original mark for EXCALIBUR Control Center; the site is **not**
   affiliated with or endorsed by CASPER.
 
-## Before hosting (not done here)
+## Quick Install (one-command installer)
 
-No hosting, domain or deployment config is included. When a domain is chosen,
-make `og:image` / `twitter:image` absolute in `index.html` and add a
-`<link rel="canonical">`. `vite.config.ts` uses `base: "./"`, so the build is
-portable to any sub-path.
+The Download section shows the installer that the release workflow publishes as
+the `install.sh` asset (`.github/workflows/release.yml` copies
+`scripts/install.sh` and adds it to `SHA256SUMS`). The site shows the exact,
+verified release URL and three explicit steps — download, review with `less`,
+then `sudo bash install.sh` — instead of piping remote code into a root shell,
+because the script itself never calls `sudo`. The supporting facts (supported
+distributions, kernel 7.2 + headers, `--check`, the privilege model) come from
+`scripts/install.sh` in the repository and are repeated in the card's notes.
+
+The clipboard action has an accessible `role="status"` announcement for success
+and failure; on failure the command text is selected so it can still be copied
+by hand. `npm run shots` asserts the URL, the command shape, the copy result and
+the failure path in a real browser.
+
+## Hosting
+
+The site is deployed on Vercel, which builds `website/` on every push to the
+open website branch and on `main`:
+
+- Production: <https://excalibur-control-center.vercel.app>
+
+`index.html` therefore uses absolute URLs for `og:image`, `twitter:image`,
+`og:url`, `rel="canonical"` and the apple-touch icon (`public/icon-180.png`,
+rendered from `favicon.svg`). If the domain changes, update those URLs in
+`index.html`. `vite.config.ts` keeps `base: "./"`, so the build still works from
+any sub-path.

@@ -166,8 +166,32 @@ export const de: Dict = {
   downloads: {
     heading: "Download",
     lead:
-      "Jede Datei unten ist im Release v{version} veröffentlicht. Debian- und Ubuntu-Pakete sind gegen unterschiedliche Qt-Versionen gebaut — wählen Sie die für Ihre Distribution.",
+      "Alles unten ist im Release v{version} veröffentlicht: Lassen Sie den Installer die passenden Pakete wählen oder laden Sie sie selbst herunter.",
     selectorLabel: "Plattform wählen",
+    manualTitle: "Oder ein Paket selbst herunterladen",
+    manualLead:
+      "Debian- und Ubuntu-Pakete sind gegen unterschiedliche Qt-Versionen gebaut — wählen Sie das passende für Ihr System.",
+    install: {
+      badge: "Schnellster Weg",
+      title: "Schnellinstallation",
+      lead:
+        "Ein Befehl im Terminal: Der Installer erkennt Ihre Distribution, lädt die passenden Release-Pakete und prüft vor der Installation ihre SHA-256-Prüfsummen.",
+      distrosLabel: "Vom Installer unterstützte Distributionen",
+      commandLabel: "Terminalbefehl",
+      copy: "Befehl kopieren",
+      copiedButton: "Kopiert",
+      copied: "Befehl in die Zwischenablage kopiert.",
+      copyError: "Kopieren fehlgeschlagen. Der Befehl ist markiert — mit Strg+C kopieren.",
+      commandHint: "Kopiert alle drei Zeilen: herunterladen, prüfen, installieren.",
+      sumsLink: "SHA-256-Prüfsummen",
+      notes: [
+        "Unterstützt: Arch Linux und CachyOS, Debian 13 (trixie), Ubuntu 24.04 LTS. Jede andere Distribution wird abgelehnt, bevor etwas installiert wird.",
+        "Das Skript ruft selbst nie sudo auf. Es zeigt jeden Befehl an, den es ausführen will; die letzte Zeile nutzt sudo, weil der Paketmanager Root-Rechte braucht.",
+        "Der Treiber wird lokal mit DKMS gebaut — dafür sind Kernel 7.2 oder neuer und die passenden Kernel-Header nötig.",
+        "Danach das Modul mit sudo modprobe excalibur_wmi laden (oder neu starten), um Live-Telemetrie zu erhalten.",
+        "Erst schauen? ./install.sh --check zeigt, was installiert würde — ohne Root-Rechte und ohne etwas zu installieren.",
+      ],
+    },
     download: "Herunterladen",
     checksums: "Prüfsummen",
     files: "Dateien",

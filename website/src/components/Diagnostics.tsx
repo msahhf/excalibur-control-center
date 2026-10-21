@@ -1,6 +1,7 @@
 import { SheetHead } from "./SheetHead";
 import { ScreenshotFrame } from "./ScreenshotFrame";
 import { useI18n } from "../i18n";
+import { RELEASE_VERSION } from "../data/site";
 
 export function Diagnostics() {
   const { t } = useI18n();
@@ -46,7 +47,7 @@ export function Diagnostics() {
                   {"    "}
                   <span className="k">"version"</span>
                   {": "}
-                  <span className="s">"0.5.6"</span>
+                  <span className="s">"{RELEASE_VERSION}"</span>
                   {",  "}
                   <span className="k">"build_type"</span>
                   {": "}

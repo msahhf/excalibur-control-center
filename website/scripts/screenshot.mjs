@@ -53,6 +53,12 @@ const fail = (m) => {
 const ok = (m) => console.log("ok  :", m);
 const eq = (got, want, label) => (got === want ? ok(`${label} = ${want}`) : fail(`${label}: got ${got}, want ${want}`));
 
+// The release version is read from src/data/site.ts, so this check follows the
+// site's own data instead of hard-coding a number that can drift.
+const SITE_DATA = readFileSync(resolve(__dirname, "../src/data/site.ts"), "utf8");
+const RELEASE_VERSION = SITE_DATA.match(/RELEASE_VERSION = "([^"]+)"/)?.[1];
+if (!RELEASE_VERSION) throw new Error("could not read RELEASE_VERSION from src/data/site.ts");
+
 const SCENES = ["dashboard", "cooling", "device", "diagnostics"];
 const SCENE_IMG = {
   dashboard: "dashboard-dark.png",
@@ -161,6 +167,7 @@ try {
   // ===================== Desktop =====================
   {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "en-US" });
+    await ctx.grantPermissions(["clipboard-read", "clipboard-write"]);
     const page = await ctx.newPage();
     const errors = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
@@ -249,6 +256,69 @@ try {
     await page.evaluate(() => document.querySelector("#download")?.scrollIntoView({ block: "start" }));
     await waitForImages(page);
     await page.screenshot({ path: `${outDir}/desktop-downloads.png` });
+    // ---- quick install (one-command installer in the same section) ----
+    const qi = page.locator("#download .qi");
+    if (await qi.count() === 1 && (await qi.isVisible())) ok("quick install: card is visible inside the Download section");
+    else fail("quick install: card missing from the Download section");
+
+    const qiCode = await page.locator("#download .qi__code code").innerText();
+    const expectedUrl = `https://github.com/msahhf/excalibur-control-center/releases/download/v${RELEASE_VERSION}/install.sh`;
+    if (qiCode.includes(expectedUrl)) ok(`quick install: command uses the real v${RELEASE_VERSION} install.sh URL`);
+    else fail(`quick install: command does not contain ${expectedUrl} → ${qiCode}`);
+    if (/^curl -fsSLO https:\/\/github\.com\//m.test(qiCode) && /sudo bash install\.sh$/m.test(qiCode))
+      ok("quick install: download → review → sudo run (no pipe-to-root)");
+    else fail(`quick install: unexpected command shape → ${qiCode}`);
+    if (!/\|\s*(sudo\s+)?(bash|sh)\b/.test(qiCode)) ok("quick install: no curl | bash pipe");
+    else fail("quick install: command pipes remote code into a shell");
+    const lineCount = qiCode.trim().split("\n").length;
+    eq(lineCount, 3, "quick install: three explicit steps (download, review, run)");
+
+    const scriptHref = await page.locator("#download .qi__script-link").getAttribute("href");
+    eq(scriptHref, expectedUrl, "quick install: install.sh link is the published release asset");
+    const distros = await page.locator("#download .qi__distros .chip").allInnerTexts();
+    for (const d of ["Arch Linux", "CachyOS", "Debian 13", "Ubuntu 24.04"]) {
+      if (distros.some((x) => x.trim() === d)) ok(`quick install: supported distro listed → ${d}`);
+      else fail(`quick install: missing supported distro ${d} (${distros.join(", ")})`);
+    }
+    const qiNotes = await page.locator("#download .qi__notes").innerText();
+    for (const [label, re] of [
+      ["privilege model", /never calls sudo/i],
+      ["DKMS kernel requirement", /7\.2/],
+      ["root hint for the last step", /sudo/],
+    ]) {
+      if (re.test(qiNotes)) ok(`quick install: notes mention the ${label}`);
+      else fail(`quick install: notes miss the ${label}`);
+    }
+
+    const copyBtn = page.getByRole("button", { name: /copy command/i });
+    await copyBtn.click();
+    await page.waitForTimeout(200);
+    const clip = await page.evaluate(() => navigator.clipboard.readText());
+    eq(clip, qiCode, "quick install: Copy command puts the exact command on the clipboard");
+    const statusText = await page.locator("#download .qi__status").innerText();
+    const liveRole = await page.getAttribute("#download .qi__status", "role");
+    eq(liveRole, "status", "quick install: copy feedback is a live region");
+    if (/copied/i.test(statusText)) ok(`quick install: success feedback → "${statusText}"`);
+    else fail(`quick install: missing success feedback → "${statusText}"`);
+    await page.screenshot({ path: `${outDir}/desktop-quick-install.png` });
+
+    // failure path: clipboard unavailable AND the legacy fallback failing
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: () => Promise.reject(new Error("blocked")) },
+      });
+      document.execCommand = () => false;
+    });
+    await copyBtn.click();
+    await page.waitForTimeout(200);
+    const errorText = await page.locator("#download .qi__status").innerText();
+    if (/failed/i.test(errorText)) ok(`quick install: failure feedback → "${errorText}"`);
+    else fail(`quick install: missing failure feedback → "${errorText}"`);
+    const selection = await page.evaluate(() => window.getSelection()?.toString() ?? "");
+    if (selection.includes("install.sh")) ok("quick install: command is selected after a failed copy");
+    else fail("quick install: command not selected after a failed copy");
+
     const picker = page.getByRole("tablist", { name: /platform|Plattform|Platform/i });
     if (await picker.count()) ok("downloads: platform selector has tablist semantics");
     else fail("downloads: missing tablist");
@@ -263,18 +333,19 @@ try {
       if (hit) ok(`downloads: ${id} links to ${expect}`);
       else fail(`downloads: ${id} missing link containing ${expect}`);
     };
-    await pkgCheck("Arch", "excalibur-control-center-0.5.6-1-x86_64.pkg.tar.zst");
+    await pkgCheck("Arch", `excalibur-control-center-${RELEASE_VERSION}-1-x86_64.pkg.tar.zst`);
     await pkgCheck("Debian", ".deb13_amd64.deb");
     await pkgCheck("Ubuntu", ".ubuntu24.04_amd64.deb");
     await pkgCheck("AppImage", "EXCALIBUR_Control_Center-x86_64.AppImage");
 
     const panelText = await page.locator('[role="tabpanel"]').innerText();
-    if (/does not install/i.test(panelText)) ok("downloads: AppImage driver warning present");
-    else fail("downloads: AppImage driver warning missing");
+    // The AppImage ships the GUI only; the driver is a separate download.
+    if (/GUI only/i.test(panelText) && /driver/i.test(panelText)) ok("downloads: AppImage GUI-only / driver warning present");
+    else fail("downloads: AppImage GUI-only warning missing");
     await page.getByRole("tab", { name: "Debian", exact: true }).click();
     await page.waitForTimeout(120);
     const debianText = await page.locator('[role="tabpanel"]').innerText();
-    if (/not interchangeable/i.test(debianText)) ok("downloads: Debian vs Ubuntu distinction present");
+    if (/Debian 13 only/i.test(debianText)) ok("downloads: Debian vs Ubuntu distinction present");
     else fail("downloads: Debian note missing");
 
     // keyboard selection
@@ -413,6 +484,18 @@ try {
     await page.evaluate(() => document.querySelector("#download")?.scrollIntoView({ block: "start" }));
     await page.waitForTimeout(350);
     await page.screenshot({ path: `${outDir}/mobile-de-downloads.png` });
+    const qiMobile = await page.evaluate(() => {
+      const card = document.querySelector("#download .qi");
+      const code = document.querySelector("#download .qi__code");
+      if (!card || !code) return null;
+      return { width: card.getBoundingClientRect().width, overflow: code.scrollWidth - code.clientWidth };
+    });
+    if (!qiMobile) fail("mobile (de): quick install card missing");
+    else if (qiMobile.width > 390) fail(`mobile (de): quick install card ${Math.round(qiMobile.width)}px wide`);
+    else ok(`mobile (de): quick install card fits (${Math.round(qiMobile.width)}px, code scroll ${qiMobile.overflow}px)`);
+    await page.locator("#download .qi").scrollIntoViewIfNeeded();
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: `${outDir}/mobile-de-quick-install.png` });
     await ctx.close();
   }
 

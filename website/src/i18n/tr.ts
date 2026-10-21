@@ -159,8 +159,32 @@ export const tr: Dict = {
   downloads: {
     heading: "İndir",
     lead:
-      "Aşağıdaki her dosya v{version} sürümünde yayımlanmıştır. Debian ve Ubuntu paketleri farklı Qt sürümlerine göre derlenir; dağıtımınıza uygun olanı seçin.",
+      "Aşağıdaki her şey v{version} sürümünde yayımlanır: kurulum betiğinin size uygun paketleri seçmesine izin verin ya da paketleri kendiniz indirin.",
     selectorLabel: "Platformunuzu seçin",
+    manualTitle: "Ya da paketi kendiniz indirin",
+    manualLead:
+      "Debian ve Ubuntu paketleri farklı Qt sürümlerine göre derlenir; sisteminize uygun olanı seçin.",
+    install: {
+      badge: "En hızlı yol",
+      title: "Hızlı Kurulum",
+      lead:
+        "Terminalde tek komut: kurulum betiği dağıtımınızı algılar, eşleşen sürüm paketlerini indirir ve kurmadan önce SHA-256 sağlama toplamlarını doğrular.",
+      distrosLabel: "Kurulum betiğinin desteklediği dağıtımlar",
+      commandLabel: "Terminal komutu",
+      copy: "Komutu kopyala",
+      copiedButton: "Kopyalandı",
+      copied: "Komut panoya kopyalandı.",
+      copyError: "Kopyalanamadı. Komut seçildi — kopyalamak için Ctrl+C tuşlayın.",
+      commandHint: "Üç satırın tümünü kopyalar: indir, incele, kur.",
+      sumsLink: "SHA-256 toplamları",
+      notes: [
+        "Desteklenenler: Arch Linux ve CachyOS, Debian 13 (trixie), Ubuntu 24.04 LTS. Diğer dağıtımlar, hiçbir şey kurulmadan reddedilir.",
+        "Betik kendisi hiçbir zaman sudo çağırmaz. Çalıştıracağı her komutu yazdırır; son satırdaki sudo, paket yöneticisinin root yetkisi istemesindendir.",
+        "Sürücü DKMS ile yerelde derlenir; bu yüzden çekirdek 7.2 veya daha yenisi ve eşleşen çekirdek başlıkları gerekir.",
+        "Kurulumdan sonra canlı telemetri için modülü sudo modprobe excalibur_wmi ile yükleyin (ya da yeniden başlatın).",
+        "Önce bakmak ister misiniz? ./install.sh --check nelerin kurulacağını raporlar — root gerekmez, hiçbir şey kurulmaz.",
+      ],
+    },
     download: "İndir",
     checksums: "Sağlama toplamları",
     files: "Dosyalar",

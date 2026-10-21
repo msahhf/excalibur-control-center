@@ -570,6 +570,239 @@
 
 /* ---------- Downloads ---------------------------------------------------- */
 
+/* Quick Install — the one-command installer, inline in the Download section. */
+.qi {
+  display: grid;
+  gap: clamp(1.2rem, 2.6vw, 2rem);
+  margin-top: 1.8rem;
+  padding: clamp(1.4rem, 3vw, 2.4rem);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(91, 149, 255, 0.09), transparent 58%),
+    linear-gradient(180deg, rgba(23, 27, 34, 0.72), rgba(13, 15, 19, 0.72));
+  box-shadow: 0 24px 60px -46px rgba(0, 0, 0, 0.95);
+  min-width: 0;
+}
+.qi > * {
+  min-width: 0;
+}
+.qi__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.9rem;
+  padding: 0.24rem 0.62rem 0.24rem 0.5rem;
+  border: 1px solid rgba(91, 149, 255, 0.42);
+  border-radius: 999px;
+  background: rgba(91, 149, 255, 0.1);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.qi__badge svg {
+  width: 0.95em;
+  height: 0.95em;
+  flex: none;
+}
+.qi__title {
+  font-size: var(--fs-h3);
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.qi__lead {
+  margin-top: 0.65rem;
+  max-width: 58ch;
+  color: var(--ink-2);
+}
+.qi__distros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.chip--muted {
+  color: var(--ink-3);
+  border-style: dashed;
+}
+
+.qi__panel {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+.qi__panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+}
+.qi__panel-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.qi__panel-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.85rem;
+}
+.qi__ver {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  color: var(--ink-3);
+}
+.qi__script-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--fs-mono);
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.qi__script-link svg {
+  width: 0.95em;
+  height: 0.95em;
+}
+.qi__script-link:hover {
+  color: var(--ink);
+}
+.qi__code {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: #070809;
+  font-family: var(--font-mono);
+  font-size: clamp(0.78rem, 0.62rem + 0.45vw, 0.9rem);
+  line-height: 1.75;
+  color: #e6edf7;
+  tab-size: 2;
+}
+.qi__code code {
+  font: inherit;
+  /* The release URL is long; wrap it instead of hiding the end of the command. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .qi__code {
+    font-size: 0.7rem;
+    padding: 0.85rem 0.8rem;
+    line-height: 1.7;
+  }
+}
+.qi__code:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.qi__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.1rem;
+}
+.qi__copy {
+  min-width: 11.5rem;
+  justify-content: center;
+}
+.qi__copy.is-copied {
+  --btn-bg: var(--ok);
+  --btn-fg: #06170f;
+}
+.qi__copy.is-copied:hover {
+  --btn-bg: #5fddab;
+  background: #5fddab;
+}
+.qi__sums {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--line-2);
+}
+.qi__sums:hover {
+  color: var(--ink);
+  border-color: var(--line-3);
+}
+.qi__hint {
+  font-size: var(--fs-small);
+  color: var(--ink-3);
+}
+.qi__status {
+  min-height: 1.25rem;
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--ok);
+}
+.qi__status.is-error {
+  color: var(--danger);
+}
+.qi__notes {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  align-content: start;
+}
+.qi__notes li {
+  position: relative;
+  padding-left: 1.05rem;
+  font-size: var(--fs-small);
+  color: var(--ink-2);
+  max-width: 72ch;
+}
+.qi__notes li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--signal-dim, rgba(62, 207, 224, 0.5));
+}
+
+@media (min-width: 960px) {
+  .qi {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    align-items: start;
+  }
+  /* Notes span the full card width: a two-column row reads better than a
+     tall empty column beside the command panel. */
+  .qi__notes {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem 2rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line);
+  }
+}
+
+.picker-head {
+  margin-top: clamp(2rem, 4vw, 3rem);
+  margin-bottom: 0.9rem;
+  display: grid;
+  gap: 0.3rem;
+}
+.picker-head__title {
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+.picker-head__lead {
+  font-size: var(--fs-small);
+  color: var(--ink-3);
+  max-width: 70ch;
+}
+
 .picker {
   position: relative;
   display: flex;

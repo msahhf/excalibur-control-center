@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { SheetHead } from "./SheetHead";
 import { IconArrow, IconDownload } from "./Icons";
+import { QuickInstall } from "./QuickInstall";
 import { ScreenshotFrame } from "./ScreenshotFrame";
 import { useI18n, interpolate } from "../i18n";
 import {
@@ -81,6 +82,13 @@ export function Downloads() {
             {t.downloads.heading}
           </h2>
           <p className="lead">{interpolate(t.downloads.lead, { version: RELEASE_VERSION })}</p>
+        </div>
+
+        <QuickInstall />
+
+        <div className="picker-head">
+          <h3 className="picker-head__title">{t.downloads.manualTitle}</h3>
+          <p className="picker-head__lead">{t.downloads.manualLead}</p>
         </div>
 
         <div className="picker" style={{ "--n": packageOrder.length } as CSSProperties}>

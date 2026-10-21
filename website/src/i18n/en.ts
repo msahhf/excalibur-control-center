@@ -162,8 +162,32 @@ export const en = {
   downloads: {
     heading: "Download",
     lead:
-      "Every file below is published in the v{version} release. Debian and Ubuntu packages are built against different Qt versions, so pick the one for your distribution.",
+      "Everything below ships in the v{version} release: let the installer pick the right packages for you, or download them yourself.",
     selectorLabel: "Choose your platform",
+    manualTitle: "Or download a package yourself",
+    manualLead:
+      "Debian and Ubuntu packages are built against different Qt versions, so pick the one that matches your system.",
+    install: {
+      badge: "Fastest path",
+      title: "Quick Install",
+      lead:
+        "One command in your terminal: the installer detects your distribution, downloads the matching release packages and verifies their SHA-256 sums before it installs anything.",
+      distrosLabel: "Distributions the installer supports",
+      commandLabel: "Terminal command",
+      copy: "Copy command",
+      copiedButton: "Copied",
+      copied: "Command copied to the clipboard.",
+      copyError: "Copy failed. The command is selected — press Ctrl+C to copy it.",
+      commandHint: "Copies all three lines: download, review, install.",
+      sumsLink: "SHA-256 sums",
+      notes: [
+        "Supported: Arch Linux and CachyOS, Debian 13 (trixie), Ubuntu 24.04 LTS. Any other distribution is rejected before anything is installed.",
+        "The script never calls sudo itself. It prints each command it is about to run; the last line above uses sudo because the package manager needs root.",
+        "The driver is built locally with DKMS, so kernel 7.2 or newer and the matching kernel headers are required.",
+        "Load the module afterwards with sudo modprobe excalibur_wmi (or reboot) to get live telemetry.",
+        "Want to look first? ./install.sh --check reports what would be installed — no root needed, nothing is installed.",
+      ],
+    },
     download: "Download",
     checksums: "Checksums",
     files: "Files",
